@@ -1,0 +1,36 @@
+{
+  "name": "knowledge-connector-app",
+  "version": "1.0.0",
+  "description": "Knowledge Connector App",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "lint": "npx eslint ."
+  },
+  "author": "Genesys Cloud Services, Inc.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18",
+    "npm": ">=9"
+  },
+  "devDependencies": {
+    "@tsconfig/node18": "18.2.2",
+    "@types/lodash": "4.14.199",
+    "@types/node": "20.7.1",
+    "@typescript-eslint/eslint-plugin": "6.7.3",
+    "@typescript-eslint/parser": "6.7.3",
+    "eslint": "8.50.0",
+    "eslint-config-prettier": "9.0.0",
+    "prettier": "3.0.3",
+    "typescript": "5.2.2"
+  },
+  "dependencies": {
+    "dotenv": "16.3.1",
+    "knowledge-html-converter": "0.0.11",
+    "lodash": "4.17.21",
+    "node-fetch": "3.3.2",
+    "winston": "3.10.0"
+  }
+}
