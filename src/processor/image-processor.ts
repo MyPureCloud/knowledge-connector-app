@@ -20,7 +20,6 @@ import {
   DocumentBodyListElementBlock,
 } from 'knowledge-html-converter/dist/models/blocks/document-body-list.js';
 import { DocumentBodyParagraphBlock } from 'knowledge-html-converter/dist/models/blocks/document-body-paragraph.js';
-import url from 'url';
 import { ImageConfig } from './image-config.js';
 import { FileReaderClient } from '../utils/file-reader-client.js';
 
@@ -86,10 +85,11 @@ export class ImageProcessor implements Processor {
         );
         return;
       }
-      imageBlock.image.url = url.resolve(
-        this.config.relativeImageBaseUrl,
+      const resolvedURL = new URL(
         imageBlock.image.url,
+        this.config.relativeImageBaseUrl,
       );
+      imageBlock.image.url = resolvedURL.href;
     }
     const image = await this.fetchImage(articleId, imageBlock.image.url);
 

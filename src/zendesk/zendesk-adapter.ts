@@ -73,8 +73,8 @@ export class ZendeskAdapter
       this.attachmentCache[articleId] =
         await this.api.fetchAttachmentInfoListForArticle(articleId);
     }
-    return this.attachmentCache[articleId].find(
-      (item) => item.content_url.replace(/\/$/, '') === contentUrl,
+    return this.attachmentCache[articleId].find((item) =>
+      item.content_url.startsWith(contentUrl),
     );
   }
 }
