@@ -7,6 +7,10 @@ export class WebClient {
       url = 'https:' + url;
     }
     const response = await fetch(url);
+    if (!response.ok) {
+      return Promise.reject(new Error(`Image ${url} cannot be downloaded`));
+    }
+
     const content = await response.blob();
     const contentType = response.headers.get('content-type') || '';
 
