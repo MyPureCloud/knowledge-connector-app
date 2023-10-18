@@ -7,13 +7,13 @@ import { UploadAssetStatusResponse } from './model/upload-asset-status-response.
 import { ExportArticlesResponse } from './model/export-articles-response.js';
 import { BulkDeleteResponse } from '../model/bulk-delete-response.js';
 import logger from '../utils/logger.js';
-import { Adapter } from '../adapter/adapter.js';
 import { GenesysDestinationApi } from './genesys-destination-api.js';
+import { DestinationAdapter } from '../adapter/destination-adapter.js';
 
 /**
  * GenesysDestinationAdapter is used by {@Link Uploader} to send collected data to Genesys Knowledge
  */
-export class GenesysDestinationAdapter implements Adapter {
+export class GenesysDestinationAdapter implements DestinationAdapter {
   private config: GenesysDestinationConfig = {};
   private api: GenesysDestinationApi;
 

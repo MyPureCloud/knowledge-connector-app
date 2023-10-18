@@ -3,6 +3,7 @@
 ## Resources
 - Open source project repository: https://github.com/MyPureCloud/knowledge-connector-app
 - Project documentation: https://github.com/MyPureCloud/knowledge-connector-app/wiki
+- Knowledge HTML Converter library: https://github.com/MyPureCloud/knowledge-html-converter
 
 ## Prerequisites
 
@@ -10,8 +11,9 @@
 
 ## Configuration
 
-The app needs configuration for both source and destination adapter.  
-The source adapter section contains configuration for API requests used to retrieve data from external Knowledge Base. Based on the type of the source adapter the number and the name of variables can differ.  
+The app needs configuration for source and destination adapters as well.  
+The source adapter section contains configuration for API requests used to retrieve data from an external knowledge base. 
+Based on the type of the source adapter the number and the name of variables can differ.  
 The destination adapter section contains configuration for sending data to your Genesys Cloud Organization.
 
 The configuration can be set either as Environment Variables or in a `.env` file.  
