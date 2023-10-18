@@ -1,5 +1,4 @@
 import { TokenResponse } from './model/token-response.js';
-import fetch, { RequestInit, Response } from 'node-fetch';
 import { ExportArticlesResponse } from './model/export-articles-response.js';
 import { ExportArticlesRequest } from './model/export-articles-request.js';
 import { ImportExportModel } from '../model/import-export-model.js';
@@ -7,6 +6,7 @@ import { Config } from '../config.js';
 import { JobStatusResponse } from './model/job-status-response.js';
 import logger from '../utils/logger.js';
 import { JobStatus } from './model/job-status.js';
+import { fetch, RequestInit, Response } from '../utils/web-client.js';
 
 export abstract class GenesysApi {
   protected token?: TokenResponse;
@@ -14,9 +14,13 @@ export abstract class GenesysApi {
   public abstract initialize(config: Config): Promise<void>;
 
   protected abstract getLoginUrl(): string;
+
   protected abstract getBaseUrl(): string;
+
   protected abstract getClientId(): string;
+
   protected abstract getClientSecret(): string;
+
   protected abstract getKnowledgeBaseId(): string;
 
   public createExportJob(): Promise<ExportArticlesResponse> {
@@ -31,8 +35,8 @@ export abstract class GenesysApi {
       `/api/v2/knowledge/knowledgeBases/${kbId}/export/jobs`,
       {
         method: 'POST',
-        body,
       },
+      body,
     );
   }
 
@@ -47,17 +51,21 @@ export abstract class GenesysApi {
     return this.innerFetch<ImportExportModel>(downloadURL);
   }
 
-  public fetch<T>(endpoint: string, init?: RequestInit): Promise<T> {
-    const requestInit: RequestInit = {
+  public fetch<T>(
+    endpoint: string,
+    init?: RequestInit,
+    body?: { [key: string]: any },
+  ): Promise<T> {
+    const config: RequestInit = {
       ...init,
       headers: {
         ...(init?.headers || {}),
         Authorization: `Bearer ${this.token?.access_token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(init?.body),
+      body: JSON.stringify(body),
     };
-    return this.innerFetch<T>(this.getBaseUrl() + endpoint, requestInit);
+    return this.innerFetch<T>(this.getBaseUrl() + endpoint, config);
   }
 
   public async waitForJobToFinish<T extends JobStatusResponse>(

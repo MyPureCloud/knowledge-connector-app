@@ -2,7 +2,6 @@ import { Processor } from './processor.js';
 import { ExternalContent } from '../model/external-content.js';
 import { Blob } from 'buffer';
 import { createHash } from 'crypto';
-import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
 import { Image } from '../model/image.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
@@ -13,7 +12,7 @@ import {
   DocumentBodyBlock,
   DocumentContentBlock,
 } from 'knowledge-html-converter';
-import { WebClient } from '../utils/web-client.js';
+import { fetchImage } from '../utils/web-client.js';
 import { DocumentBodyImageBlock } from 'knowledge-html-converter/dist/models/blocks/document-body-image.js';
 import {
   DocumentBodyListBlock,
@@ -22,22 +21,21 @@ import {
 import { DocumentBodyParagraphBlock } from 'knowledge-html-converter/dist/models/blocks/document-body-paragraph.js';
 import { ImageConfig } from './image-config.js';
 import { FileReaderClient } from '../utils/file-reader-client.js';
+import { DestinationAdapter } from '../adapter/destination-adapter.js';
 
 export class ImageProcessor implements Processor {
   private config: ImageConfig = {};
   private adapter?: ImageSourceAdapter;
-  private genesysAdapter?: GenesysDestinationAdapter;
+  private genesysAdapter?: DestinationAdapter;
   private uploadedImageCount: number = 0;
 
-  public initialize(
+  public async initialize(
     config: ImageConfig,
-    adapters: AdapterPair<ImageSourceAdapter, GenesysDestinationAdapter>,
+    adapters: AdapterPair<ImageSourceAdapter, DestinationAdapter>,
   ): Promise<void> {
     this.config = config;
     this.adapter = adapters.sourceAdapter;
     this.genesysAdapter = adapters.destinationAdapter;
-
-    return Promise.resolve();
   }
 
   public async run(content: ExternalContent): Promise<ExternalContent> {
@@ -182,7 +180,7 @@ export class ImageProcessor implements Processor {
   }
 
   private async downloadImage(url: string): Promise<Image> {
-    return WebClient.fetchImage(url);
+    return fetchImage(url);
   }
 
   private async readFile(url: string): Promise<Image> {

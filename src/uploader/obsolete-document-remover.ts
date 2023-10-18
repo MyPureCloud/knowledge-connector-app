@@ -8,42 +8,38 @@ import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapte
 import logger from '../utils/logger.js';
 
 /**
- * ObsoleteArticleRemover bulk deletes the articles from Genesys Knowledge which were removed from source system
+ * ObsoleteDocumentRemover bulk deletes the articles from Genesys Knowledge which were removed from source system
  */
-export class ObsoleteArticleRemover implements Uploader {
-  private config?: GenesysDestinationConfig;
+export class ObsoleteDocumentRemover implements Uploader {
+  private config: GenesysDestinationConfig = {};
   private adapter?: GenesysDestinationAdapter;
 
-  public initialize(
+  public async initialize(
     config: GenesysDestinationConfig,
     adapters: AdapterPair<Adapter, GenesysDestinationAdapter>,
   ): Promise<void> {
     this.config = config;
     this.adapter = adapters.destinationAdapter;
-
-    return Promise.resolve(undefined);
   }
 
   public async run(importableContents: ImportableContents): Promise<void> {
-    validateNonNull(
-      this.config?.genesysKnowledgeBaseId,
-      'Missing Genesys Knowledge Base Id',
-    );
     validateNonNull(this.adapter, 'Missing destination adapter');
 
-    logger.info(
-      'Documents to remove: ' + importableContents.documents.deleted.length,
-    );
-    const responses = await this.adapter!.deleteArticles(
-      importableContents.documents.deleted,
-    );
+    const prefix = this.config.externalIdPrefix;
+    let itemsToDelete = importableContents.documents.deleted;
+    if (prefix) {
+      itemsToDelete = importableContents.documents.deleted.filter(
+        (item) => item.externalId && item.externalId.startsWith(prefix),
+      );
+    }
+
+    logger.info('Documents to remove: ' + itemsToDelete.length);
+    const responses = await this.adapter!.deleteArticles(itemsToDelete);
     const errorCount = responses
       .map((response) => response.errorCount)
       .reduce((pValue, cValue) => pValue + cValue, 0);
-    logger.info(
-      'Documents removed: ' +
-        (importableContents.documents.deleted.length - errorCount),
-    );
+
+    logger.info('Documents removed: ' + (itemsToDelete.length - errorCount));
     if (errorCount > 0) {
       logger.info('Errors: ' + JSON.stringify(responses));
     }

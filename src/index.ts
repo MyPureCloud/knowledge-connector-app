@@ -6,9 +6,10 @@ import { config as dotEnvConfig } from 'dotenv';
 import _ from 'lodash';
 import { GenesysDestinationAdapter } from './genesys/genesys-destination-adapter.js';
 import logger from './utils/logger.js';
-import { ObsoleteArticleRemover } from './uploader/obsolete-article-remover.js';
-import { GenesysSourceAdapter } from './genesys/genesys-source-adapter.js';
+import { ObsoleteDocumentRemover } from './uploader/obsolete-document-remover.js';
+import { PrefixExternalId } from './processor/prefix-external-id.js';
 import { GenesysLoader } from './genesys/genesys-loader.js';
+import { GenesysSourceAdapter } from './genesys/genesys-source-adapter.js';
 
 dotEnvConfig();
 
@@ -22,17 +23,16 @@ logger.debug('Configuration: ' + JSON.stringify(config));
 const sourceAdapter = new GenesysSourceAdapter();
 const destinationAdapter = new GenesysDestinationAdapter();
 
-try {
-  await new Pipe()
-    .adapters({
-      sourceAdapter,
-      destinationAdapter,
-    })
-    .loaders(new GenesysLoader())
-    .processors(new ImageProcessor())
-    .aggregator(new DiffAggregator())
-    .uploaders(new DiffUploader(), new ObsoleteArticleRemover())
-    .start(config);
-} catch (error) {
-  logger.error('Connector app aborted.', error);
-}
+new Pipe()
+  .adapters({
+    sourceAdapter,
+    destinationAdapter,
+  })
+  .loaders(new GenesysLoader())
+  .processors(new ImageProcessor(), new PrefixExternalId())
+  .aggregator(new DiffAggregator())
+  .uploaders(new DiffUploader(), new ObsoleteDocumentRemover())
+  .start(config)
+  .catch((error) => {
+    logger.error('Connector app aborted.', error);
+  });

@@ -7,7 +7,7 @@ import { GenesysSourceApi } from './genesys-source-api.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
 import { Image } from '../model/image.js';
 import { ExportArticlesResponse } from './model/export-articles-response.js';
-import { WebClient } from '../utils/web-client.js';
+import { fetchImage } from '../utils/web-client.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -47,7 +47,7 @@ export class GenesysSourceAdapter
     articleId: string | null,
     url: string,
   ): Promise<Image | null> {
-    return WebClient.fetchImage(url);
+    return fetchImage(url);
   }
 
   private async exportAllEntities(): Promise<ImportExportModel> {

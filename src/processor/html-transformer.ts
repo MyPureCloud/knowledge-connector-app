@@ -6,14 +6,14 @@ import { ExternalContent } from '../model/external-content.js';
 import { convertHtmlToBlocks } from 'knowledge-html-converter';
 
 export class HtmlTransformer implements Processor {
-  public initialize(
+  public async initialize(
     _config: Config,
     _adapters: AdapterPair<Adapter, Adapter>,
   ): Promise<void> {
-    return Promise.resolve(undefined);
+    // do nothing
   }
 
-  public run(content: ExternalContent): Promise<ExternalContent> {
+  public async run(content: ExternalContent): Promise<ExternalContent> {
     content.documents.forEach((document) => {
       [
         ...(document.published?.variations || []),
@@ -26,6 +26,6 @@ export class HtmlTransformer implements Processor {
         delete variation.rawHtml;
       });
     });
-    return Promise.resolve(content);
+    return content;
   }
 }
