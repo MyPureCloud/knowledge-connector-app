@@ -25,7 +25,7 @@ export class GenesysLoader implements Loader {
   public async run(_input?: ExternalContent): Promise<ExternalContent> {
     validateNonNull(this.adapter, 'Missing source adapter');
 
-    logger.info('Fetching data...');
+    logger.info('Fetching data... GENESYS');
     const [categories, labels, articles] = await Promise.all([
       this.adapter!.getAllCategories(),
       this.adapter!.getAllLabels(),
