@@ -51,9 +51,11 @@ GENESYS_KNOWLEDGE_BASE_ID=
 # Base url for relative image urls
 RELATIVE_IMAGE_BASE_URL=
 ```
-### Selecting the Loader
-In the index.ts file you can comment out either the ZendeskLoader & ZendeskAdaptor or the Genesys ones. Depending on the source solution you want to GET Knowledge from. There are comments on these lines.
-
+### Configure the loader to use
+```
+#Loader you want to use either zendesk or genesys
+LOADER=zendesk
+```
 ### Installation
 
 1. Install dependencies `npm install`

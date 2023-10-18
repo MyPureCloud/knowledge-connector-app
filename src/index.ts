@@ -9,8 +9,9 @@ import logger from './utils/logger.js';
 import { ObsoleteArticleRemover } from './uploader/obsolete-article-remover.js';
 import { GenesysSourceAdapter } from './genesys/genesys-source-adapter.js';
 import { GenesysLoader } from './genesys/genesys-loader.js';
-import { ZendeskLoader } from './zendesk/zendesk-loader.js';  //Added for ZendeskLoader use
-import { ZendeskAdapter } from './zendesk/zendesk-adapter.js';  //Added for ZendeskAdaptor
+import { ZendeskLoader } from './zendesk/zendesk-loader.js';
+import { ZendeskAdapter } from './zendesk/zendesk-adapter.js';
+import { HtmlTransformer } from './processor/html-transformer.js';
 
 dotEnvConfig();
 
@@ -21,22 +22,40 @@ const config = _.mapKeys(
 
 logger.debug('Configuration: ' + JSON.stringify(config));
 
-//const sourceAdapter = new GenesysSourceAdapter(); //commented out to use ZendeskLoader
-const sourceAdapter = new ZendeskAdapter();
 const destinationAdapter = new GenesysDestinationAdapter();
 
 try {
-  await new Pipe()
+  config.loader ? console.log(`Loader Selected: ${config.loader}`) : console.error('Set a LOADER in the env first')
+  if(config.loader === 'genesys'){
+    const sourceAdapter = new GenesysSourceAdapter();
+    await new Pipe()
     .adapters({
       sourceAdapter,
       destinationAdapter,
     })
-    //.loaders(new GenesysLoader()) //commented out to use ZendeskLoader
-    .loaders(new ZendeskLoader())
+    .loaders(new GenesysLoader())
     .processors(new ImageProcessor())
     .aggregator(new DiffAggregator())
     .uploaders(new DiffUploader(), new ObsoleteArticleRemover())
     .start(config);
+  }
+  if(config.loader === 'zendesk'){
+    const sourceAdapter = new ZendeskAdapter();
+    await new Pipe()
+    .adapters({
+      sourceAdapter,
+      destinationAdapter,
+    })
+    .loaders(new ZendeskLoader())
+    .processors(
+      new HtmlTransformer(),
+      new ImageProcessor(),
+    )
+    .aggregator(new DiffAggregator())
+    .uploaders(new DiffUploader(), new ObsoleteArticleRemover())
+    .start(config);
+  }
+
 } catch (error) {
   logger.error('Connector app aborted.', error);
 }
