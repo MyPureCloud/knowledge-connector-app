@@ -7,6 +7,7 @@ import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Adapter } from '../adapter/adapter.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import logger from '../utils/logger.js';
+import { convertHtmlToBlocks } from 'knowledge-html-converter';
 
 /**
  * ZendeskLoader is a specific {@Link Loader} implementation for fetching data from Zendesk's API
@@ -25,7 +26,7 @@ export class ZendeskLoader implements Loader {
   public async run(_input?: ExternalContent): Promise<ExternalContent> {
     validateNonNull(this.adapter, 'Missing source adapter');
 
-    logger.info('Fetching data...');
+    logger.info('Fetching data... ZENDESK');
     const [categories, labels, articles] = await Promise.all([
       this.adapter!.getAllCategories(),
       this.adapter!.getAllLabels(),
@@ -37,6 +38,20 @@ export class ZendeskLoader implements Loader {
     logger.info('Categories loaded: ' + data.categories.length);
     logger.info('Labels loaded: ' + data.labels.length);
     logger.info('Documents loaded: ' + data.documents.length);
+
+    //Added to convert rawHTML to the body of object in variation
+    data.documents.forEach((document) => {
+      [
+        ...(document.published?.variations || []),
+        ...(document.draft?.variations || []),
+      ].forEach((variation) => {
+        const blocks = convertHtmlToBlocks(variation.rawHtml || '');
+        variation.body = {
+          blocks,
+        };
+        delete variation.rawHtml;
+      });
+    });
 
     return data;
   }
