@@ -11,6 +11,7 @@ import { ImportableContents } from '../model/importable-contents.js';
 import wrapFunction from '../utils/wrap-function.js';
 import logger from '../utils/logger.js';
 import { Task } from './task.js';
+import { TimerConfig } from './timer-config.js';
 
 /**
  * Pipe is the collection of tasks and adapters which can be executed to do the sync from source to destination.
@@ -78,35 +79,63 @@ export class Pipe {
    * @param {Config} config
    */
   public async start(config: Config): Promise<void> {
-    validateNonNull(this.adapterPair, 'Missing adapters');
-    validateNonNull(this.adapterPair!.sourceAdapter, 'Missing source adapter');
-    validateNonNull(
-      this.adapterPair!.destinationAdapter,
-      'Missing destination adapter',
-    );
+    const startTime = Date.now();
+    const killTimer = this.startProcessKillTimer(config);
 
-    logger.info('Started');
-    await Promise.all([
-      this.adapterPair!.sourceAdapter.initialize(config),
-      this.adapterPair!.destinationAdapter.initialize(config),
-    ]);
+    try {
+      validateNonNull(this.adapterPair, 'Missing adapters');
+      validateNonNull(
+        this.adapterPair!.sourceAdapter,
+        'Missing source adapter',
+      );
+      validateNonNull(
+        this.adapterPair!.destinationAdapter,
+        'Missing destination adapter',
+      );
 
-    let externalContent = await this.executeLoaders(config);
+      logger.info('Started');
+      await Promise.all([
+        this.adapterPair!.sourceAdapter.initialize(config),
+        this.adapterPair!.destinationAdapter.initialize(config),
+      ]);
 
-    if (!externalContent) {
-      logger.warn('Loaders returned no data');
-      return;
+      let externalContent = await this.executeLoaders(config);
+
+      if (!externalContent) {
+        logger.warn('Loaders returned no data');
+        return;
+      }
+
+      externalContent = await this.executeProcessors(config, externalContent);
+
+      const importableContents = await this.executeAggregators(
+        config,
+        this.createEmptyImportableContents(),
+        externalContent,
+      );
+
+      await this.executeUploaders(config, importableContents);
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      logger.info(`Process took ${duration} milliseconds.`);
+    } finally {
+      if (killTimer) {
+        clearTimeout(killTimer);
+      }
     }
+  }
 
-    externalContent = await this.executeProcessors(config, externalContent);
-
-    const importableContents = await this.executeAggregators(
-      config,
-      this.createEmptyImportableContents(),
-      externalContent,
-    );
-
-    await this.executeUploaders(config, importableContents);
+  private startProcessKillTimer(config: TimerConfig): NodeJS.Timeout | null {
+    if (!config?.killAfterLongRunningSeconds) {
+      return null;
+    }
+    const lifetimeInSeconds = parseInt(config?.killAfterLongRunningSeconds, 10);
+    return setTimeout(() => {
+      logger.error(
+        `Connector app did not finish in [${lifetimeInSeconds}] seconds. Killing process`,
+      );
+      process.exit(1);
+    }, lifetimeInSeconds * 1000);
   }
 
   private async executeLoaders(
