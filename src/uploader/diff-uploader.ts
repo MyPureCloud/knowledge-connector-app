@@ -16,14 +16,12 @@ export class DiffUploader implements Uploader {
   private config?: GenesysDestinationConfig;
   private adapter?: GenesysDestinationAdapter;
 
-  public initialize(
+  public async initialize(
     config: GenesysDestinationConfig,
     adapters: AdapterPair<Adapter, GenesysDestinationAdapter>,
   ): Promise<void> {
     this.config = config;
     this.adapter = adapters.destinationAdapter;
-
-    return Promise.resolve(undefined);
   }
 
   public async run(importableContents: ImportableContents): Promise<void> {

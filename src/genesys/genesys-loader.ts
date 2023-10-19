@@ -14,12 +14,11 @@ import { GenesysSourceConfig } from './model/genesys-source-config.js';
 export class GenesysLoader implements Loader {
   private adapter?: GenesysSourceAdapter;
 
-  public initialize(
+  public async initialize(
     _config: GenesysSourceConfig,
     adapters: AdapterPair<GenesysSourceAdapter, Adapter>,
   ): Promise<void> {
     this.adapter = adapters.sourceAdapter;
-    return Promise.resolve();
   }
 
   public async run(_input?: ExternalContent): Promise<ExternalContent> {

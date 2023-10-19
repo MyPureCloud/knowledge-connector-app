@@ -14,12 +14,11 @@ import logger from '../utils/logger.js';
 export class ZendeskLoader implements Loader {
   private adapter?: ZendeskAdapter;
 
-  public initialize(
+  public async initialize(
     _config: ZendeskConfig,
     adapters: AdapterPair<ZendeskAdapter, Adapter>,
   ): Promise<void> {
     this.adapter = adapters.sourceAdapter;
-    return Promise.resolve();
   }
 
   public async run(_input?: ExternalContent): Promise<ExternalContent> {

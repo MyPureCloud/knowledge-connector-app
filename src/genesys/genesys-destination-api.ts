@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import { SearchAssetRequest } from './model/search-asset-request.js';
 import {
   AssetResponse,
@@ -15,6 +14,7 @@ import { validateNonNull } from '../utils/validate-non-null.js';
 import { BulkDeleteResponse } from '../model/bulk-delete-response.js';
 import { GenesysApi } from './genesys-api.js';
 import { GenesysDestinationConfig } from './model/genesys-destination-config.js';
+import { fetch } from '../utils/web-client.js';
 
 export class GenesysDestinationApi extends GenesysApi {
   private config: GenesysDestinationConfig = {};
@@ -69,8 +69,8 @@ export class GenesysDestinationApi extends GenesysApi {
       '/api/v2/responsemanagement/responseassets/search',
       {
         method: 'POST',
-        body: params,
       },
+      params,
     );
   }
 
@@ -81,15 +81,15 @@ export class GenesysDestinationApi extends GenesysApi {
       '/api/v2/responsemanagement/responseassets/uploads',
       {
         method: 'POST',
-        body: params,
       },
+      params,
     );
   }
 
-  public async upload<T>(
+  public async upload(
     uploadUrl: UploadAssetResponse,
     blob: Blob,
-  ): Promise<T> {
+  ): Promise<void> {
     const response = await fetch(uploadUrl.url, {
       method: 'PUT',
       headers: uploadUrl.headers,
@@ -97,25 +97,18 @@ export class GenesysDestinationApi extends GenesysApi {
     });
     await this.verifyResponse(response, uploadUrl.url);
 
-    const json = await response.text();
-    return json as T;
+    await response.text();
   }
 
   public getUploadStatus(uploadId: string): Promise<UploadAssetStatusResponse> {
     return this.fetch<UploadAssetStatusResponse>(
       `/api/v2/responsemanagement/responseassets/status/${uploadId}`,
-      {
-        method: 'GET',
-      },
     );
   }
 
   public getUploadInfo(uploadId: string): Promise<AssetResponse> {
     return this.fetch<AssetResponse>(
       `/api/v2/responsemanagement/responseassets/${uploadId}`,
-      {
-        method: 'GET',
-      },
     );
   }
 
@@ -128,9 +121,9 @@ export class GenesysDestinationApi extends GenesysApi {
         `/api/v2/knowledge/documentuploads`,
         {
           method: 'POST',
-          body: {
-            fileName,
-          },
+        },
+        {
+          fileName,
         },
       );
 
@@ -157,8 +150,8 @@ export class GenesysDestinationApi extends GenesysApi {
       `/api/v2/knowledge/knowledgeBases/${kbId}/import/jobs`,
       {
         method: 'POST',
-        body,
       },
+      body,
     );
   }
 
@@ -170,14 +163,14 @@ export class GenesysDestinationApi extends GenesysApi {
   }
 
   public bulkDeleteArticles(ids: string[]): Promise<BulkDeleteResponse> {
-    const kbId = this.config.genesysKnowledgeBaseId;
+    const kbId = this.getKnowledgeBaseId();
     return this.fetch<BulkDeleteResponse>(
       `/api/v2/knowledge/knowledgeBases/${kbId}/documents/bulk/remove`,
       {
         method: 'POST',
-        body: {
-          entities: ids.map((id) => ({ id })),
-        },
+      },
+      {
+        entities: ids.map((id) => ({ id })),
       },
     );
   }

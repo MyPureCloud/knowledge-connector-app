@@ -7,7 +7,6 @@ import {
   ImportableContent,
   ImportableContents,
 } from '../model/importable-contents.js';
-import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import _ from 'lodash';
 import { ExternalIdentifiable } from '../model/external-identifiable.js';
@@ -21,6 +20,7 @@ import { Label } from '../model/label.js';
 import { CategoryReference } from '../model/category-reference.js';
 import { LabelReference } from '../model/label-reference.js';
 import { GeneratedValue } from '../utils/generated-value.js';
+import { DestinationAdapter } from '../adapter/destination-adapter.js';
 
 /**
  * The DiffAggregator transforms the ExternalContent into ImportableContents,
@@ -28,14 +28,13 @@ import { GeneratedValue } from '../utils/generated-value.js';
  * It detects changes by fetching the current state of the destination system and compare the two based on 'externalId'.
  */
 export class DiffAggregator implements Aggregator {
-  private adapter?: GenesysDestinationAdapter;
+  private adapter?: DestinationAdapter;
 
-  public initialize(
-    config: Config,
-    adapters: AdapterPair<Adapter, GenesysDestinationAdapter>,
+  public async initialize(
+    _config: Config,
+    adapters: AdapterPair<Adapter, DestinationAdapter>,
   ): Promise<void> {
     this.adapter = adapters.destinationAdapter;
-    return Promise.resolve(undefined);
   }
 
   public async run(
@@ -63,7 +62,7 @@ export class DiffAggregator implements Aggregator {
       ),
     };
 
-    return Promise.resolve(importable);
+    return importable;
   }
 
   private collectModifiedItems<T extends ExternalIdentifiable>(

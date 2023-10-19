@@ -1,11 +1,11 @@
 import { ZendeskConfig } from './model/zendesk-config.js';
 import { ZendeskEntityTypes } from './model/zendesk-entity-types.js';
-import fetch, { Response } from 'node-fetch';
 import { ZendeskResponse } from './model/zendesk-response.js';
 import { ZendeskArticleAttachment } from './model/zendest-article-attachment.js';
 import { ZendeskSection } from './model/zendesk-section.js';
 import { ZendeskArticle } from './model/zendesk-article.js';
 import { ZendeskLabel } from './model/zendesk-label.js';
+import { fetch, Response } from '../utils/web-client.js';
 
 export class ZendeskApi {
   private config: ZendeskConfig = {};
