@@ -10,7 +10,6 @@ import { ObsoleteDocumentRemover } from './uploader/obsolete-document-remover.js
 import { PrefixExternalId } from './processor/prefix-external-id.js';
 import { GenesysLoader } from './genesys/genesys-loader.js';
 import { GenesysSourceAdapter } from './genesys/genesys-source-adapter.js';
-import { GenesysLoader } from './genesys/genesys-loader.js';
 import { ZendeskLoader } from './zendesk/zendesk-loader.js';
 import { ZendeskAdapter } from './zendesk/zendesk-adapter.js';
 import { HtmlTransformer } from './processor/html-transformer.js';
@@ -36,9 +35,9 @@ try {
       destinationAdapter,
     })
     .loaders(new GenesysLoader())
-    .processors(new ImageProcessor())
+    .processors(new ImageProcessor(), new PrefixExternalId())
     .aggregator(new DiffAggregator())
-    .uploaders(new DiffUploader(), new ObsoleteArticleRemover())
+    .uploaders(new DiffUploader(), new ObsoleteDocumentRemover())
     .start(config);
   }
   if(config.loader === 'zendesk'){
@@ -54,7 +53,7 @@ try {
       new ImageProcessor(),
     )
     .aggregator(new DiffAggregator())
-    .uploaders(new DiffUploader(), new ObsoleteArticleRemover())
+    .uploaders(new DiffUploader(), new ObsoleteDocumentRemover())
     .start(config);
   }
 
