@@ -26,8 +26,20 @@ ZENDESK_BASE_URL=
 # Username and password for API authentication
 ZENDESK_USERNAME=
 ZENDESK_PASSWORD=
-# The articles language to be synced
+# The articles language to be synced eg: en-us
 ZENDESK_LOCALE=
+```
+### Configure Salesforce as source
+```
+# The base url for Salesforce API (eg. https://login.salesforce.com or https://test.salesforce.com)
+SALESFORCE_BASE_URL=
+SALESFORCE_DOMAIN=https://custom.my.salesforce.com
+# Username, password & Security Token for API authentication
+SALESFORCE_USERNAME=
+SALESFORCE_PASSWORD=
+SALESFORCE_SECURITY_TOKEN=
+# The articles language to be synced eg: en-us
+SALESFORCE_LOCALE=
 ```
 
 ### Configure Genesys Cloud as source

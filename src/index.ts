@@ -13,6 +13,8 @@ import { GenesysSourceAdapter } from './genesys/genesys-source-adapter.js';
 import { ZendeskLoader } from './zendesk/zendesk-loader.js';
 import { ZendeskAdapter } from './zendesk/zendesk-adapter.js';
 import { HtmlTransformer } from './processor/html-transformer.js';
+import { SalesforceAdapter } from './salesforce/salesforce-adapter.js';
+import { SalesforceLoader } from './salesforce/salesforce-loader.js';
 
 dotEnvConfig();
 
@@ -48,6 +50,22 @@ try {
       destinationAdapter,
     })
     .loaders(new ZendeskLoader())
+    .processors(
+      new HtmlTransformer(),
+      new ImageProcessor(),
+    )
+    .aggregator(new DiffAggregator())
+    .uploaders(new DiffUploader(), new ObsoleteDocumentRemover())
+    .start(config);
+  }
+  if(config.loader === 'salesforce'){
+    const sourceAdapter = new SalesforceAdapter();
+    await new Pipe()
+    .adapters({
+      sourceAdapter,
+      destinationAdapter,
+    })
+    .loaders(new SalesforceLoader())
     .processors(
       new HtmlTransformer(),
       new ImageProcessor(),
