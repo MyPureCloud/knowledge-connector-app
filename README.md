@@ -54,6 +54,12 @@ GENESYS_KNOWLEDGE_BASE_ID=
 RELATIVE_IMAGE_BASE_URL=
 ```
 
+### Configure timeout
+```
+# Terminates the application after the set timeout in seconds has been reached. Optional
+KILL_AFTER_LONG_RUNNING_SECONDS=
+```
+
 ### Installation
 
 1. Install dependencies `npm install`
