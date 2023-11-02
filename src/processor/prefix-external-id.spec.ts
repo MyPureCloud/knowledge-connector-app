@@ -8,6 +8,7 @@ import {
   generateDocument,
   generateLabel,
 } from '../tests/utils/entity-generators.js';
+import { beforeEach, describe, expect, it } from '@jest/globals';
 
 describe('PrefixExternalId', () => {
   const EXTERNAL_ID_PREFIX = 'this-is-the-prefix-';

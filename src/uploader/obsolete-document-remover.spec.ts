@@ -2,12 +2,12 @@ import { ObsoleteDocumentRemover } from './obsolete-document-remover.js';
 import { Adapter } from '../adapter/adapter.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
 import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
-import { DestinationAdapter } from '../adapter/destination-adapter.js';
 import {
   generateDocument,
   generateImportableContents,
 } from '../tests/utils/entity-generators.js';
 import { BulkDeleteResponse } from '../model/bulk-delete-response.js';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 jest.mock('../genesys/genesys-destination-adapter.js');
 
@@ -16,11 +16,11 @@ describe('ObsoleteDocumentRemover', () => {
   let sourceAdapter: Adapter;
   let destinationAdapter: GenesysDestinationAdapter;
   let adapters: AdapterPair<Adapter, GenesysDestinationAdapter>;
-  let mockDeleteArticles: jest.Mock<Promise<BulkDeleteResponse[]>, any[]>;
+  let mockDeleteArticles: jest.Mock<() => Promise<BulkDeleteResponse[]>>;
 
   beforeEach(async () => {
     sourceAdapter = {
-      initialize: jest.fn(),
+      initialize: jest.fn<() => Promise<void>>(),
     };
     destinationAdapter = new GenesysDestinationAdapter();
 

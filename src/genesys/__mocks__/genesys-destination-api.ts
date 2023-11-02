@@ -1,8 +1,9 @@
 import { ImportExportModel } from '../../model/import-export-model.js';
+import { jest } from '@jest/globals';
 
 export const GenesysDestinationApi = jest.fn(() => ({
   exportAllEntities: jest
-    .fn<Promise<ImportExportModel>, any[], any>()
+    .fn<() => Promise<ImportExportModel>>()
     .mockResolvedValue({
       version: 2,
       knowledgeBase: {
@@ -12,5 +13,5 @@ export const GenesysDestinationApi = jest.fn(() => ({
       categories: [],
       labels: [],
     }),
-  lookupImage: jest.fn<Promise<string | null>, any[], any>(),
+  lookupImage: jest.fn<() => Promise<string | null>>(),
 }));

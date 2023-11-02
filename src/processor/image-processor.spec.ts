@@ -4,6 +4,7 @@ import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
 import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
 import { generateDocument } from '../tests/utils/entity-generators.js';
 import { Image } from '../model/image.js';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 jest.mock('../utils/web-client.js');
 jest.mock('../genesys/genesys-destination-adapter.js');
@@ -13,20 +14,20 @@ describe('ImageProcessor', () => {
   let destinationAdapter: GenesysDestinationAdapter;
   let adapters: AdapterPair<ImageSourceAdapter, GenesysDestinationAdapter>;
   let imageProcessor: ImageProcessor;
-  let mockGetAttachment: jest.MockedFn<() => Promise<Image | null>>;
-  let mockLookupImage: jest.MockedFn<() => Promise<string | null>>;
+  let mockGetAttachment: jest.Mock<() => Promise<Image | null>>;
+  let mockLookupImage: jest.Mock<() => Promise<string | null>>;
 
   beforeEach(async () => {
     sourceAdapter = {
-      initialize: jest.fn(),
-      getAttachment: jest.fn(),
+      initialize: jest.fn<() => Promise<void>>(),
+      getAttachment: jest.fn<() => Promise<Image | null>>(),
     };
-    mockGetAttachment = sourceAdapter.getAttachment as jest.MockedFn<
+    mockGetAttachment = sourceAdapter.getAttachment as jest.Mock<
       () => Promise<Image | null>
     >;
 
     destinationAdapter = new GenesysDestinationAdapter();
-    mockLookupImage = destinationAdapter.lookupImage as jest.MockedFn<
+    mockLookupImage = destinationAdapter.lookupImage as jest.Mock<
       () => Promise<string | null>
     >;
 

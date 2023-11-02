@@ -12,6 +12,7 @@ import wrapFunction from '../utils/wrap-function.js';
 import logger from '../utils/logger.js';
 import { Task } from './task.js';
 import { TimerConfig } from './timer-config.js';
+import { Configurer } from './configurer.js';
 
 /**
  * Pipe is the collection of tasks and adapters which can be executed to do the sync from source to destination.
@@ -23,18 +24,39 @@ import { TimerConfig } from './timer-config.js';
  *    {@link Uploader}
  */
 export class Pipe {
-  private adapterPair?: AdapterPair<Adapter, Adapter>;
+  private sourceAdapter: Adapter | undefined;
+  private destinationAdapter: Adapter | undefined;
   private loaderList: Loader[] = [];
   private processorList: Processor[] = [];
   private aggregatorList: Aggregator[] = [];
   private uploaderList: Uploader[] = [];
+  private configurerFn: Configurer | undefined;
 
   /**
    * Define source and destination adapters
    * @param {AdapterPair<Adapter, Adapter>} adapters
    */
   public adapters(adapters: AdapterPair<Adapter, Adapter>) {
-    this.adapterPair = adapters;
+    this.sourceAdapter = adapters.sourceAdapter;
+    this.destinationAdapter = adapters.destinationAdapter;
+    return this;
+  }
+
+  /**
+   * Define source adapter
+   * @param {Adapter} sourceAdapter
+   */
+  public source(sourceAdapter: Adapter) {
+    this.sourceAdapter = sourceAdapter;
+    return this;
+  }
+
+  /**
+   * Define destination adapter
+   * @param {Adapter} destinationAdapter
+   */
+  public destination(destinationAdapter: Adapter) {
+    this.destinationAdapter = destinationAdapter;
     return this;
   }
 
@@ -74,6 +96,11 @@ export class Pipe {
     return this;
   }
 
+  public configurer(configurer: Configurer): Pipe {
+    this.configurerFn = configurer;
+    return this;
+  }
+
   /**
    * Execute the defined tasks
    * @param {Config} config
@@ -83,20 +110,17 @@ export class Pipe {
     const killTimer = this.startProcessKillTimer(config);
 
     try {
-      validateNonNull(this.adapterPair, 'Missing adapters');
-      validateNonNull(
-        this.adapterPair!.sourceAdapter,
-        'Missing source adapter',
-      );
-      validateNonNull(
-        this.adapterPair!.destinationAdapter,
-        'Missing destination adapter',
-      );
+      if (this.configurerFn) {
+        this.configurerFn(this);
+      }
+
+      validateNonNull(this.sourceAdapter, 'Missing source adapter');
+      validateNonNull(this.destinationAdapter, 'Missing destination adapter');
 
       logger.info('Started');
       await Promise.all([
-        this.adapterPair!.sourceAdapter.initialize(config),
-        this.adapterPair!.destinationAdapter.initialize(config),
+        this.sourceAdapter!.initialize(config),
+        this.destinationAdapter!.initialize(config),
       ]);
 
       let externalContent = await this.executeLoaders(config);
@@ -189,7 +213,11 @@ export class Pipe {
   ): Promise<O> {
     logger.info(`${task.constructor.name} task running`);
     await wrapFunction(
-      () => task.initialize(config, this.adapterPair!),
+      () =>
+        task.initialize(config, {
+          sourceAdapter: this.sourceAdapter!,
+          destinationAdapter: this.destinationAdapter!,
+        }),
       `Error initializing ${task.constructor.name}`,
     );
 
