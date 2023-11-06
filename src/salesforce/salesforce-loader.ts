@@ -50,9 +50,9 @@ export class SalesforceLoader implements Loader {
     return data;
   }
 
-  private replaceImageUrls(article: SalesforceArticleDetails) {
+  private replaceImageUrls(article: SalesforceArticleDetails): void {
     article.layoutItems.forEach((item) => {
-      if (item.type != 'RICH_TEXT_AREA') {
+      if (item.type !== 'RICH_TEXT_AREA') {
         return;
       }
 
@@ -67,7 +67,7 @@ export class SalesforceLoader implements Loader {
     });
   }
 
-  private processImageUrl(url: string, fieldType: string) {
+  private processImageUrl(url: string, fieldType: string): string {
     const parsedUrl = new URL(url.replace(/&amp;/g, '&'));
     const searchParams = new URLSearchParams(parsedUrl.search);
     const eid = searchParams.get('eid');

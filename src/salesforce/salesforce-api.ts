@@ -18,7 +18,6 @@ export class SalesforceApi {
   public async initialize(config: SalesforceConfig): Promise<void> {
     this.config = config;
     this.bearerToken = await this.getBearerToken();
-    return Promise.resolve(undefined);
   }
 
   public async fetchAllArticles(): Promise<SalesforceArticleDetails[]> {
@@ -50,7 +49,7 @@ export class SalesforceApi {
   private async fillCategoryAncestry(
     categoryGroup: string,
     category: SalesforceCategory,
-  ) {
+  ): Promise<void> {
     const response = await this.fetchCategory(categoryGroup, category.name);
     category.childCategories = response.childCategories;
 

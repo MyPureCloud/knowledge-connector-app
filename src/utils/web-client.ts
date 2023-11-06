@@ -10,7 +10,7 @@ export { Response, RequestInit } from 'node-fetch';
 
 export async function fetchImage(
   url: string,
-  headers: HeadersInit | null = null,
+  headers?: HeadersInit,
 ): Promise<Image> {
   if (url.startsWith('//')) {
     url = 'https:' + url;

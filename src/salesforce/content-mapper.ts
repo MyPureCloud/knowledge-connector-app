@@ -76,8 +76,8 @@ function articleMapper(
 ): Document {
   const { id, title, categoryGroups, layoutItems } = article;
 
-  const labels: LabelReference[] = categoryGroups.flatMap((categoryGroups) =>
-    categoryGroups.selectedCategories.map((category) => {
+  const labels: LabelReference[] = categoryGroups.flatMap((categoryGroup) =>
+    categoryGroup.selectedCategories.map((category) => {
       const name = labelIdAndNameMapping.get(category.url);
       return { id: null, name: name! };
     }),
