@@ -3,18 +3,19 @@ import { GenesysDestinationConfig } from './model/genesys-destination-config.js'
 import { fetch, Response } from '../utils/web-client.js';
 import { TokenResponse } from './model/token-response.js';
 import { SearchAssetResponse } from './model/search-asset-response.js';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 jest.mock('../utils/web-client.js');
 
 describe('GenesysDestinationApi', () => {
   let genesysDestinationApi: GenesysDestinationApi;
-  let mockFetch: jest.Mock<Promise<Response>, any[]>;
+  let mockFetch: jest.Mock<typeof fetch>;
 
   describe('createExportJob', () => {
     beforeEach(async () => {
       genesysDestinationApi = new GenesysDestinationApi();
 
-      mockFetch = fetch as typeof mockFetch;
+      mockFetch = fetch as jest.Mock<typeof fetch>;
       mockLoginResponse();
       await genesysDestinationApi.initialize(getConfig());
     });

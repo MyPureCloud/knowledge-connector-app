@@ -1,10 +1,14 @@
 import { Image } from '../../model/image.js';
-import { Response } from 'node-fetch';
+import {
+  fetch as originalFetch,
+  fetchImage as originalFetchImage,
+} from '../web-client.js';
+import { jest } from '@jest/globals';
 
-export const fetch = jest.fn<Promise<Response>, any[], any>();
+export const fetch = jest.fn<typeof originalFetch>();
 
 export const fetchImage = jest
-  .fn<Promise<Image>, any[], any>()
+  .fn<typeof originalFetchImage>()
   .mockResolvedValue({
     url: '',
     content: new Blob([''], {

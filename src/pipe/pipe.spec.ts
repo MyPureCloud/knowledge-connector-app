@@ -11,6 +11,15 @@ import { Processor } from '../processor/processor.js';
 import { ImportableContents } from '../model/importable-contents.js';
 import { Aggregator } from '../aggregator/aggregator.js';
 import { Uploader } from '../uploader/uploader.js';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
+import { Configurer } from './configurer.js';
 
 jest.mock('../genesys/genesys-destination-adapter.js');
 
@@ -53,24 +62,128 @@ describe('Pipe', () => {
     ]);
   });
 
+  it('should initialize all adapters', async () => {
+    expect.assertions(2);
+
+    const loaderMock = createLoaderMock([]);
+    const processorMock = createProcessorMock([]);
+    const aggregatorMock = createAggregatorMock([]);
+    const uploaderMock = createUploaderMock([]);
+
+    await new Pipe()
+      .adapters(adapterPair)
+      .loaders(loaderMock)
+      .processors(processorMock)
+      .aggregator(aggregatorMock)
+      .uploaders(uploaderMock)
+      .start({});
+
+    expect(sourceAdapter.initialize).toHaveBeenCalledTimes(1);
+    expect(destinationAdapter.initialize).toHaveBeenCalledTimes(1);
+  });
+
+  it('should initialize all tasks', async () => {
+    expect.assertions(4);
+
+    const loaderMock = createLoaderMock([]);
+    const processorMock = createProcessorMock([]);
+    const aggregatorMock = createAggregatorMock([]);
+    const uploaderMock = createUploaderMock([]);
+
+    await new Pipe()
+      .adapters(adapterPair)
+      .loaders(loaderMock)
+      .processors(processorMock)
+      .aggregator(aggregatorMock)
+      .uploaders(uploaderMock)
+      .start({});
+
+    expect(loaderMock.initialize).toHaveBeenCalledTimes(1);
+    expect(processorMock.initialize).toHaveBeenCalledTimes(1);
+    expect(aggregatorMock.initialize).toHaveBeenCalledTimes(1);
+    expect(uploaderMock.initialize).toHaveBeenCalledTimes(1);
+  });
+
+  describe('when killAfterLongRunningSeconds is set', () => {
+    let mockExit: jest.Spied<(code?: number) => never>;
+
+    beforeEach(() => {
+      mockExit = jest
+        .spyOn(process, 'exit')
+        .mockImplementation((_code?: number) => undefined as never);
+
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      mockExit.mockRestore();
+      jest.useRealTimers();
+    });
+
+    it('should stop the process after configured seconds', async () => {
+      expect.assertions(1);
+
+      const loaderMock = createLongRunningLoaderMock();
+
+      await new Pipe().adapters(adapterPair).loaders(loaderMock).start({
+        killAfterLongRunningSeconds: '2',
+      });
+
+      expect(mockExit).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('when configurer given', () => {
+    it('should run configurer', async () => {
+      expect.assertions(3);
+
+      const calls: string[] = [];
+      const loaderMock = createLoaderMock(calls);
+      const processorMock = createProcessorMock(calls);
+      const aggregatorMock = createAggregatorMock(calls);
+      const uploaderMock = createUploaderMock(calls);
+
+      const configurer: Configurer = (pipe: Pipe) => {
+        pipe
+          .source(sourceAdapter)
+          .destination(destinationAdapter)
+          .loaders(loaderMock)
+          .processors(processorMock)
+          .aggregator(aggregatorMock)
+          .uploaders(uploaderMock);
+      };
+
+      await new Pipe().configurer(configurer).start({});
+
+      expect(sourceAdapter.initialize).toHaveBeenCalledTimes(1);
+      expect(destinationAdapter.initialize).toHaveBeenCalledTimes(1);
+      expect(calls).toStrictEqual([
+        'loader',
+        'processor',
+        'aggregator',
+        'uploader',
+      ]);
+    });
+  });
+
   function createSourceAdapter(): SourceAdapter<Category, Label, Document> {
     return {
       initialize: jest
-        .fn<Promise<void>, any[], any>()
+        .fn<() => Promise<void>>()
         .mockReturnValue(Promise.resolve()),
 
-      getAllCategories: jest.fn<Promise<Category[]>, any[], any>(),
+      getAllCategories: jest.fn<() => Promise<Category[]>>(),
 
-      getAllLabels: jest.fn<Promise<Label[]>, any[], any>(),
+      getAllLabels: jest.fn<() => Promise<Label[]>>(),
 
-      getAllArticles: jest.fn<Promise<Document[]>, any[], any>(),
+      getAllArticles: jest.fn<() => Promise<Document[]>>(),
     };
   }
 
   function createLoaderMock(calls: string[]): Loader {
     return {
       initialize: jest
-        .fn<Promise<void>, any[], any>()
+        .fn<() => Promise<void>>()
         .mockReturnValue(Promise.resolve()),
 
       run: async (_input: ExternalContent | undefined) => {
@@ -83,7 +196,7 @@ describe('Pipe', () => {
   function createProcessorMock(calls: string[]): Processor {
     return {
       initialize: jest
-        .fn<Promise<void>, any[], any>()
+        .fn<() => Promise<void>>()
         .mockReturnValue(Promise.resolve()),
 
       run: async (_input: ExternalContent) => {
@@ -96,7 +209,7 @@ describe('Pipe', () => {
   function createAggregatorMock(calls: string[]): Aggregator {
     return {
       initialize: jest
-        .fn<Promise<void>, any[], any>()
+        .fn<() => Promise<void>>()
         .mockReturnValue(Promise.resolve()),
 
       run: async (_input: ExternalContent) => {
@@ -109,12 +222,30 @@ describe('Pipe', () => {
   function createUploaderMock(calls: string[]): Uploader {
     return {
       initialize: jest
-        .fn<Promise<void>, any[], any>()
+        .fn<() => Promise<void>>()
         .mockReturnValue(Promise.resolve()),
 
       run: async (_input: ImportableContents) => {
         calls.push('uploader');
       },
     };
+  }
+
+  function createLongRunningLoaderMock(): Loader {
+    return {
+      initialize: jest
+        .fn<() => Promise<void>>()
+        .mockReturnValue(Promise.resolve()),
+
+      run: async (_input: ExternalContent | undefined) => {
+        // resolve after 3000ms
+        return new Promise((resolve) => {
+          setTimeout(() => resolve({} as ExternalContent), 3000);
+          jest.advanceTimersByTime(2000);
+          jest.runAllTicks();
+          jest.runAllTimers();
+        });
+      },
+    } as Loader;
   }
 });

@@ -54,6 +54,7 @@ export abstract class GenesysApi {
   public fetch<T>(
     endpoint: string,
     init?: RequestInit,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     body?: { [key: string]: any },
   ): Promise<T> {
     const config: RequestInit = {

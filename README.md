@@ -19,8 +19,13 @@ The destination adapter section contains configuration for sending data to your 
 The configuration can be set either as Environment Variables or in a `.env` file.  
 Documentation for using dotenv: https://github.com/motdotla/dotenv#%EF%B8%8F-usage
 
+### The configurer
+The `CONFIGURER` variable defines in which folder should the app find the configurer method. 
+Each adapter has its own configurer method which adds to the pipe all the necessary tasks for that specific adapter. 
+
 ### Configure Zendesk as source 
 ```
+CONFIGURER=zendesk
 # The base url for Zendesk API (eg. https://<company>.zendesk.com)
 ZENDESK_BASE_URL=
 # Username and password for API authentication
@@ -32,6 +37,7 @@ ZENDESK_LOCALE=
 
 ### Configure Genesys Cloud as source
 ```
+CONFIGURER=genesys
 GENESYS_SOURCE_LOGIN_URL=https://login.mypurecloud.com
 GENESYS_SOURCE_BASE_URL=https://api.mypurecloud.com
 GENESYS_SOURCE_CLIENT_ID=

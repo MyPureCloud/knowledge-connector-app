@@ -1,38 +1,18 @@
 import { Pipe } from './pipe/pipe.js';
-import { ImageProcessor } from './processor/image-processor.js';
-import { DiffUploader } from './uploader/diff-uploader.js';
-import { DiffAggregator } from './aggregator/diff-aggregator.js';
-import { config as dotEnvConfig } from 'dotenv';
-import _ from 'lodash';
 import { GenesysDestinationAdapter } from './genesys/genesys-destination-adapter.js';
 import logger from './utils/logger.js';
-import { ObsoleteDocumentRemover } from './uploader/obsolete-document-remover.js';
-import { PrefixExternalId } from './processor/prefix-external-id.js';
-import { GenesysLoader } from './genesys/genesys-loader.js';
-import { GenesysSourceAdapter } from './genesys/genesys-source-adapter.js';
+import { loadConfigurer } from './utils/configurer-loader.js';
+import { parseConfig } from './utils/config-parser.js';
 
-dotEnvConfig();
+const config = parseConfig();
 
-const config = _.mapKeys(
-  process.env,
-  (value: string | undefined, key: string) => _.camelCase(key),
-);
-
-logger.debug('Configuration: ' + JSON.stringify(config));
-
-const sourceAdapter = new GenesysSourceAdapter();
-const destinationAdapter = new GenesysDestinationAdapter();
-
-new Pipe()
-  .adapters({
-    sourceAdapter,
-    destinationAdapter,
+loadConfigurer(config)
+  .then((configurer) => {
+    return new Pipe()
+      .destination(new GenesysDestinationAdapter())
+      .configurer(configurer)
+      .start(config);
   })
-  .loaders(new GenesysLoader())
-  .processors(new ImageProcessor(), new PrefixExternalId())
-  .aggregator(new DiffAggregator())
-  .uploaders(new DiffUploader(), new ObsoleteDocumentRemover())
-  .start(config)
   .catch((error) => {
     logger.error('Connector app aborted.', error);
   });

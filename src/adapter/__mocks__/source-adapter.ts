@@ -1,11 +1,12 @@
 import { Category } from '../../model/category.js';
 import { Label } from '../../model/label.js';
 import { Document } from '../../model/import-export-model.js';
+import { jest } from '@jest/globals';
 
 export const SourceAdapter = jest.fn(() => ({
-  getAllCategories: jest.fn<Promise<Category[]>, any[], any>(),
+  getAllCategories: jest.fn<() => Promise<Category[]>>(),
 
-  getAllLabels: jest.fn<Promise<Label[]>, any[], any>(),
+  getAllLabels: jest.fn<() => Promise<Label[]>>(),
 
-  getAllArticles: jest.fn<Promise<Document[]>, any[], any>(),
+  getAllArticles: jest.fn<() => Promise<Document[]>>(),
 }));
