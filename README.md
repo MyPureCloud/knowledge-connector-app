@@ -54,6 +54,12 @@ GENESYS_CLIENT_SECRET=
 GENESYS_KNOWLEDGE_BASE_ID=
 ```
 
+## Configure external ID prefix (optional)
+```
+# All the IDs from the source system will be extended with this string
+EXTERNAL_ID_PREFIX=
+```
+
 ### Configure image handling
 ```
 # Base url for relative image urls

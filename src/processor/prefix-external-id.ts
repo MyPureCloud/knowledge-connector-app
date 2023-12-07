@@ -22,16 +22,13 @@ export class PrefixExternalId implements Processor {
   }
 
   public async run(content: ExternalContent): Promise<ExternalContent> {
-    validateNonNull(
-      this.config.externalIdPrefix,
-      'Missing EXTERNAL_ID_PREFIX from config',
-    );
+    const prefix = this.config.externalIdPrefix;
 
-    const prefix = this.config.externalIdPrefix!;
-
-    this.replaceExternalId(content.documents, prefix);
-    this.replaceExternalId(content.categories, prefix);
-    this.replaceExternalId(content.labels, prefix);
+    if (prefix) {
+      this.replaceExternalId(content.documents, prefix);
+      this.replaceExternalId(content.categories, prefix);
+      this.replaceExternalId(content.labels, prefix);
+    }
     return content;
   }
 
