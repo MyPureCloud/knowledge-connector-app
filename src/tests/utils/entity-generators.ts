@@ -2,6 +2,7 @@ import { Label } from '../../model/label.js';
 import { Category } from '../../model/category.js';
 import { Document } from '../../model/import-export-model.js';
 import { ImportableContents } from '../../model/importable-contents.js';
+import { DocumentAlternative } from '../../model/document-alternative.js';
 
 export function generateLabel(
   suffix: string,
@@ -30,6 +31,7 @@ export function generateCategory(
 export function generateDocument(
   suffix: string,
   title = 'document-name' + suffix,
+  alternatives: DocumentAlternative[] | null = null,
 ): Document {
   return {
     id: '',
@@ -37,6 +39,7 @@ export function generateDocument(
     published: {
       title,
       visible: true,
+      alternatives,
       variations: [
         {
           body: {
