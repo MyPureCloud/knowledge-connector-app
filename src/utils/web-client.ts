@@ -1,13 +1,23 @@
 import { Image } from '../model/image.js';
-import { default as innerFetch, RequestInit, Response } from 'node-fetch';
+import {
+  default as innerFetch,
+  HeadersInit,
+  RequestInit,
+  Response,
+} from 'node-fetch';
 
 export { Response, RequestInit } from 'node-fetch';
 
-export async function fetchImage(url: string): Promise<Image> {
+export async function fetchImage(
+  url: string,
+  headers?: HeadersInit,
+): Promise<Image> {
   if (url.startsWith('//')) {
     url = 'https:' + url;
   }
-  const response = await innerFetch(url);
+
+  const requestHeaders = headers ? { headers } : {};
+  const response = await innerFetch(url, requestHeaders);
   if (!response.ok) {
     return Promise.reject(new Error(`Image ${url} cannot be downloaded`));
   }
