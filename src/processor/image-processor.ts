@@ -76,19 +76,6 @@ export class ImageProcessor implements Processor {
     imageBlock: DocumentBodyImageBlock,
   ): Promise<void> {
     logger.debug('processing image block ' + imageBlock.image.url);
-    if (this.isRelativeUrl(imageBlock.image.url)) {
-      if (!this.config?.relativeImageBaseUrl) {
-        logger.warn(
-          `Relative image url [${imageBlock.image.url}] found but missing RELATIVE_IMAGE_BASE_URL from config`,
-        );
-        return;
-      }
-      const resolvedURL = new URL(
-        imageBlock.image.url,
-        this.config.relativeImageBaseUrl,
-      );
-      imageBlock.image.url = resolvedURL.href;
-    }
     const image = await this.fetchImage(articleId, imageBlock.image.url);
 
     if (!image) {
@@ -167,6 +154,21 @@ export class ImageProcessor implements Processor {
 
     if (!image) {
       logger.info(`Trying to fetch image [${url}] directly`);
+
+      if (this.isRelativeUrl(url)) {
+        if (!this.config?.relativeImageBaseUrl) {
+          logger.warn(
+              `Relative image url [${url}] found but missing RELATIVE_IMAGE_BASE_URL from config`,
+          );
+          return null;
+        }
+        const resolvedURL = new URL(
+            url,
+            this.config.relativeImageBaseUrl,
+        );
+        url = resolvedURL.href;
+      }
+
       image = await this.downloadImage(url);
     }
 

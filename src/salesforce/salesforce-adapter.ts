@@ -8,7 +8,7 @@ import { SalesforceArticleDetails } from './model/salesforce-article-details.js'
 
 export class SalesforceAdapter
   implements
-    SourceAdapter<SalesforceCategoryGroup, Object, SalesforceArticleDetails>,
+    SourceAdapter<SalesforceCategoryGroup, unknown, SalesforceArticleDetails>,
     ImageSourceAdapter
 {
   private config: SalesforceConfig = {};
@@ -31,7 +31,7 @@ export class SalesforceAdapter
     return this.api.fetchAllCategories();
   }
 
-  public getAllLabels(): Promise<Object[]> {
+  public getAllLabels(): Promise<unknown[]> {
     return Promise.reject();
   }
 

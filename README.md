@@ -53,6 +53,16 @@ SALESFORCE_LANGUAGE_CODE=
 SALESFORCE_ARTICLE_CONTENT_FIELDS=
 ```
 
+### Configure ServiceNow as source
+```
+CONFIGURER=servicenow
+# The base url for ServiceNow API (eg. https://<company>.service-now.com)
+SERVICENOW_BASE_URL=
+# Username, password
+SERVICENOW_USERNAME=
+SERVICENOW_PASSWORD=
+```
+
 ### Configure Genesys Cloud as source
 ```
 CONFIGURER=genesys
