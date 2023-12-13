@@ -9,8 +9,8 @@ import { validateNonNull } from '../utils/validate-non-null.js';
 import { Document, Variation } from '../model/import-export-model.js';
 import logger from '../utils/logger.js';
 import {
-  DocumentBodyBlock,
-  DocumentContentBlock,
+  DocumentBodyBlock, DocumentBodyTableCellBlock, DocumentBodyTableRowBlock,
+  DocumentContentBlock, DocumentTableContentBlock,
 } from 'knowledge-html-converter';
 import { fetchImage } from '../utils/web-client.js';
 import { DocumentBodyImageBlock } from 'knowledge-html-converter/dist/models/blocks/document-body-image.js';
@@ -22,6 +22,7 @@ import { DocumentBodyParagraphBlock } from 'knowledge-html-converter/dist/models
 import { ImageConfig } from './image-config.js';
 import { FileReaderClient } from '../utils/file-reader-client.js';
 import { DestinationAdapter } from '../adapter/destination-adapter.js';
+import { DocumentBodyTableBlock } from 'knowledge-html-converter/dist/models/blocks/document-body-table.js';
 
 export class ImageProcessor implements Processor {
   private config: ImageConfig = {};
@@ -103,6 +104,7 @@ export class ImageProcessor implements Processor {
       | DocumentBodyBlock
       | DocumentContentBlock
       | DocumentBodyListBlock
+      | DocumentTableContentBlock
     )[],
   ): DocumentBodyImageBlock[] {
     return blocks.flatMap((block) => {
@@ -110,6 +112,7 @@ export class ImageProcessor implements Processor {
         | DocumentBodyBlock
         | DocumentContentBlock
         | DocumentBodyListBlock
+        | DocumentTableContentBlock
       )[];
 
       switch (block.type) {
@@ -124,6 +127,11 @@ export class ImageProcessor implements Processor {
           break;
         case 'ListItem':
           children = (block as DocumentBodyListBlock).blocks;
+          break;
+        case 'Table':
+          children = (block as DocumentBodyTableBlock).table.rows.flatMap((row: DocumentBodyTableRowBlock) =>
+            row.cells.flatMap((cell: DocumentBodyTableCellBlock) => (cell.blocks || []))
+          );
           break;
         default:
           children = [];

@@ -2,7 +2,7 @@ import { AdapterPair } from '../adapter/adapter-pair.js';
 import { ImageProcessor } from './image-processor.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
 import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
-import { generateDocument } from '../tests/utils/entity-generators.js';
+import { generateDocument, generateDocumentWithTable } from '../tests/utils/entity-generators.js';
 import { Image } from '../model/image.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
@@ -65,6 +65,23 @@ describe('ImageProcessor', () => {
 
       expect(
         result.documents[0].published?.variations[0].body?.blocks[0].image?.url,
+      ).toBe('https://api.mypurecloud.com/image');
+    });
+
+    it('should replace all image block urls within a table', async () => {
+      const result = await imageProcessor.run({
+        categories: [],
+        labels: [],
+        documents: [
+          generateDocumentWithTable('1'),
+        ],
+      });
+
+      expect(
+        result.documents[0].published?.variations[0].body?.blocks[1].table?.rows[0].cells[0].blocks[0].image?.url,
+      ).toBe('https://api.mypurecloud.com/image');
+      expect(
+        result.documents[0].published?.variations[0].body?.blocks[1].table?.rows[1].cells[0].blocks[0].image?.url,
       ).toBe('https://api.mypurecloud.com/image');
     });
   });
