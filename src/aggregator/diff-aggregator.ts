@@ -7,7 +7,7 @@ import {
   ImportableContents,
 } from '../model/importable-contents.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
-import _ from 'lodash';
+import _, { get, has, set } from 'lodash';
 import { ExternalIdentifiable } from '../model/external-identifiable.js';
 import {
   Document,
@@ -203,31 +203,18 @@ export class DiffAggregator implements Aggregator {
     }
   }
 
-  private copyProtectedContent(source: any, destination: any): void {
+  private copyProtectedContent<T extends object>(
+    source: T,
+    destination: T,
+  ): void {
     if (!this.config.protectedFields) {
       return;
     }
-    const fieldMappings = this.config.protectedFields.split(',');
-    fieldMappings.forEach((mapping) => {
-      const pathArray = mapping.split('/');
-
-      let currentSource = source;
-      let currentDestination = destination;
-
-      for (const key of pathArray) {
-        if (currentSource[key]) {
-          currentSource = currentSource[key];
-
-          if (!currentDestination[key]) {
-            currentDestination[key] = Array.isArray(currentSource) ? [] : {};
-          }
-
-          currentDestination = currentDestination[key];
-        } else {
-          return;
-        }
+    const fieldPaths = this.config.protectedFields.split(',');
+    fieldPaths.forEach((path) => {
+      if (has(source, path)) {
+        set(destination, path, get(source, path));
       }
-      Object.assign(currentDestination, currentSource);
     });
   }
 }

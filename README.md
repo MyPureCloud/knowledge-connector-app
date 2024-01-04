@@ -91,7 +91,7 @@ EXTERNAL_ID_PREFIX=
 ### Configure protected fields
 ```
 # Fields that you don't want to update in Genesys Cloud can be listed here as comma separated values.
-# For example protecting alternative phrases with "published/alternatives" from being overwritten.
+# For example protecting alternative phrases with "published.alternatives" from being overwritten.
 PROTECTED_FIELDS=
 ```
 

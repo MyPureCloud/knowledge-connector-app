@@ -38,7 +38,7 @@ describe('DiffAggregator', () => {
       aggregator = new DiffAggregator();
 
       aggregator.initialize(
-        { protectedFields: 'published/alternatives' },
+        { protectedFields: 'published.alternatives' },
         adapters,
       );
     });
@@ -160,6 +160,27 @@ describe('DiffAggregator', () => {
         const alternatives =
           importableContents.documents.updated[0].published?.alternatives;
         expect(alternatives?.length).toBe(2);
+      });
+
+      it('should handle primitive protected values', async () => {
+        aggregator.initialize(
+          {
+            protectedFields:
+              'published.visible,published.title,published.alternatives',
+          },
+          adapters,
+        );
+
+        const importableContents = await aggregator.run({
+          categories: [],
+          labels: [],
+          documents: [
+            generateDocument('1', 'title1', null, false),
+            generateDocument('2', 'updated title', null, false),
+          ],
+        });
+
+        verifyGroups(importableContents.documents, 0, 0, 0);
       });
     });
 
