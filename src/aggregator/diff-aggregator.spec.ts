@@ -37,7 +37,10 @@ describe('DiffAggregator', () => {
       };
       aggregator = new DiffAggregator();
 
-      aggregator.initialize({}, adapters);
+      aggregator.initialize(
+        { protectedFields: 'published.alternatives' },
+        adapters,
+      );
     });
 
     describe('when export from destination is empty', () => {
@@ -109,6 +112,75 @@ describe('DiffAggregator', () => {
         verifyGroups(importableContents.categories, 1, 1, 0);
         verifyGroups(importableContents.labels, 1, 1, 0);
         verifyGroups(importableContents.documents, 2, 1, 1);
+      });
+    });
+
+    describe('when export from destination is not empty and contains protected fields', () => {
+      beforeEach(() => {
+        const doc1Alternatives = [
+          {
+            phrase: 'protected field 1',
+            autocomplete: true,
+          },
+        ];
+        const doc2Alternatives = [
+          {
+            phrase: 'protected field 2',
+            autocomplete: true,
+          },
+          {
+            phrase: 'protected field 3',
+            autocomplete: true,
+          },
+        ];
+        const doc1 = generateDocument('1', 'title1', doc1Alternatives);
+        const doc2 = generateDocument('2', 'title2', doc2Alternatives);
+        mockExportAllEntities.mockResolvedValue({
+          version: 2,
+          knowledgeBase: {
+            id: '',
+          },
+          documents: [doc1, doc2],
+          categories: [],
+          labels: [],
+        });
+      });
+
+      it('should not update if the only change is a protected field', async () => {
+        const importableContents = await aggregator.run({
+          categories: [],
+          labels: [],
+          documents: [
+            generateDocument('1', 'title1'),
+            generateDocument('2', 'updated title'),
+          ],
+        });
+
+        verifyGroups(importableContents.documents, 0, 1, 0);
+        const alternatives =
+          importableContents.documents.updated[0].published?.alternatives;
+        expect(alternatives?.length).toBe(2);
+      });
+
+      it('should handle primitive protected values', async () => {
+        aggregator.initialize(
+          {
+            protectedFields:
+              'published.visible,published.title,published.alternatives',
+          },
+          adapters,
+        );
+
+        const importableContents = await aggregator.run({
+          categories: [],
+          labels: [],
+          documents: [
+            generateDocument('1', 'title1', null, false),
+            generateDocument('2', 'updated title', null, false),
+          ],
+        });
+
+        verifyGroups(importableContents.documents, 0, 0, 0);
       });
     });
 

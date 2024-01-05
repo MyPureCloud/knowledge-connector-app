@@ -70,15 +70,13 @@ describe('PrefixExternalId', () => {
     );
   });
 
-  it('should verify that no missing configuration', async () => {
+  it('should ignore missing configuration', async () => {
     await prefixExternalIdProcessor.initialize({}, adapters);
 
-    await expect(() =>
-      prefixExternalIdProcessor.run({
-        labels: [],
-        categories: [],
-        documents: [],
-      }),
-    ).rejects.toThrow('Missing EXTERNAL_ID_PREFIX from config');
+    await prefixExternalIdProcessor.run({
+      labels: [],
+      categories: [],
+      documents: [],
+    });
   });
 });

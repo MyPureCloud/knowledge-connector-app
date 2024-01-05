@@ -85,6 +85,7 @@ function articleMapper(
 
   const documentVersion: DocumentVersion = {
     visible: true,
+    alternatives: null,
     title,
     variations: [
       {

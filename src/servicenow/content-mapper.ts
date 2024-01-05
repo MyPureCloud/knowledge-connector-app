@@ -35,6 +35,7 @@ function articleMapper(article: ServiceNowArticle): Document {
 
   const documentVersion: DocumentVersion = {
     visible: true,
+    alternatives: null,
     title,
     variations: [
       {

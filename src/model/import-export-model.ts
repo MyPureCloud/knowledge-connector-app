@@ -4,6 +4,7 @@ import { ExternalIdentifiable } from './external-identifiable.js';
 import { LabelReference } from './label-reference.js';
 import { CategoryReference } from './category-reference.js';
 import { DocumentBodyBlock } from 'knowledge-html-converter';
+import { DocumentAlternative } from './document-alternative.js';
 
 export interface ImportExportModel {
   version: number;
@@ -22,6 +23,7 @@ export interface Document extends ExternalIdentifiable {
 
 export interface DocumentVersion {
   title: string;
+  alternatives: DocumentAlternative[] | null;
   visible: boolean;
   category: CategoryReference | null;
   labels: LabelReference[] | null;

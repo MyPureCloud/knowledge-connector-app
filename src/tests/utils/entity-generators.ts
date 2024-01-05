@@ -2,6 +2,7 @@ import { Label } from '../../model/label.js';
 import { Category } from '../../model/category.js';
 import { Document } from '../../model/import-export-model.js';
 import { ImportableContents } from '../../model/importable-contents.js';
+import { DocumentAlternative } from '../../model/document-alternative.js';
 
 export function generateLabel(
   suffix: string,
@@ -30,13 +31,16 @@ export function generateCategory(
 export function generateDocument(
   suffix: string,
   title = 'document-name' + suffix,
+  alternatives: DocumentAlternative[] | null = null,
+  visible: boolean = true,
 ): Document {
   return {
     id: '',
     externalId: 'documents-' + suffix,
     published: {
       title,
-      visible: true,
+      visible,
+      alternatives,
       variations: [
         {
           body: {
@@ -68,6 +72,7 @@ export function generateDocumentWithTable(
     published: {
       title,
       visible: true,
+      alternatives: null,
       variations: [
         {
           body: {
@@ -79,63 +84,79 @@ export function generateDocumentWithTable(
                 type: 'Image',
               },
               {
-                type : 'Table',
-                table : {
-                  rows : [ {
-                    cells : [ {
-                      blocks : [ {
-                        type : 'Image',
-                        image : {
-                          url : 'https://table-image.url'
-                        }
-                      } ],
-                      properties: {
-                        width : 14.5195,
-                        borderColor : '#000000'
-                      }
-                    }, {
-                      blocks : [ {
-                        type : 'Text',
-                        text : {
-                          text : 'Table with image'
-                        }
-                      } ],
-                      properties : {
-                        width : 2.2578125,
-                        borderColor : '#000000'
-                      }
-                    } ]
-                  },
+                type: 'Table',
+                table: {
+                  rows: [
                     {
-                      cells : [ {
-                        blocks : [ {
-                          type : 'Image',
-                          image : {
-                            url : '/sys_attachment.do?sys_id=1234\\'
-                          }
-                        } ],
-                        properties: {
-                          width : 14.5195,
-                          borderColor : '#000000'
-                        }
-                      }, {
-                        blocks : [ {
-                          type : 'Text',
-                          text : {
-                            text : 'Relative url'
-                          }
-                        } ],
-                        properties : {
-                          width : 2.2578125,
-                          borderColor : '#000000'
-                        }
-                      } ]
-                    }],
-                  properties : {
-                    width : 18.5625
-                  }
-                }
-              }
+                      cells: [
+                        {
+                          blocks: [
+                            {
+                              type: 'Image',
+                              image: {
+                                url: 'https://table-image.url',
+                              },
+                            },
+                          ],
+                          properties: {
+                            width: 14.5195,
+                            borderColor: '#000000',
+                          },
+                        },
+                        {
+                          blocks: [
+                            {
+                              type: 'Text',
+                              text: {
+                                text: 'Table with image',
+                              },
+                            },
+                          ],
+                          properties: {
+                            width: 2.2578125,
+                            borderColor: '#000000',
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      cells: [
+                        {
+                          blocks: [
+                            {
+                              type: 'Image',
+                              image: {
+                                url: '/sys_attachment.do?sys_id=1234\\',
+                              },
+                            },
+                          ],
+                          properties: {
+                            width: 14.5195,
+                            borderColor: '#000000',
+                          },
+                        },
+                        {
+                          blocks: [
+                            {
+                              type: 'Text',
+                              text: {
+                                text: 'Relative url',
+                              },
+                            },
+                          ],
+                          properties: {
+                            width: 2.2578125,
+                            borderColor: '#000000',
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                  properties: {
+                    width: 18.5625,
+                  },
+                },
+              },
             ],
           },
         },
