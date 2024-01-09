@@ -7,7 +7,7 @@ import {
   ImportableContents,
 } from '../model/importable-contents.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
-import _, { get, has, set } from 'lodash';
+import _ from 'lodash';
 import { ExternalIdentifiable } from '../model/external-identifiable.js';
 import {
   Document,
@@ -20,6 +20,7 @@ import { CategoryReference } from '../model/category-reference.js';
 import { LabelReference } from '../model/label-reference.js';
 import { GeneratedValue } from '../utils/generated-value.js';
 import { DestinationAdapter } from '../adapter/destination-adapter.js';
+import { NamedEntity } from '../model/named-entity.js';
 import { DiffAggregatorConfig } from './diff-aggregator-config.js';
 
 /**
@@ -45,22 +46,39 @@ export class DiffAggregator implements Aggregator {
     validateNonNull(this.adapter, 'Missing destination adapter');
 
     const exportResult = await this.adapter!.exportAllEntities();
+    const storedItems = this.normalize(exportResult);
+    const collectedItems = this.normalize(externalContent);
+
+    this.resolveNameConflicts(
+      collectedItems.categories,
+      storedItems.categories,
+    );
+    this.resolveNameConflicts(collectedItems.labels, storedItems.labels);
 
     return {
       categories: this.collectModifiedItems(
-        externalContent.categories,
-        exportResult.categories || [],
-        (category) => this.normalizeCategory(category),
+        collectedItems.categories,
+        storedItems.categories,
       ),
       labels: this.collectModifiedItems(
-        externalContent.labels,
-        exportResult.labels || [],
-        (label) => this.normalizeLabel(label),
+        collectedItems.labels,
+        storedItems.labels,
       ),
       documents: this.collectModifiedItems(
-        externalContent.documents,
-        exportResult.documents || [],
-        (document: Document) => this.normalizeDocument(document),
+        collectedItems.documents,
+        storedItems.documents,
+      ),
+    };
+  }
+
+  private normalize(content: ExternalContent): ExternalContent {
+    return {
+      categories: (content.categories || []).map(
+        this.normalizeCategory.bind(this),
+      ),
+      labels: (content.labels || []).map(this.normalizeLabel.bind(this)),
+      documents: (content.documents || []).map(
+        this.normalizeDocument.bind(this),
       ),
     };
   }
@@ -68,9 +86,8 @@ export class DiffAggregator implements Aggregator {
   private collectModifiedItems<T extends ExternalIdentifiable>(
     collectedItems: T[],
     storedItems: T[],
-    normalizer: (item: T) => T,
   ): ImportableContent<T> {
-    const unprocessedStoredItems = [...storedItems.map(normalizer)];
+    const unprocessedStoredItems = [...storedItems];
 
     const result: ImportableContent<T> = {
       created: [],
@@ -78,18 +95,13 @@ export class DiffAggregator implements Aggregator {
       deleted: [],
     };
 
-    collectedItems.map(normalizer).forEach((collectedItem: T): void => {
-      if (!collectedItem) {
-        return;
-      }
-
+    collectedItems.forEach((collectedItem: T): void => {
       const index = unprocessedStoredItems.findIndex(
         (currentItem) =>
           currentItem && currentItem.externalId === collectedItem.externalId,
       );
       if (index > -1) {
-        const storedItem = normalizer(unprocessedStoredItems[index]);
-        unprocessedStoredItems.splice(index, 1);
+        const [storedItem] = unprocessedStoredItems.splice(index, 1);
 
         this.copyProtectedContent(storedItem, collectedItem);
 
@@ -212,9 +224,50 @@ export class DiffAggregator implements Aggregator {
     }
     const fieldPaths = this.config.protectedFields.split(',');
     fieldPaths.forEach((path) => {
-      if (has(source, path)) {
-        set(destination, path, get(source, path));
+      if (_.has(source, path)) {
+        _.set(destination, path, _.get(source, path));
       }
     });
+  }
+
+  private resolveNameConflicts<T extends NamedEntity>(
+    collectedItems: T[],
+    storedItems: T[],
+  ): void {
+    collectedItems.forEach((collectedItem: T): void => {
+      if (this.hasNameConflict(collectedItem, storedItems)) {
+        this.resolveNameConflict(collectedItem, storedItems);
+      }
+    });
+  }
+
+  private resolveNameConflict<T extends NamedEntity>(
+    collectedItem: T,
+    storedItems: T[],
+  ): void {
+    validateNonNull(
+      this.config.nameConflictSuffix,
+      `Name conflict found "${collectedItem.name}". Try to use "NAME_CONFLICT_SUFFIX" variable`,
+    );
+
+    collectedItem.name += this.config.nameConflictSuffix!;
+
+    if (this.hasNameConflict(collectedItem, storedItems)) {
+      throw Error(
+        `Name conflict found with suffix "${collectedItem.name}". Try to use different "NAME_CONFLICT_SUFFIX" variable`,
+      );
+    }
+  }
+
+  private hasNameConflict<T extends NamedEntity>(
+    collectedItem: T,
+    storedItems: T[],
+  ): boolean {
+    return !!storedItems.find(
+      (currentItem) =>
+        currentItem &&
+        currentItem.name === collectedItem.name &&
+        currentItem.externalId !== collectedItem.externalId,
+    );
   }
 }

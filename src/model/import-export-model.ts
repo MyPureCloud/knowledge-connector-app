@@ -11,9 +11,9 @@ export interface ImportExportModel {
   knowledgeBase: {
     id: string;
   };
-  documents: Document[];
   categories: Category[];
   labels: Label[];
+  documents: Document[];
 }
 
 export interface Document extends ExternalIdentifiable {
