@@ -82,10 +82,17 @@ GENESYS_CLIENT_SECRET=
 GENESYS_KNOWLEDGE_BASE_ID=
 ```
 
-## Configure external ID prefix (optional)
+### Configure external ID prefix (optional)
 ```
 # All the IDs from the source system will be extended with this string
 EXTERNAL_ID_PREFIX=
+```
+
+### Configure protected fields
+```
+# Fields that you don't want to update in Genesys Cloud can be listed here as comma separated values.
+# For example protecting alternative phrases with "published.alternatives" from being overwritten.
+PROTECTED_FIELDS=
 ```
 
 ### Configure image handling

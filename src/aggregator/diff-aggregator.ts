@@ -1,6 +1,5 @@
 import { Aggregator } from './aggregator.js';
 import { ExternalContent } from '../model/external-content.js';
-import { Config } from '../config.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Adapter } from '../adapter/adapter.js';
 import {
@@ -8,7 +7,7 @@ import {
   ImportableContents,
 } from '../model/importable-contents.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
-import _ from 'lodash';
+import _, { get, has, set } from 'lodash';
 import { ExternalIdentifiable } from '../model/external-identifiable.js';
 import {
   Document,
@@ -21,6 +20,7 @@ import { CategoryReference } from '../model/category-reference.js';
 import { LabelReference } from '../model/label-reference.js';
 import { GeneratedValue } from '../utils/generated-value.js';
 import { DestinationAdapter } from '../adapter/destination-adapter.js';
+import { DiffAggregatorConfig } from './diff-aggregator-config.js';
 
 /**
  * The DiffAggregator transforms the ExternalContent into ImportableContents,
@@ -28,12 +28,14 @@ import { DestinationAdapter } from '../adapter/destination-adapter.js';
  * It detects changes by fetching the current state of the destination system and compare the two based on 'externalId'.
  */
 export class DiffAggregator implements Aggregator {
+  private config: DiffAggregatorConfig = {};
   private adapter?: DestinationAdapter;
 
   public async initialize(
-    _config: Config,
+    config: DiffAggregatorConfig,
     adapters: AdapterPair<Adapter, DestinationAdapter>,
   ): Promise<void> {
+    this.config = config;
     this.adapter = adapters.destinationAdapter;
   }
 
@@ -44,7 +46,7 @@ export class DiffAggregator implements Aggregator {
 
     const exportResult = await this.adapter!.exportAllEntities();
 
-    const importable: ImportableContents = {
+    return {
       categories: this.collectModifiedItems(
         externalContent.categories,
         exportResult.categories || [],
@@ -61,8 +63,6 @@ export class DiffAggregator implements Aggregator {
         (document: Document) => this.normalizeDocument(document),
       ),
     };
-
-    return importable;
   }
 
   private collectModifiedItems<T extends ExternalIdentifiable>(
@@ -90,6 +90,8 @@ export class DiffAggregator implements Aggregator {
       if (index > -1) {
         const storedItem = normalizer(unprocessedStoredItems[index]);
         unprocessedStoredItems.splice(index, 1);
+
+        this.copyProtectedContent(storedItem, collectedItem);
 
         if (
           !_.isEqualWith(collectedItem, storedItem, (c, s) =>
@@ -125,9 +127,11 @@ export class DiffAggregator implements Aggregator {
   private normalizeDocumentVersion(
     documentVersion: DocumentVersion,
   ): DocumentVersion {
-    const { title, visible, category, labels, variations } = documentVersion;
+    const { title, alternatives, visible, category, labels, variations } =
+      documentVersion;
     return {
       title,
+      alternatives: alternatives ?? null,
       visible,
       category: category ? this.normalizeCategoryReference(category) : null,
       labels:
@@ -197,5 +201,20 @@ export class DiffAggregator implements Aggregator {
     } else if (_.isArray(c) && _.isArray(s) && c.length && _.isString(c[0])) {
       return _.isEqual(c.sort(), s.sort());
     }
+  }
+
+  private copyProtectedContent<T extends object>(
+    source: T,
+    destination: T,
+  ): void {
+    if (!this.config.protectedFields) {
+      return;
+    }
+    const fieldPaths = this.config.protectedFields.split(',');
+    fieldPaths.forEach((path) => {
+      if (has(source, path)) {
+        set(destination, path, get(source, path));
+      }
+    });
   }
 }
