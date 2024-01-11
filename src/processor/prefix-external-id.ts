@@ -3,7 +3,6 @@ import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Adapter } from '../adapter/adapter.js';
 import { ExternalContent } from '../model/external-content.js';
 import { PrefixExternalIdConfig } from './prefix-external-id-config.js';
-import { validateNonNull } from '../utils/validate-non-null.js';
 import { ExternalIdentifiable } from '../model/external-identifiable.js';
 
 /**

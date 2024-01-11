@@ -94,15 +94,6 @@ export class SalesforceApi {
     });
   }
 
-  public async downloadAttachment(url: string): Promise<Blob> {
-    const response = await fetch(url, {
-      headers: this.buildHeaders(),
-    });
-    await this.verifyResponse(response, url);
-
-    return await response.blob();
-  }
-
   private async getBearerToken(): Promise<string> {
     validateNonNull(
       this.config.salesforceClientId,

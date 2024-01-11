@@ -9,20 +9,21 @@ import { validateNonNull } from '../utils/validate-non-null.js';
 import { Document, Variation } from '../model/import-export-model.js';
 import logger from '../utils/logger.js';
 import {
-  DocumentBodyBlock, DocumentBodyTableCellBlock, DocumentBodyTableRowBlock,
-  DocumentContentBlock, DocumentTableContentBlock,
-} from 'knowledge-html-converter';
-import { fetchImage } from '../utils/web-client.js';
-import { DocumentBodyImageBlock } from 'knowledge-html-converter/dist/models/blocks/document-body-image.js';
-import {
+  DocumentBodyBlock,
+  DocumentBodyImageBlock,
   DocumentBodyListBlock,
   DocumentBodyListElementBlock,
-} from 'knowledge-html-converter/dist/models/blocks/document-body-list.js';
-import { DocumentBodyParagraphBlock } from 'knowledge-html-converter/dist/models/blocks/document-body-paragraph.js';
+  DocumentBodyParagraphBlock,
+  DocumentBodyTableBlock,
+  DocumentBodyTableCellBlock,
+  DocumentBodyTableRowBlock,
+  DocumentContentBlock,
+  DocumentTableContentBlock,
+} from 'knowledge-html-converter';
+import { fetchImage } from '../utils/web-client.js';
 import { ImageConfig } from './image-config.js';
 import { FileReaderClient } from '../utils/file-reader-client.js';
 import { DestinationAdapter } from '../adapter/destination-adapter.js';
-import { DocumentBodyTableBlock } from 'knowledge-html-converter/dist/models/blocks/document-body-table.js';
 
 export class ImageProcessor implements Processor {
   private config: ImageConfig = {};
@@ -129,8 +130,11 @@ export class ImageProcessor implements Processor {
           children = (block as DocumentBodyListBlock).blocks;
           break;
         case 'Table':
-          children = (block as DocumentBodyTableBlock).table.rows.flatMap((row: DocumentBodyTableRowBlock) =>
-            row.cells.flatMap((cell: DocumentBodyTableCellBlock) => (cell.blocks || []))
+          children = (block as DocumentBodyTableBlock).table.rows.flatMap(
+            (row: DocumentBodyTableRowBlock) =>
+              row.cells.flatMap(
+                (cell: DocumentBodyTableCellBlock) => cell.blocks || [],
+              ),
           );
           break;
         default:
@@ -166,14 +170,11 @@ export class ImageProcessor implements Processor {
       if (this.isRelativeUrl(url)) {
         if (!this.config?.relativeImageBaseUrl) {
           logger.warn(
-              `Relative image url [${url}] found but missing RELATIVE_IMAGE_BASE_URL from config`,
+            `Relative image url [${url}] found but missing RELATIVE_IMAGE_BASE_URL from config`,
           );
           return null;
         }
-        const resolvedURL = new URL(
-            url,
-            this.config.relativeImageBaseUrl,
-        );
+        const resolvedURL = new URL(url, this.config.relativeImageBaseUrl);
         url = resolvedURL.href;
       }
 

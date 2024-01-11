@@ -1,6 +1,5 @@
-import { ExternalIdentifiable } from './external-identifiable.js';
+import { NamedEntity } from './named-entity.js';
 
-export interface Label extends ExternalIdentifiable {
-  name: string | null;
+export interface Label extends NamedEntity {
   color: string;
 }
