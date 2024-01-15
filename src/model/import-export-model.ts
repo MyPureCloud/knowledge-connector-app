@@ -8,6 +8,23 @@ import { DocumentAlternative } from './document-alternative.js';
 
 export interface ImportExportModel {
   version: number;
+  importAction: {
+    knowledgeBase: {
+      id: string;
+    };
+    documents: Document[];
+    categories: Category[];
+    labels: Label[];
+  };
+  deleteAction: {
+    documents: string[];
+    categories: string[];
+    labels: string[];
+  };
+}
+
+export interface ExportModelV2 {
+  version: number;
   knowledgeBase: {
     id: string;
   };

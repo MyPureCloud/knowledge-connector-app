@@ -7,7 +7,7 @@ import { Config } from '../config.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Adapter } from '../adapter/adapter.js';
-import { ImportableContents } from '../model/importable-contents.js';
+import { SyncableContents } from '../model/syncable-contents.js';
 import wrapFunction from '../utils/wrap-function.js';
 import logger from '../utils/logger.js';
 import { Task } from './task.js';
@@ -184,9 +184,9 @@ export class Pipe {
 
   private async executeAggregators(
     config: Config,
-    importableContents: ImportableContents,
+    importableContents: SyncableContents,
     externalContent: ExternalContent,
-  ): Promise<ImportableContents> {
+  ): Promise<SyncableContents> {
     for (const aggregator of this.aggregatorList) {
       importableContents = await this.execute(
         aggregator,
@@ -199,7 +199,7 @@ export class Pipe {
 
   private async executeUploaders(
     config: Config,
-    importableContents: ImportableContents,
+    importableContents: SyncableContents,
   ): Promise<void> {
     for (const uploader of this.uploaderList) {
       await this.execute(uploader, config, importableContents);
@@ -229,7 +229,7 @@ export class Pipe {
     return result;
   }
 
-  private createEmptyImportableContents(): ImportableContents {
+  private createEmptyImportableContents(): SyncableContents {
     return {
       categories: {
         created: [],

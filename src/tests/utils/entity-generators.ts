@@ -1,7 +1,7 @@
 import { Label } from '../../model/label.js';
 import { Category } from '../../model/category.js';
 import { Document } from '../../model/import-export-model.js';
-import { ImportableContents } from '../../model/importable-contents.js';
+import { SyncableContents } from '../../model/syncable-contents.js';
 import { DocumentAlternative } from '../../model/document-alternative.js';
 
 export function generateLabel(
@@ -169,8 +169,8 @@ export function generateDocumentWithTable(
 }
 
 export function generateImportableContents(
-  override: Partial<ImportableContents>,
-): ImportableContents {
+  override: Partial<SyncableContents>,
+): SyncableContents {
   return {
     labels: {
       created: [],

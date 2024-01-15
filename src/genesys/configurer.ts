@@ -6,7 +6,6 @@ import { ImageProcessor } from '../processor/image-processor.js';
 import { PrefixExternalId } from '../processor/prefix-external-id.js';
 import { DiffAggregator } from '../aggregator/diff-aggregator.js';
 import { DiffUploader } from '../uploader/diff-uploader.js';
-import { ObsoleteDocumentRemover } from '../uploader/obsolete-document-remover.js';
 
 export const configurer: Configurer = (pipe: Pipe) => {
   pipe
@@ -14,5 +13,5 @@ export const configurer: Configurer = (pipe: Pipe) => {
     .loaders(new GenesysLoader())
     .processors(new ImageProcessor(), new PrefixExternalId())
     .aggregator(new DiffAggregator())
-    .uploaders(new DiffUploader(), new ObsoleteDocumentRemover());
+    .uploaders(new DiffUploader());
 };

@@ -9,8 +9,8 @@ import {
   generateLabel,
 } from '../tests/utils/entity-generators.js';
 import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
-import { Document, ImportExportModel } from '../model/import-export-model.js';
-import { ImportableContent } from '../model/importable-contents.js';
+import { Document, ExportModelV2 } from '../model/import-export-model.js';
+import { ImportableContent } from '../model/syncable-contents.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
@@ -23,14 +23,14 @@ describe('DiffAggregator', () => {
   let destinationAdapter: GenesysDestinationAdapter;
   let adapters: AdapterPair<Adapter, DestinationAdapter>;
   let aggregator: DiffAggregator;
-  let mockExportAllEntities: jest.Mock<() => Promise<ImportExportModel>>;
+  let mockExportAllEntities: jest.Mock<() => Promise<ExportModelV2>>;
 
   describe('run', () => {
     beforeEach(() => {
       sourceAdapter = {} as typeof sourceAdapter;
       destinationAdapter = new GenesysDestinationAdapter();
       mockExportAllEntities = destinationAdapter.exportAllEntities as jest.Mock<
-        () => Promise<ImportExportModel>
+        () => Promise<ExportModelV2>
       >;
       adapters = {
         sourceAdapter,

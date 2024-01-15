@@ -1,8 +1,12 @@
 import { SearchAssetRequest } from './model/search-asset-request.js';
 import { GenesysDestinationConfig } from './model/genesys-destination-config.js';
 import { Image } from '../model/image.js';
-import { Document, ImportExportModel } from '../model/import-export-model.js';
-import { ImportDataResponse } from '../model/import-data-response.js';
+import {
+  Document,
+  ExportModelV2,
+  ImportExportModel,
+} from '../model/import-export-model.js';
+import { SyncDataResponse } from '../model/sync-data-response.js';
 import { UploadAssetStatusResponse } from './model/upload-asset-status-response.js';
 import { ExportArticlesResponse } from './model/export-articles-response.js';
 import { BulkDeleteResponse } from '../model/bulk-delete-response.js';
@@ -66,7 +70,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
       .then((response) => response?.contentLocation);
   }
 
-  public async exportAllEntities(): Promise<ImportExportModel> {
+  public async exportAllEntities(): Promise<ExportModelV2> {
     const jobStatus = await this.api.createExportJob();
 
     const job = await this.api.waitForJobToFinish<ExportArticlesResponse>(
@@ -81,22 +85,20 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
     return await this.api.fetchExportResult(job.downloadURL);
   }
 
-  public async importData(
-    data: ImportExportModel,
-  ): Promise<ImportDataResponse> {
+  public async syncData(data: ImportExportModel): Promise<SyncDataResponse> {
     const fileName = 'sync-' + new Date().toISOString() + '.json';
 
-    const { uploadKey } = await this.api.uploadImportData(
+    const { uploadKey } = await this.api.uploadSyncData(
       fileName,
       new Blob([JSON.stringify(data)], {
         type: 'application/json',
       }),
     );
 
-    const job = await this.api.createImportJob(uploadKey);
+    const job = await this.api.createSyncJob(uploadKey);
 
-    return this.api.waitForJobToFinish<ImportDataResponse>(
-      () => this.api.getImportStatus(job.id),
+    return this.api.waitForJobToFinish<SyncDataResponse>(
+      () => this.api.getSyncStatus(job.id),
       [
         'Completed',
         'PartialCompleted',

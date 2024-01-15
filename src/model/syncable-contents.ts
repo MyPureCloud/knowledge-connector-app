@@ -2,7 +2,7 @@ import { Category } from './category.js';
 import { Label } from './label.js';
 import { Document } from './import-export-model.js';
 
-export interface ImportableContents {
+export interface SyncableContents {
   categories: ImportableContent<Category>;
   labels: ImportableContent<Label>;
   documents: ImportableContent<Document>;
