@@ -29,7 +29,7 @@ export class ObsoleteDocumentRemover implements Uploader {
     let itemsToDelete = importableContents.documents.deleted;
     if (prefix) {
       itemsToDelete = importableContents.documents.deleted.filter(
-        (item) => item.externalId && item.externalId.startsWith(prefix),
+        (item) => item.externalId?.startsWith(prefix),
       );
     }
 
