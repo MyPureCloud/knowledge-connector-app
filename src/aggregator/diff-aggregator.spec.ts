@@ -14,6 +14,7 @@ import { ImportableContent } from '../model/importable-contents.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
+import { ExternalIdentifiable } from '../model/external-identifiable.js';
 
 jest.mock('../genesys/genesys-destination-adapter.js');
 
@@ -351,7 +352,7 @@ describe('DiffAggregator', () => {
       });
     });
 
-    function verifyGroups<T>(
+    function verifyGroups<T extends ExternalIdentifiable>(
       importableContent: ImportableContent<T>,
       createdCount: number,
       updatedCount: number,
@@ -360,6 +361,8 @@ describe('DiffAggregator', () => {
       expect(importableContent.created.length).toBe(createdCount);
       expect(importableContent.updated.length).toBe(updatedCount);
       expect(importableContent.deleted.length).toBe(deletedCount);
+
+      importableContent.deleted.forEach((d) => expect(d.id).not.toBeNull());
     }
   });
 });

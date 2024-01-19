@@ -58,15 +58,18 @@ export class DiffAggregator implements Aggregator {
     return {
       categories: this.collectModifiedItems(
         collectedItems.categories,
-        storedItems.categories,
+        exportResult.categories || [],
+        this.normalizeCategory.bind(this),
       ),
       labels: this.collectModifiedItems(
         collectedItems.labels,
-        storedItems.labels,
+        exportResult.labels || [],
+        this.normalizeLabel.bind(this),
       ),
       documents: this.collectModifiedItems(
         collectedItems.documents,
-        storedItems.documents,
+        exportResult.documents || [],
+        this.normalizeDocument.bind(this),
       ),
     };
   }
@@ -86,6 +89,7 @@ export class DiffAggregator implements Aggregator {
   private collectModifiedItems<T extends ExternalIdentifiable>(
     collectedItems: T[],
     storedItems: T[],
+    normalizer: (item: T) => T,
   ): ImportableContent<T> {
     const unprocessedStoredItems = [...storedItems];
 
@@ -102,11 +106,12 @@ export class DiffAggregator implements Aggregator {
       );
       if (index > -1) {
         const [storedItem] = unprocessedStoredItems.splice(index, 1);
+        const normalizedStoredItem = normalizer(storedItem);
 
-        this.copyProtectedContent(storedItem, collectedItem);
+        this.copyProtectedContent(normalizedStoredItem, collectedItem);
 
         if (
-          !_.isEqualWith(collectedItem, storedItem, (c, s) =>
+          !_.isEqualWith(collectedItem, normalizedStoredItem, (c, s) =>
             this.isEqualCustomizer(c, s),
           )
         ) {
@@ -117,10 +122,9 @@ export class DiffAggregator implements Aggregator {
       }
     });
 
-    result.deleted = unprocessedStoredItems
-      .filter((item: T) => item.externalId)
-      .map((item) => storedItems.find((c) => c.externalId === item.externalId))
-      .filter((item): item is T => !!item);
+    result.deleted = unprocessedStoredItems.filter(
+      (item: T) => !!item?.externalId,
+    );
 
     return result;
   }
