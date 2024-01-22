@@ -53,13 +53,13 @@ export class DiffUploader implements Uploader {
       deleteAction: {
         documents: importableContents.documents.deleted
           .filter((document) => document.id !== null)
-          .map((document) => document.id || ''),
+          .map((document) => document.id!),
         categories: importableContents.categories.deleted
           .filter((category) => category.id !== null)
-          .map((category) => category.id || ''),
+          .map((category) => category.id!),
         labels: importableContents.labels.deleted
           .filter((label) => label.id !== null)
-          .map((label) => label.id || ''),
+          .map((label) => label.id!),
       },
     };
 
