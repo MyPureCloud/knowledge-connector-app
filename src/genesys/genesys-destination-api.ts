@@ -7,8 +7,8 @@ import { UploadAssetResponse } from './model/upload-asset-response.js';
 import { UploadAssetRequest } from './model/upload-asset-request.js';
 import { Blob } from 'buffer';
 import { UploadAssetStatusResponse } from './model/upload-asset-status-response.js';
-import { ImportDataResponse } from '../model/import-data-response.js';
-import { ImportDataRequest } from '../model/import-data-request.js';
+import { SyncDataResponse } from '../model/sync-data-response.js';
+import { SyncDataRequest } from '../model/sync-data-request.js';
 import { DocumentUploadResponse } from '../model/document-upload-response.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import { BulkDeleteResponse } from '../model/bulk-delete-response.js';
@@ -112,7 +112,7 @@ export class GenesysDestinationApi extends GenesysApi {
     );
   }
 
-  public async uploadImportData(
+  public async uploadSyncData(
     fileName: string,
     data: Blob,
   ): Promise<DocumentUploadResponse> {
@@ -139,15 +139,13 @@ export class GenesysDestinationApi extends GenesysApi {
     return { uploadKey };
   }
 
-  public createImportJob(uploadKey: string): Promise<ImportDataResponse> {
+  public createSyncJob(uploadKey: string): Promise<SyncDataResponse> {
     const kbId = this.getKnowledgeBaseId();
-    const body: ImportDataRequest = {
+    const body: SyncDataRequest = {
       uploadKey,
-      fileType: 'json',
-      skipConfirmationStep: true,
     };
-    return this.fetch<ImportDataResponse>(
-      `/api/v2/knowledge/knowledgeBases/${kbId}/import/jobs`,
+    return this.fetch<SyncDataResponse>(
+      `/api/v2/knowledge/knowledgeBases/${kbId}/synchronize/jobs`,
       {
         method: 'POST',
       },
@@ -155,10 +153,10 @@ export class GenesysDestinationApi extends GenesysApi {
     );
   }
 
-  public getImportStatus(importId: string): Promise<ImportDataResponse> {
+  public getSyncStatus(syncId: string): Promise<SyncDataResponse> {
     const kbId = this.getKnowledgeBaseId();
-    return this.fetch<ImportDataResponse>(
-      `/api/v2/knowledge/knowledgeBases/${kbId}/import/jobs/${importId}?expand=urls`,
+    return this.fetch<SyncDataResponse>(
+      `/api/v2/knowledge/knowledgeBases/${kbId}/synchronize/jobs/${syncId}?expand=urls`,
     );
   }
 

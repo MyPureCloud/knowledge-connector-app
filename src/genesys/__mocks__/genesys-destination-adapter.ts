@@ -10,13 +10,20 @@ export const GenesysDestinationAdapter = jest.fn(() => ({
   exportAllEntities: jest
     .fn<() => Promise<ImportExportModel>>()
     .mockResolvedValue({
-      version: 2,
-      knowledgeBase: {
-        id: '',
+      version: 3,
+      importAction: {
+        knowledgeBase: {
+          id: '',
+        },
+        documents: [],
+        categories: [],
+        labels: [],
       },
-      documents: [],
-      categories: [],
-      labels: [],
+      deleteAction: {
+        documents: [],
+        categories: [],
+        labels: [],
+      },
     }),
   lookupImage: jest.fn<() => Promise<string | null>>(),
   getAttachment: jest.fn<() => Promise<Image | null>>(),

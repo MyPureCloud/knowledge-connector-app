@@ -3,7 +3,6 @@ import { Pipe } from '../pipe/pipe.js';
 import { ImageProcessor } from '../processor/image-processor.js';
 import { DiffAggregator } from '../aggregator/diff-aggregator.js';
 import { DiffUploader } from '../uploader/diff-uploader.js';
-import { ObsoleteDocumentRemover } from '../uploader/obsolete-document-remover.js';
 import { SalesforceAdapter } from './salesforce-adapter.js';
 import { SalesforceLoader } from './salesforce-loader.js';
 import { HtmlTransformer } from '../processor/html-transformer.js';
@@ -19,5 +18,5 @@ export const configurer: Configurer = (pipe: Pipe) => {
       new PrefixExternalId(),
     )
     .aggregator(new DiffAggregator())
-    .uploaders(new DiffUploader(), new ObsoleteDocumentRemover());
+    .uploaders(new DiffUploader());
 };

@@ -4,8 +4,8 @@ import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Adapter } from '../adapter/adapter.js';
 import {
   ImportableContent,
-  ImportableContents,
-} from '../model/importable-contents.js';
+  SyncableContents,
+} from '../model/syncable-contents.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import _ from 'lodash';
 import { ExternalIdentifiable } from '../model/external-identifiable.js';
@@ -42,7 +42,7 @@ export class DiffAggregator implements Aggregator {
 
   public async run(
     externalContent: ExternalContent,
-  ): Promise<ImportableContents> {
+  ): Promise<SyncableContents> {
     validateNonNull(this.adapter, 'Missing destination adapter');
 
     const exportResult = await this.adapter!.exportAllEntities();

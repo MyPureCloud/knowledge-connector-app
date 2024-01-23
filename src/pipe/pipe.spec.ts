@@ -8,7 +8,7 @@ import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Loader } from './loader.js';
 import { ExternalContent } from '../model/external-content.js';
 import { Processor } from '../processor/processor.js';
-import { ImportableContents } from '../model/importable-contents.js';
+import { SyncableContents } from '../model/syncable-contents.js';
 import { Aggregator } from '../aggregator/aggregator.js';
 import { Uploader } from '../uploader/uploader.js';
 import {
@@ -214,7 +214,7 @@ describe('Pipe', () => {
 
       run: async (_input: ExternalContent) => {
         calls.push('aggregator');
-        return {} as ImportableContents;
+        return {} as SyncableContents;
       },
     };
   }
@@ -225,7 +225,7 @@ describe('Pipe', () => {
         .fn<() => Promise<void>>()
         .mockReturnValue(Promise.resolve()),
 
-      run: async (_input: ImportableContents) => {
+      run: async (_input: SyncableContents) => {
         calls.push('uploader');
       },
     };
