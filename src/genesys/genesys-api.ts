@@ -1,7 +1,7 @@
 import { TokenResponse } from './model/token-response.js';
 import { ExportArticlesResponse } from './model/export-articles-response.js';
 import { ExportArticlesRequest } from './model/export-articles-request.js';
-import { ExportModelV2 } from '../model/import-export-model.js';
+import { ImportExportModel } from '../model/import-export-model.js';
 import { Config } from '../config.js';
 import { JobStatusResponse } from './model/job-status-response.js';
 import logger from '../utils/logger.js';
@@ -30,6 +30,7 @@ export abstract class GenesysApi {
         versionFilter: 'Latest',
       },
       fileType: 'json',
+      jsonFileVersion: 3,
     };
     return this.fetch<ExportArticlesResponse>(
       `/api/v2/knowledge/knowledgeBases/${kbId}/export/jobs`,
@@ -47,8 +48,8 @@ export abstract class GenesysApi {
     );
   }
 
-  public fetchExportResult(downloadURL: string): Promise<ExportModelV2> {
-    return this.innerFetch<ExportModelV2>(downloadURL);
+  public fetchExportResult(downloadURL: string): Promise<ImportExportModel> {
+    return this.innerFetch<ImportExportModel>(downloadURL);
   }
 
   public fetch<T>(

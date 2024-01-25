@@ -1,10 +1,6 @@
 import { Adapter } from './adapter.js';
 import { Image } from '../model/image.js';
-import {
-  Document,
-  ExportModelV2,
-  ImportExportModel,
-} from '../model/import-export-model.js';
+import { Document, ImportExportModel } from '../model/import-export-model.js';
 import { SyncDataResponse } from '../model/sync-data-response.js';
 import { BulkDeleteResponse } from '../model/bulk-delete-response.js';
 import { Config } from '../config.js';
@@ -19,7 +15,7 @@ export interface DestinationAdapter extends Adapter {
 
   uploadImage(hash: string, image: Image): Promise<string | null>;
 
-  exportAllEntities(): Promise<ExportModelV2>;
+  exportAllEntities(): Promise<ImportExportModel>;
 
   syncData(data: ImportExportModel): Promise<SyncDataResponse>;
 

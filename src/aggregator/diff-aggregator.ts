@@ -46,7 +46,7 @@ export class DiffAggregator implements Aggregator {
     validateNonNull(this.adapter, 'Missing destination adapter');
 
     const exportResult = await this.adapter!.exportAllEntities();
-    const storedItems = this.normalize(exportResult);
+    const storedItems = this.normalize(exportResult.importAction);
     const collectedItems = this.normalize(externalContent);
 
     this.resolveNameConflicts(
@@ -58,17 +58,17 @@ export class DiffAggregator implements Aggregator {
     return {
       categories: this.collectModifiedItems(
         collectedItems.categories,
-        exportResult.categories || [],
+        exportResult.importAction.categories || [],
         this.normalizeCategory.bind(this),
       ),
       labels: this.collectModifiedItems(
         collectedItems.labels,
-        exportResult.labels || [],
+        exportResult.importAction.labels || [],
         this.normalizeLabel.bind(this),
       ),
       documents: this.collectModifiedItems(
         collectedItems.documents,
-        exportResult.documents || [],
+        exportResult.importAction.documents || [],
         this.normalizeDocument.bind(this),
       ),
     };

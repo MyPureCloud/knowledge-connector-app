@@ -23,16 +23,6 @@ export interface ImportExportModel {
   };
 }
 
-export interface ExportModelV2 {
-  version: number;
-  knowledgeBase: {
-    id: string;
-  };
-  categories: Category[];
-  labels: Label[];
-  documents: Document[];
-}
-
 export interface Document extends ExternalIdentifiable {
   published: DocumentVersion | null;
   draft: DocumentVersion | null;

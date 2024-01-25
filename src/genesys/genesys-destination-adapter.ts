@@ -1,11 +1,7 @@
 import { SearchAssetRequest } from './model/search-asset-request.js';
 import { GenesysDestinationConfig } from './model/genesys-destination-config.js';
 import { Image } from '../model/image.js';
-import {
-  Document,
-  ExportModelV2,
-  ImportExportModel,
-} from '../model/import-export-model.js';
+import { Document, ImportExportModel } from '../model/import-export-model.js';
 import { SyncDataResponse } from '../model/sync-data-response.js';
 import { UploadAssetStatusResponse } from './model/upload-asset-status-response.js';
 import { ExportArticlesResponse } from './model/export-articles-response.js';
@@ -70,7 +66,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
       .then((response) => response?.contentLocation);
   }
 
-  public async exportAllEntities(): Promise<ExportModelV2> {
+  public async exportAllEntities(): Promise<ImportExportModel> {
     const jobStatus = await this.api.createExportJob();
 
     const job = await this.api.waitForJobToFinish<ExportArticlesResponse>(
