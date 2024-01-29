@@ -6,7 +6,7 @@ import { Image } from '../model/image.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
-import { Document, Variation } from '../model/import-export-model.js';
+import { Document, Variation } from '../model/sync-export-model.js';
 import logger from '../utils/logger.js';
 import {
   DocumentBodyBlock,

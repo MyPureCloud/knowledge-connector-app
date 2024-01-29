@@ -9,7 +9,11 @@ import {
   generateLabel,
 } from '../tests/utils/entity-generators.js';
 import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
-import { Document, ImportExportModel } from '../model/import-export-model.js';
+import {
+  Document,
+  ExportModel,
+  SyncModel,
+} from '../model/sync-export-model.js';
 import { ImportableContent } from '../model/syncable-contents.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { Category } from '../model/category.js';
@@ -23,14 +27,14 @@ describe('DiffAggregator', () => {
   let destinationAdapter: GenesysDestinationAdapter;
   let adapters: AdapterPair<Adapter, DestinationAdapter>;
   let aggregator: DiffAggregator;
-  let mockExportAllEntities: jest.Mock<() => Promise<ImportExportModel>>;
+  let mockExportAllEntities: jest.Mock<() => Promise<ExportModel>>;
 
   describe('run', () => {
     beforeEach(() => {
       sourceAdapter = {} as typeof sourceAdapter;
       destinationAdapter = new GenesysDestinationAdapter();
       mockExportAllEntities = destinationAdapter.exportAllEntities as jest.Mock<
-        () => Promise<ImportExportModel>
+        () => Promise<SyncModel>
       >;
       adapters = {
         sourceAdapter,
@@ -52,11 +56,6 @@ describe('DiffAggregator', () => {
             knowledgeBase: {
               id: '',
             },
-            documents: [],
-            categories: [],
-            labels: [],
-          },
-          deleteAction: {
             documents: [],
             categories: [],
             labels: [],
@@ -96,11 +95,6 @@ describe('DiffAggregator', () => {
             categories: [generateCategory('1'), generateCategory('2')],
             labels: [generateLabel('1'), generateLabel('2')],
             documents: [generateDocument('1'), generateDocument('4')],
-          },
-          deleteAction: {
-            categories: [],
-            labels: [],
-            documents: [],
           },
         });
       });
@@ -156,11 +150,6 @@ describe('DiffAggregator', () => {
                 id: '',
               },
               documents: [doc1, doc2],
-              categories: [],
-              labels: [],
-            },
-            deleteAction: {
-              documents: [],
               categories: [],
               labels: [],
             },
@@ -255,11 +244,6 @@ describe('DiffAggregator', () => {
                   labels: [],
                   documents: [],
                 },
-                deleteAction: {
-                  categories: [],
-                  documents: [],
-                  labels: [],
-                },
               });
             });
 
@@ -343,11 +327,6 @@ describe('DiffAggregator', () => {
                     generateLabel('2'),
                     generateLabel('2-suffix'),
                   ],
-                  documents: [],
-                },
-                deleteAction: {
-                  categories: [],
-                  labels: [],
                   documents: [],
                 },
               });

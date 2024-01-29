@@ -1,5 +1,5 @@
 import { ExternalContent } from '../model/external-content.js';
-import { Document, DocumentVersion } from '../model/import-export-model.js';
+import { Document, DocumentVersion } from '../model/sync-export-model.js';
 import { ServiceNowArticle } from './model/servicenow-article.js';
 import { Category } from '../model/category.js';
 import { CategoryReference } from '../model/category-reference.js';

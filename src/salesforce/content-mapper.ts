@@ -1,5 +1,5 @@
 import { ExternalContent } from '../model/external-content.js';
-import { Document, DocumentVersion } from '../model/import-export-model.js';
+import { Document, DocumentVersion } from '../model/sync-export-model.js';
 import { SalesforceCategory } from './model/salesforce-category.js';
 import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';

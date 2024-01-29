@@ -1,7 +1,7 @@
 import { SourceAdapter } from '../adapter/source-adapter.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
-import { Document, ImportExportModel } from '../model/import-export-model.js';
+import { Document, ExportModel } from '../model/sync-export-model.js';
 import { GenesysSourceConfig } from './model/genesys-source-config.js';
 import { GenesysSourceApi } from './genesys-source-api.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
@@ -18,7 +18,7 @@ export class GenesysSourceAdapter
 {
   private config: GenesysSourceConfig = {};
   private api: GenesysSourceApi;
-  private exportedKnowledgeData: ImportExportModel | null = null;
+  private exportedKnowledgeData: ExportModel | null = null;
 
   constructor() {
     this.api = new GenesysSourceApi();
@@ -50,7 +50,7 @@ export class GenesysSourceAdapter
     return fetchImage(url);
   }
 
-  private async exportAllEntities(): Promise<ImportExportModel> {
+  private async exportAllEntities(): Promise<ExportModel> {
     logger.debug('Export articles in loader');
     const jobStatus = await this.api.createExportJob();
     logger.debug('Export job ' + JSON.stringify(jobStatus));

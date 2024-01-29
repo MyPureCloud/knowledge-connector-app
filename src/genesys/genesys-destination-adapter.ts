@@ -1,7 +1,11 @@
 import { SearchAssetRequest } from './model/search-asset-request.js';
 import { GenesysDestinationConfig } from './model/genesys-destination-config.js';
 import { Image } from '../model/image.js';
-import { Document, ImportExportModel } from '../model/import-export-model.js';
+import {
+  Document,
+  ExportModel,
+  SyncModel,
+} from '../model/sync-export-model.js';
 import { SyncDataResponse } from '../model/sync-data-response.js';
 import { UploadAssetStatusResponse } from './model/upload-asset-status-response.js';
 import { ExportArticlesResponse } from './model/export-articles-response.js';
@@ -66,7 +70,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
       .then((response) => response?.contentLocation);
   }
 
-  public async exportAllEntities(): Promise<ImportExportModel> {
+  public async exportAllEntities(): Promise<ExportModel> {
     const jobStatus = await this.api.createExportJob();
 
     const job = await this.api.waitForJobToFinish<ExportArticlesResponse>(
@@ -81,7 +85,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
     return await this.api.fetchExportResult(job.downloadURL);
   }
 
-  public async syncData(data: ImportExportModel): Promise<SyncDataResponse> {
+  public async syncData(data: SyncModel): Promise<SyncDataResponse> {
     const fileName = 'sync-' + new Date().toISOString() + '.json';
 
     const { uploadKey } = await this.api.uploadSyncData(

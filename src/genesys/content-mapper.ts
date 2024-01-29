@@ -1,7 +1,7 @@
 import { ExternalContent } from '../model/external-content.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
-import { Document } from '../model/import-export-model.js';
+import { Document } from '../model/sync-export-model.js';
 
 export function contentMapper(
   categories: Category[],

@@ -13,7 +13,7 @@ import {
   Document,
   DocumentVersion,
   Variation,
-} from '../model/import-export-model.js';
+} from '../model/sync-export-model.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
 import { CategoryReference } from '../model/category-reference.js';
@@ -55,20 +55,21 @@ export class DiffAggregator implements Aggregator {
     );
     this.resolveNameConflicts(collectedItems.labels, storedItems.labels);
 
+    const importAction = exportResult.importAction;
     return {
       categories: this.collectModifiedItems(
         collectedItems.categories,
-        exportResult.importAction.categories || [],
+        importAction.categories || [],
         this.normalizeCategory.bind(this),
       ),
       labels: this.collectModifiedItems(
         collectedItems.labels,
-        exportResult.importAction.labels || [],
+        importAction.labels || [],
         this.normalizeLabel.bind(this),
       ),
       documents: this.collectModifiedItems(
         collectedItems.documents,
-        exportResult.importAction.documents || [],
+        importAction.documents || [],
         this.normalizeDocument.bind(this),
       ),
     };

@@ -2,7 +2,7 @@ import { Uploader } from './uploader.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Adapter } from '../adapter/adapter.js';
 import { SyncableContents } from '../model/syncable-contents.js';
-import { ImportExportModel } from '../model/import-export-model.js';
+import { SyncModel } from '../model/sync-export-model.js';
 import { GenesysDestinationConfig } from '../genesys/model/genesys-destination-config.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
@@ -31,7 +31,7 @@ export class DiffUploader implements Uploader {
     );
     validateNonNull(this.adapter, 'Missing destination adapter');
 
-    const data: ImportExportModel = {
+    const data: SyncModel = {
       version: 3,
       importAction: {
         knowledgeBase: {
