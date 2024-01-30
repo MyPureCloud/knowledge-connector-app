@@ -13,7 +13,7 @@ import {
   Document,
   DocumentVersion,
   Variation,
-} from '../model/import-export-model.js';
+} from '../model/sync-export-model.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
 import { CategoryReference } from '../model/category-reference.js';
@@ -46,7 +46,7 @@ export class DiffAggregator implements Aggregator {
     validateNonNull(this.adapter, 'Missing destination adapter');
 
     const exportResult = await this.adapter!.exportAllEntities();
-    const storedItems = this.normalize(exportResult);
+    const storedItems = this.normalize(exportResult.importAction);
     const collectedItems = this.normalize(externalContent);
 
     this.resolveNameConflicts(
@@ -55,20 +55,21 @@ export class DiffAggregator implements Aggregator {
     );
     this.resolveNameConflicts(collectedItems.labels, storedItems.labels);
 
+    const importAction = exportResult.importAction;
     return {
       categories: this.collectModifiedItems(
         collectedItems.categories,
-        exportResult.categories || [],
+        importAction.categories || [],
         this.normalizeCategory.bind(this),
       ),
       labels: this.collectModifiedItems(
         collectedItems.labels,
-        exportResult.labels || [],
+        importAction.labels || [],
         this.normalizeLabel.bind(this),
       ),
       documents: this.collectModifiedItems(
         collectedItems.documents,
-        exportResult.documents || [],
+        importAction.documents || [],
         this.normalizeDocument.bind(this),
       ),
     };

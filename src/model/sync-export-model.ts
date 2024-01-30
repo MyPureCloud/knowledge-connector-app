@@ -6,7 +6,7 @@ import { CategoryReference } from './category-reference.js';
 import { DocumentBodyBlock } from 'knowledge-html-converter';
 import { DocumentAlternative } from './document-alternative.js';
 
-export interface ImportExportModel {
+export interface SyncModel {
   version: number;
   importAction: {
     knowledgeBase: {
@@ -23,14 +23,16 @@ export interface ImportExportModel {
   };
 }
 
-export interface ExportModelV2 {
+export interface ExportModel {
   version: number;
-  knowledgeBase: {
-    id: string;
+  importAction: {
+    knowledgeBase: {
+      id: string;
+    };
+    documents: Document[];
+    categories: Category[];
+    labels: Label[];
   };
-  categories: Category[];
-  labels: Label[];
-  documents: Document[];
 }
 
 export interface Document extends ExternalIdentifiable {

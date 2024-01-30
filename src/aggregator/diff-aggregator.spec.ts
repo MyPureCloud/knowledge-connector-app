@@ -9,7 +9,11 @@ import {
   generateLabel,
 } from '../tests/utils/entity-generators.js';
 import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
-import { Document, ExportModelV2 } from '../model/import-export-model.js';
+import {
+  Document,
+  ExportModel,
+  SyncModel,
+} from '../model/sync-export-model.js';
 import { ImportableContent } from '../model/syncable-contents.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { Category } from '../model/category.js';
@@ -23,14 +27,14 @@ describe('DiffAggregator', () => {
   let destinationAdapter: GenesysDestinationAdapter;
   let adapters: AdapterPair<Adapter, DestinationAdapter>;
   let aggregator: DiffAggregator;
-  let mockExportAllEntities: jest.Mock<() => Promise<ExportModelV2>>;
+  let mockExportAllEntities: jest.Mock<() => Promise<ExportModel>>;
 
   describe('run', () => {
     beforeEach(() => {
       sourceAdapter = {} as typeof sourceAdapter;
       destinationAdapter = new GenesysDestinationAdapter();
       mockExportAllEntities = destinationAdapter.exportAllEntities as jest.Mock<
-        () => Promise<ExportModelV2>
+        () => Promise<SyncModel>
       >;
       adapters = {
         sourceAdapter,
@@ -47,13 +51,15 @@ describe('DiffAggregator', () => {
     describe('when export from destination is empty', () => {
       beforeEach(() => {
         mockExportAllEntities.mockResolvedValue({
-          version: 2,
-          knowledgeBase: {
-            id: '',
+          version: 3,
+          importAction: {
+            knowledgeBase: {
+              id: '',
+            },
+            documents: [],
+            categories: [],
+            labels: [],
           },
-          documents: [],
-          categories: [],
-          labels: [],
         });
       });
 
@@ -81,13 +87,15 @@ describe('DiffAggregator', () => {
     describe('when export from destination is not empty', () => {
       beforeEach(() => {
         mockExportAllEntities.mockResolvedValue({
-          version: 2,
-          knowledgeBase: {
-            id: '',
+          version: 3,
+          importAction: {
+            knowledgeBase: {
+              id: '',
+            },
+            categories: [generateCategory('1'), generateCategory('2')],
+            labels: [generateLabel('1'), generateLabel('2')],
+            documents: [generateDocument('1'), generateDocument('4')],
           },
-          categories: [generateCategory('1'), generateCategory('2')],
-          labels: [generateLabel('1'), generateLabel('2')],
-          documents: [generateDocument('1'), generateDocument('4')],
         });
       });
 
@@ -136,13 +144,15 @@ describe('DiffAggregator', () => {
           const doc1 = generateDocument('1', 'title1', doc1Alternatives);
           const doc2 = generateDocument('2', 'title2', doc2Alternatives);
           mockExportAllEntities.mockResolvedValue({
-            version: 2,
-            knowledgeBase: {
-              id: '',
+            version: 3,
+            importAction: {
+              knowledgeBase: {
+                id: '',
+              },
+              documents: [doc1, doc2],
+              categories: [],
+              labels: [],
             },
-            documents: [doc1, doc2],
-            categories: [],
-            labels: [],
           });
         });
 
@@ -221,17 +231,19 @@ describe('DiffAggregator', () => {
           describe('when still conflicting with the suffix', () => {
             beforeEach(() => {
               mockExportAllEntities.mockResolvedValue({
-                version: 2,
-                knowledgeBase: {
-                  id: '',
+                version: 3,
+                importAction: {
+                  knowledgeBase: {
+                    id: '',
+                  },
+                  categories: [
+                    generateCategory('1'),
+                    generateCategory('2'),
+                    generateCategory('2-suffix'),
+                  ],
+                  labels: [],
+                  documents: [],
                 },
-                categories: [
-                  generateCategory('1'),
-                  generateCategory('2'),
-                  generateCategory('2-suffix'),
-                ],
-                labels: [],
-                documents: [],
               });
             });
 
@@ -304,17 +316,19 @@ describe('DiffAggregator', () => {
           describe('when still conflicting with the suffix', () => {
             beforeEach(() => {
               mockExportAllEntities.mockResolvedValue({
-                version: 2,
-                knowledgeBase: {
-                  id: '',
+                version: 3,
+                importAction: {
+                  knowledgeBase: {
+                    id: '',
+                  },
+                  categories: [],
+                  labels: [
+                    generateLabel('1'),
+                    generateLabel('2'),
+                    generateLabel('2-suffix'),
+                  ],
+                  documents: [],
                 },
-                categories: [],
-                labels: [
-                  generateLabel('1'),
-                  generateLabel('2'),
-                  generateLabel('2-suffix'),
-                ],
-                documents: [],
               });
             });
 

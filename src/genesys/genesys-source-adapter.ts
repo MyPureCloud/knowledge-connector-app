@@ -1,7 +1,7 @@
 import { SourceAdapter } from '../adapter/source-adapter.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
-import { Document, ExportModelV2 } from '../model/import-export-model.js';
+import { Document, ExportModel } from '../model/sync-export-model.js';
 import { GenesysSourceConfig } from './model/genesys-source-config.js';
 import { GenesysSourceApi } from './genesys-source-api.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
@@ -18,7 +18,7 @@ export class GenesysSourceAdapter
 {
   private config: GenesysSourceConfig = {};
   private api: GenesysSourceApi;
-  private exportedKnowledgeData: ExportModelV2 | null = null;
+  private exportedKnowledgeData: ExportModel | null = null;
 
   constructor() {
     this.api = new GenesysSourceApi();
@@ -32,15 +32,15 @@ export class GenesysSourceAdapter
   }
 
   public async getAllArticles(): Promise<Document[]> {
-    return this.exportedKnowledgeData?.documents || [];
+    return this.exportedKnowledgeData?.importAction?.documents || [];
   }
 
   public async getAllCategories(): Promise<Category[]> {
-    return this.exportedKnowledgeData?.categories || [];
+    return this.exportedKnowledgeData?.importAction?.categories || [];
   }
 
   public async getAllLabels(): Promise<Label[]> {
-    return this.exportedKnowledgeData?.labels || [];
+    return this.exportedKnowledgeData?.importAction?.labels || [];
   }
 
   public async getAttachment(
@@ -50,7 +50,7 @@ export class GenesysSourceAdapter
     return fetchImage(url);
   }
 
-  private async exportAllEntities(): Promise<ExportModelV2> {
+  private async exportAllEntities(): Promise<ExportModel> {
     logger.debug('Export articles in loader');
     const jobStatus = await this.api.createExportJob();
     logger.debug('Export job ' + JSON.stringify(jobStatus));

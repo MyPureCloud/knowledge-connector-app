@@ -4,7 +4,7 @@ import { ExternalContent } from '../model/external-content.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
 import { ZendeskSection } from './model/zendesk-section.js';
-import { Document, DocumentVersion } from '../model/import-export-model.js';
+import { Document, DocumentVersion } from '../model/sync-export-model.js';
 import { ZendeskCategory } from './model/zendesk-category.js';
 import { GeneratedValue } from '../utils/generated-value.js';
 
