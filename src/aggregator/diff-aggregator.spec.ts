@@ -366,6 +366,59 @@ describe('DiffAggregator', () => {
       });
     });
 
+    describe('when syncing from multiple sources', () => {
+      const source1: string = 'source1';
+      const source2: string = 'source2';
+      beforeEach(() => {
+        mockExportAllEntities.mockResolvedValue({
+          version: 3,
+          importAction: {
+            knowledgeBase: {
+              id: '',
+            },
+            categories: [
+              generateCategory('1', 'category-source1', source1),
+              generateCategory('1', 'category-source2', source2),
+              generateCategory('2', 'category-del-source2', source2),
+            ],
+            labels: [
+              generateLabel('1', 'label-source1', source1),
+              generateLabel('1', 'label-source2', source2),
+              generateLabel('2', 'label-del-source2', source2),
+            ],
+            documents: [
+              generateDocument('1', 'document-source1', [], true, source1),
+              generateDocument('1', 'document-source2', [], true, source2),
+              generateDocument('2', 'document-del-source2', [], true, source2),
+            ],
+          },
+        });
+
+        aggregator.initialize({ externalIdPrefix: source2 }, adapters);
+      });
+
+      it('should collect entities to the correct group', async () => {
+        const importableContents = await aggregator.run({
+          categories: [
+            generateCategory('1', 'category-update', source2),
+            generateCategory('3', 'category-new', source2),
+          ],
+          labels: [
+            generateLabel('1', 'label-update', source2),
+            generateLabel('3', 'label-new', source2),
+          ],
+          documents: [
+            generateDocument('1', 'document-update', [], true, source2),
+            generateDocument('3', 'document-new', [], true, source2),
+          ],
+        });
+
+        verifyGroups(importableContents.categories, 1, 1, 1);
+        verifyGroups(importableContents.labels, 1, 1, 1);
+        verifyGroups(importableContents.documents, 1, 1, 1);
+      });
+    });
+
     function verifyGroups<T extends ExternalIdentifiable>(
       importableContent: ImportableContent<T>,
       createdCount: number,
