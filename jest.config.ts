@@ -11,6 +11,9 @@ const jestConfig: JestConfigWithTsJest = {
   },
   moduleFileExtensions: ['ts', 'tsx', 'js'],
   modulePathIgnorePatterns: ['/dist'],
+  collectCoverage: true,
+  coverageDirectory: 'coverage',
+  coverageReporters: ['cobertura'],
 };
 
 export default jestConfig;
