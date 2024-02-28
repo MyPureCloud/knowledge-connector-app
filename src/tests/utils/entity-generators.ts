@@ -7,11 +7,12 @@ import { DocumentAlternative } from '../../model/document-alternative.js';
 export function generateLabel(
   suffix: string,
   name = 'label-name' + suffix,
+  externalIdPrefix: string = '',
 ): Label {
   return {
     id: '',
     name,
-    externalId: 'labels-' + suffix,
+    externalId: externalIdPrefix + 'labels-' + suffix,
     color: '',
   };
 }
@@ -19,11 +20,12 @@ export function generateLabel(
 export function generateCategory(
   suffix: string,
   name = 'category-name' + suffix,
+  externalIdPrefix: string = '',
 ): Category {
   return {
     id: '',
     name,
-    externalId: 'categories-' + suffix,
+    externalId: externalIdPrefix + 'categories-' + suffix,
     parentCategory: null,
   };
 }
@@ -33,10 +35,11 @@ export function generateDocument(
   title = 'document-name' + suffix,
   alternatives: DocumentAlternative[] | null = null,
   visible: boolean = true,
+  externalIdPrefix: string = '',
 ): Document {
   return {
     id: '',
-    externalId: 'documents-' + suffix,
+    externalId: externalIdPrefix + 'documents-' + suffix,
     published: {
       title,
       visible,

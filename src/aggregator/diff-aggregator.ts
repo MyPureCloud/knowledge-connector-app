@@ -123,8 +123,10 @@ export class DiffAggregator implements Aggregator {
       }
     });
 
+    const prefix = this.config.externalIdPrefix;
     result.deleted = unprocessedStoredItems.filter(
-      (item: T) => !!item?.externalId,
+      (item: T) =>
+        !!item?.externalId && (!prefix || item.externalId.startsWith(prefix)),
     );
 
     return result;
