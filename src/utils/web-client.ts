@@ -6,7 +6,7 @@ import {
   Response,
 } from 'node-fetch';
 
-export { Response, RequestInit } from 'node-fetch';
+export { Response, RequestInit, HeadersInit } from 'node-fetch';
 
 export async function fetchImage(
   url: string,

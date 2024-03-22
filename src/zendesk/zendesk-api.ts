@@ -5,7 +5,7 @@ import { ZendeskArticleAttachment } from './model/zendest-article-attachment.js'
 import { ZendeskSection } from './model/zendesk-section.js';
 import { ZendeskArticle } from './model/zendesk-article.js';
 import { ZendeskLabel } from './model/zendesk-label.js';
-import { fetch, Response } from '../utils/web-client.js';
+import { fetch, HeadersInit, Response } from '../utils/web-client.js';
 
 export class ZendeskApi {
   private config: ZendeskConfig = {};
@@ -91,7 +91,7 @@ export class ZendeskApi {
     return list;
   }
 
-  private buildHeaders() {
+  private buildHeaders(): HeadersInit {
     return {
       Authorization:
         'Basic ' +
