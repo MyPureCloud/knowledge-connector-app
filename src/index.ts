@@ -15,4 +15,5 @@ loadConfigurer(config)
   })
   .catch((error) => {
     logger.error('Connector app aborted.', error);
+    process.exitCode = 1;
   });
