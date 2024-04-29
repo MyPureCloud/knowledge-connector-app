@@ -190,7 +190,7 @@ export class ImageProcessor implements Processor {
       .digest('hex');
   }
 
-  private async downloadImage(url: string): Promise<Image> {
+  private async downloadImage(url: string): Promise<Image | null> {
     return fetchImage(url);
   }
 
