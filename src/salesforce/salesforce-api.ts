@@ -183,7 +183,7 @@ export class SalesforceApi {
     const json = (await response.json()) as SalesforceResponse;
     let list = json[property] as T[];
     if (json.nextPageUrl) {
-      const tail = await this.getPage<T>(json.nextPageUrl, property);
+      const tail = await this.get<T>(json.nextPageUrl, property);
       list = list.concat(tail);
     }
 
