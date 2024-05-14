@@ -5,4 +5,7 @@ export interface ServiceNowConfig extends Config {
   servicenowUsername?: string;
   servicenowPassword?: string;
   limit?: string;
+  servicenowKnowledgeBases?: string;
+  servicenowLanguage?: string;
+  servicenowCategoryNames?: string;
 }
