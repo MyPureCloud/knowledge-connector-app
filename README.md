@@ -69,6 +69,18 @@ SERVICENOW_USERNAME=
 SERVICENOW_PASSWORD=
 ```
 
+###### Optional parameters
+```
+# The maximum number of articles to be synced
+LIMIT=10
+# The knowledge bases to be synced. Comma separated knowledge base ids
+SERVICENOW_KNOWLEDGE_BASES=
+# The articles language to be synced (eg. en)
+SERVICENOW_LANGUAGE=
+# The category names of the articles to be synced. Comma separated values (eg. App, Q&A)
+SERVICENOW_CATEGORY_NAMES=
+```
+
 ### Configure Genesys Cloud as source
 
 ```

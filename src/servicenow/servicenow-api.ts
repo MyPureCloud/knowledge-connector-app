@@ -20,7 +20,7 @@ export class ServiceNowApi {
   }
 
   private async getPage<T>(endpoint: string): Promise<ServiceNowArticle[]> {
-    const url = `${this.config.servicenowBaseUrl}${endpoint}`;
+    const url = this.buildUrl(`${this.config.servicenowBaseUrl}${endpoint}`);
     const response = await fetch(url, {
       headers: this.buildHeaders(),
     });
@@ -69,6 +69,33 @@ export class ServiceNowApi {
           'utf-8',
         ).toString('base64'),
     };
+  }
+
+  private buildUrl(baseUrl: string): string {
+    const params: string[] = [];
+    const esc = encodeURIComponent;
+
+    if (this.config.servicenowKnowledgeBases) {
+      params.push(`kb=${esc(this.config.servicenowKnowledgeBases)}`);
+    }
+
+    if (this.config.servicenowCategoryNames) {
+      const categories = this.config.servicenowCategoryNames
+        .split(',')
+        .map(cat => esc(`category=${cat}`))
+        .join('^OR');
+      params.push(`filter=${categories}`);
+    }
+
+    if (this.config.servicenowLanguage) {
+      params.push(`language=${esc(this.config.servicenowLanguage)}`);
+    }
+
+    if (params.length > 0) {
+      baseUrl += '&' + params.join('&');
+    }
+
+    return baseUrl;
   }
 
   private async verifyResponse(response: Response, url: string): Promise<void> {
