@@ -125,4 +125,8 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
     }
     return results;
   }
+
+  public getApi(): GenesysDestinationApi {
+    return this.api;
+  }
 }

@@ -1,12 +1,39 @@
 {
   "name": "knowledge-connector-app",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Knowledge Connector App",
-  "main": "dist/index.js",
+  "module": "./dist/index.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./genesys": {
+      "types": "./dist/genesys.d.ts",
+      "default": "./dist/genesys.js"
+    },
+    "./salesforce": {
+      "types": "./dist/salesforce.d.ts",
+      "default": "./dist/salesforce.js"
+    },
+    "./servicenow": {
+      "types": "./dist/servicenow.d.ts",
+      "default": "./dist/servicenow.js"
+    },
+    "./zendesk": {
+      "types": "./dist/zendesk.d.ts",
+      "default": "./dist/zendesk.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "scripts": {
-    "start": "node dist/index.js",
-    "build": "tsc",
+    "start": "node dist/run.js",
+    "build": "tsc --declaration",
     "test": "jest",
     "lint": "npx eslint ."
   },
@@ -15,6 +42,10 @@
   "engines": {
     "node": ">=18",
     "npm": ">=9"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MyPureCloud/knowledge-connector-app.git"
   },
   "devDependencies": {
     "@jest/globals": "29.7.0",

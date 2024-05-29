@@ -6,4 +6,6 @@ export interface GenesysDestinationConfig extends PrefixExternalIdConfig {
   genesysClientId?: string;
   genesysClientSecret?: string;
   genesysKnowledgeBaseId?: string;
+  genesysSourceId?: string;
+  genesysReadonlyContent?: string;
 }
