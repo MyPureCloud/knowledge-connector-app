@@ -14,10 +14,12 @@ import { SalesforceAccessTokenResponse } from './model/salesforce-access-token-r
 export class SalesforceApi {
   private config: SalesforceConfig = {};
   private bearerToken: string = '';
+  private instanceUrl: string = '';
 
   public async initialize(config: SalesforceConfig): Promise<void> {
     this.config = config;
-    this.bearerToken = await this.getBearerToken();
+    this.instanceUrl = config.salesforceBaseUrl || '';
+    this.bearerToken = await this.authenticate();
   }
 
   public async fetchAllArticles(): Promise<SalesforceArticleDetails[]> {
@@ -69,7 +71,7 @@ export class SalesforceApi {
     categoryGroup: string,
     categoryName: string,
   ): Promise<SalesforceCategory> {
-    const url = `${this.config.salesforceBaseUrl}/services/data/${this.config.salesforceApiVersion}/support/dataCategoryGroups/${categoryGroup}/dataCategories/${categoryName}?sObjectName=KnowledgeArticleVersion`;
+    const url = `${this.instanceUrl}/services/data/${this.config.salesforceApiVersion}/support/dataCategoryGroups/${categoryGroup}/dataCategories/${categoryName}?sObjectName=KnowledgeArticleVersion`;
     const response = await fetch(url, {
       headers: this.buildHeaders(),
     });
@@ -89,12 +91,15 @@ export class SalesforceApi {
     articleId: string | null,
     url: string,
   ): Promise<Image | null> {
-    return fetchImage(url, {
-      Authorization: 'Bearer ' + this.bearerToken,
-    });
+    return fetchImage(
+      `${this.instanceUrl}/services/data/${this.config.salesforceApiVersion}/sobjects/knowledge__kav${url}`,
+      {
+        Authorization: 'Bearer ' + this.bearerToken,
+      },
+    );
   }
 
-  private async getBearerToken(): Promise<string> {
+  private async authenticate(): Promise<string> {
     validateNonNull(
       this.config.salesforceClientId,
       'Missing SALESFORCE_CLIENT_ID from config',
@@ -112,6 +117,9 @@ export class SalesforceApi {
       'Missing SALESFORCE_PASSWORD from config',
     );
 
+    const loginUrl =
+      this.config.salesforceLoginUrl || this.config.salesforceBaseUrl;
+
     const bodyParams = new URLSearchParams();
     bodyParams.append('grant_type', 'password');
     bodyParams.append('client_id', this.config.salesforceClientId!);
@@ -119,16 +127,13 @@ export class SalesforceApi {
     bodyParams.append('username', this.config.salesforceUsername!);
     bodyParams.append('password', this.config.salesforcePassword!);
 
-    const response = await fetch(
-      `${this.config.salesforceBaseUrl}/services/oauth2/token`,
-      {
-        method: 'POST',
-        body: bodyParams,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+    const response = await fetch(`${loginUrl}/services/oauth2/token`, {
+      method: 'POST',
+      body: bodyParams,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-    );
+    });
 
     if (!response.ok) {
       return Promise.reject(
@@ -145,6 +150,12 @@ export class SalesforceApi {
       data.access_token,
       `Access token not found in the response: ${JSON.stringify(data)}`,
     );
+    validateNonNull(
+      data.instance_url,
+      `Instance URL not found in the response: ${JSON.stringify(data)}`,
+    );
+
+    this.instanceUrl = data.instance_url;
 
     return data.access_token;
   }
@@ -152,7 +163,7 @@ export class SalesforceApi {
   private async fetchArticleDetails(
     articleId: string,
   ): Promise<SalesforceArticleDetails> {
-    const url = `${this.config.salesforceBaseUrl}/services/data/${this.config.salesforceApiVersion}/support/knowledgeArticles/${articleId}`;
+    const url = `${this.instanceUrl}/services/data/${this.config.salesforceApiVersion}/support/knowledgeArticles/${articleId}`;
     const response = await fetch(url, {
       headers: this.buildHeaders(),
     });
@@ -165,10 +176,7 @@ export class SalesforceApi {
     endpoint: string,
     property: SalesforceEntityTypes,
   ): Promise<T[]> {
-    return this.getPage(
-      `${this.config.salesforceBaseUrl}${endpoint}`,
-      property,
-    );
+    return this.getPage(`${this.instanceUrl}${endpoint}`, property);
   }
 
   private async getPage<T>(
