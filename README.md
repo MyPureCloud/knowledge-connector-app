@@ -43,6 +43,8 @@ ZENDESK_LOCALE=
 
 ```
 CONFIGURER=salesforce
+# The login url for Salesforce API (eg. https://login.salesforce.com)
+SALESFORCE_LOGIN_URL=
 # The base url for Salesforce API (eg. https://<company>.my.salesforce.com)
 SALESFORCE_BASE_URL=
 # Used Salesforce API version (eg. v56.0)

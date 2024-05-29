@@ -72,6 +72,6 @@ export class SalesforceLoader implements Loader {
     const searchParams = new URLSearchParams(parsedUrl.search);
     const eid = searchParams.get('eid');
     const refid = searchParams.get('refid');
-    return `${this.config.salesforceBaseUrl}/services/data/${this.config.salesforceApiVersion}/sobjects/knowledge__kav/${eid}/richTextImageFields/${fieldType}/${refid}`;
+    return `/${eid}/richTextImageFields/${fieldType}/${refid}`;
   }
 }
