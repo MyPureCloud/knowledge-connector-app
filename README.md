@@ -60,6 +60,16 @@ SALESFORCE_LANGUAGE_CODE=
 SALESFORCE_ARTICLE_CONTENT_FIELDS=
 ```
 
+###### Optional parameters
+```
+# The visibility of the articles (App, Pkb, Csp, Prm)
+SALESFORCE_CHANNEL=
+# The category filter to be used for fetching articles. 
+# Format: 
+#  {"<categoryGroup name #1>": "<category name #1>", "<categoryGroup name #2>": "<category name #2>"}
+SALESFORCE_CATEGORIES=
+```
+
 ### Configure ServiceNow as source
 
 ```
@@ -79,8 +89,8 @@ LIMIT=10
 SERVICENOW_KNOWLEDGE_BASES=
 # The articles language to be synced (eg. en)
 SERVICENOW_LANGUAGE=
-# The category names of the articles to be synced. Comma separated values (eg. App, Q&A)
-SERVICENOW_CATEGORY_NAMES=
+# The category filter to be used for fetching articles. Comma separated category ids
+SERVICENOW_CATEGORIES=
 ```
 
 ### Configure Genesys Cloud as source

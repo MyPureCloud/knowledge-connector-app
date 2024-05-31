@@ -6,11 +6,15 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fetch, Response } from '../utils/web-client.js';
 
 describe('ServiceNowApi', () => {
-  const baseUrl: string = 'https://test-url.com/api/sn_km_api/knowledge/articles?fields=category,text,workflow_state,topic';
+  const CATEGORY_ID_1 = '324989582398764';
+  const CATEGORY_ID_2 = '56873484398434';
+
+  const baseUrl: string =
+    'https://test-url.com/api/sn_km_api/knowledge/articles?fields=category,text,workflow_state,topic';
   const headers = {
     headers: {
-      Authorization: 'Basic dXNlcjpwYXNzd29yZA=='
-    }
+      Authorization: 'Basic dXNlcjpwYXNzd29yZA==',
+    },
   };
   const testArticle: ServiceNowArticle = {
     link: 'test-link',
@@ -21,29 +25,29 @@ describe('ServiceNowApi', () => {
       category: {
         name: 'Test category',
         value: '2222',
-        display_value: 'Test category'
+        display_value: 'Test category',
       },
       topic: {
         name: 'Test topic',
         value: '3333',
-        display_value: 'Test topic'
+        display_value: 'Test topic',
       },
       text: {
-        value: 'Article text'
+        value: 'Article text',
       },
       workflow_state: {
-        value: 'Published'
-      }
-    }
+        value: 'Published',
+      },
+    },
   };
   const response = Promise.resolve({
     result: {
       meta: {
         count: 1,
-        end: 1
+        end: 1,
       },
-      articles: [testArticle]
-    }
+      articles: [testArticle],
+    },
   });
   let mockFetch: jest.Mock<typeof fetch>;
   let api: ServiceNowApi;
@@ -55,7 +59,7 @@ describe('ServiceNowApi', () => {
     config = {
       servicenowUsername: 'user',
       servicenowPassword: 'password',
-      servicenowBaseUrl: 'https://test-url.com'
+      servicenowBaseUrl: 'https://test-url.com',
     };
   });
 
@@ -64,7 +68,7 @@ describe('ServiceNowApi', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => response
+        json: () => response,
       } as Response);
     });
 
@@ -82,8 +86,8 @@ describe('ServiceNowApi', () => {
     it('should fetch articles with custom limit', async () => {
       config = {
         ...config,
-        limit: '2'
-      }
+        limit: '2',
+      };
       const expectedUrl = `${baseUrl}&limit=2`;
 
       await api.initialize(config);
@@ -97,9 +101,9 @@ describe('ServiceNowApi', () => {
     it('should fetch articles with one specific category', async () => {
       config = {
         ...config,
-        servicenowCategoryNames: 'First category'
-      }
-      const expectedUrl = `${baseUrl}&limit=50&filter=category%3DFirst%20category`;
+        servicenowCategories: CATEGORY_ID_1,
+      };
+      const expectedUrl = `${baseUrl}&limit=50&filter=kb_category%3D${CATEGORY_ID_1}`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();
@@ -112,9 +116,9 @@ describe('ServiceNowApi', () => {
     it('should fetch articles with multiple specific categories', async () => {
       config = {
         ...config,
-        servicenowCategoryNames: 'First category,Test category'
-      }
-      const expectedUrl = `${baseUrl}&limit=50&filter=category%3DFirst%20category^ORcategory%3DTest%20category`;
+        servicenowCategories: `${CATEGORY_ID_1}   ,   ${CATEGORY_ID_2}  `,
+      };
+      const expectedUrl = `${baseUrl}&limit=50&filter=kb_category%3D${CATEGORY_ID_1}%5EORkb_category%3D${CATEGORY_ID_2}`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();
@@ -127,8 +131,8 @@ describe('ServiceNowApi', () => {
     it('should fetch articles with a specific language', async () => {
       config = {
         ...config,
-        servicenowLanguage: 'de'
-      }
+        servicenowLanguage: 'de',
+      };
       const expectedUrl = `${baseUrl}&limit=50&language=de`;
 
       await api.initialize(config);
@@ -142,8 +146,8 @@ describe('ServiceNowApi', () => {
     it('should fetch articles with one specific knowledge base', async () => {
       config = {
         ...config,
-        servicenowKnowledgeBases: 'kb-id'
-      }
+        servicenowKnowledgeBases: 'kb-id',
+      };
       const expectedUrl = `${baseUrl}&limit=50&kb=${config.servicenowKnowledgeBases}`;
 
       await api.initialize(config);
@@ -157,8 +161,8 @@ describe('ServiceNowApi', () => {
     it('should fetch articles with multiple knowledge bases', async () => {
       config = {
         ...config,
-        servicenowKnowledgeBases: 'kb-id1,kb-id2'
-      }
+        servicenowKnowledgeBases: 'kb-id1,kb-id2',
+      };
       const expectedUrl = `${baseUrl}&limit=50&kb=kb-id1%2Ckb-id2`;
 
       await api.initialize(config);
@@ -175,9 +179,9 @@ describe('ServiceNowApi', () => {
         limit: '2',
         servicenowKnowledgeBases: 'kb-id1,kb-id2',
         servicenowLanguage: 'de',
-        servicenowCategoryNames: 'First category, Test category'
-      }
-      const expectedUrl = `${baseUrl}&limit=2&kb=kb-id1%2Ckb-id2&filter=category%3DFirst%20category^ORcategory%3D%20Test%20category&language=de`;
+        servicenowCategories: `${CATEGORY_ID_2},${CATEGORY_ID_1}`,
+      };
+      const expectedUrl = `${baseUrl}&limit=2&kb=kb-id1%2Ckb-id2&filter=kb_category%3D${CATEGORY_ID_2}%5EORkb_category%3D${CATEGORY_ID_1}&language=de`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();
@@ -194,40 +198,40 @@ describe('ServiceNowApi', () => {
         result: {
           meta: {
             count: 4,
-            end: 2
+            end: 2,
           },
-          articles: [testArticle, testArticle]
-        }
+          articles: [testArticle, testArticle],
+        },
       });
 
       const response2 = Promise.resolve({
         result: {
           meta: {
             count: 2,
-            end: 2
+            end: 2,
           },
-          articles: [testArticle, testArticle]
-        }
+          articles: [testArticle, testArticle],
+        },
       });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => response
+        json: () => response,
       } as Response);
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () => response2
+        json: () => response2,
       } as Response);
     });
 
     it('should fetch all articles', async () => {
       config = {
         ...config,
-        limit: '2'
-      }
+        limit: '2',
+      };
       const firstExpectedUrl = `${baseUrl}&limit=2`;
       const secondExpectedUrl = `${baseUrl}&limit=2&offset=2`;
 
@@ -238,7 +242,12 @@ describe('ServiceNowApi', () => {
       checkFetchUrl(firstExpectedUrl);
       checkFetchUrl(secondExpectedUrl);
       expect(response.length).toEqual(4);
-      expect(response).toEqual([testArticle, testArticle, testArticle, testArticle]);
+      expect(response).toEqual([
+        testArticle,
+        testArticle,
+        testArticle,
+        testArticle,
+      ]);
     });
   });
 
@@ -247,7 +256,7 @@ describe('ServiceNowApi', () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 500,
-        json: () => Promise.resolve(null)
+        json: () => Promise.resolve(null),
       } as Response);
     });
 
@@ -257,7 +266,7 @@ describe('ServiceNowApi', () => {
         'Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=category,text,workflow_state,topic&limit=50] failed with status [500] and message [null]',
       );
     });
-  })
+  });
 
   function checkFetchUrl(expectedUrl: string) {
     expect(fetch).toHaveBeenCalledWith(expectedUrl, headers);

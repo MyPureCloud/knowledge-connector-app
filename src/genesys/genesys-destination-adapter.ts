@@ -43,7 +43,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
       ],
     };
     const response = await this.getApi().lookupImage(params);
-    if (response && response.results && response.results.length) {
+    if (response?.results?.length > 0) {
       return response.results[0].contentLocation || null;
     }
     return null;
@@ -54,7 +54,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
     const uploadUrl = await this.getApi().getUploadImageUrl({
       name: hash + '-' + image.name,
     });
-    if (!uploadUrl || !uploadUrl.url) {
+    if (!uploadUrl?.url) {
       logger.warn(`Cannot upload image [${image.url}]`);
       return null;
     }

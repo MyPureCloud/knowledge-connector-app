@@ -32,7 +32,8 @@ describe('SalesforceApi', () => {
         ...config,
         salesforceChannel: 'Pkb',
         salesforceLanguageCode: 'de',
-        salesforceCategories: '{"something":"someone"}',
+        salesforceCategories:
+          '{"something":"someone","otherGroup":"other category"}',
       });
 
       mockFetch.mockResolvedValueOnce({
@@ -47,7 +48,7 @@ describe('SalesforceApi', () => {
       await api.fetchAllArticles();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://base-url/services/data/v56.0/support/knowledgeArticles?channel=Pkb&categories={"something":"someone"}',
+        'https://base-url/services/data/v56.0/support/knowledgeArticles?channel=Pkb&categories={"something":"someone","otherGroup":"other category"}',
         {
           headers: {
             Authorization: 'Bearer access-token',
