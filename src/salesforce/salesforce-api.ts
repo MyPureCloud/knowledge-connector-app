@@ -23,8 +23,10 @@ export class SalesforceApi {
   }
 
   public async fetchAllArticles(): Promise<SalesforceArticleDetails[]> {
+    const filters = this.constructFilters();
+
     const articleInfos = await this.get<SalesforceArticle>(
-      `/services/data/${this.config.salesforceApiVersion}/support/knowledgeArticles`,
+      `/services/data/${this.config.salesforceApiVersion}/support/knowledgeArticles?${filters}`,
       SalesforceEntityTypes.ARTICLES,
     );
 
@@ -205,7 +207,7 @@ export class SalesforceApi {
     );
     return {
       Authorization: 'Bearer ' + this.bearerToken,
-      'Accept-language': this.config.salesforceLanguageCode!,
+      'Accept-Language': this.config.salesforceLanguageCode!,
     };
   }
 
@@ -216,5 +218,17 @@ export class SalesforceApi {
         `Api request [${url}] failed with status [${response.status}] and message [${message}]`,
       );
     }
+  }
+
+  private constructFilters(): string {
+    const filters: string[] = [];
+    if (this.config.salesforceChannel) {
+      filters.push(`channel=${this.config.salesforceChannel}`);
+    }
+    if (this.config.salesforceCategories) {
+      filters.push(`categories=${this.config.salesforceCategories}`);
+    }
+
+    return filters.join('&');
   }
 }

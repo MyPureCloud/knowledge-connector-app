@@ -27,7 +27,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
 
   public initialize(config: GenesysDestinationConfig): Promise<void> {
     this.config = config;
-    return this.api.initialize(config);
+    return this.getApi().initialize(config);
   }
 
   public async lookupImage(hash: string): Promise<string | null> {
@@ -42,7 +42,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
         },
       ],
     };
-    const response = await this.api.lookupImage(params);
+    const response = await this.getApi().lookupImage(params);
     if (response && response.results && response.results.length) {
       return response.results[0].contentLocation || null;
     }
@@ -51,7 +51,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
 
   public async uploadImage(hash: string, image: Image): Promise<string | null> {
     logger.debug('uploading image ' + image.url);
-    const uploadUrl = await this.api.getUploadImageUrl({
+    const uploadUrl = await this.getApi().getUploadImageUrl({
       name: hash + '-' + image.name,
     });
     if (!uploadUrl || !uploadUrl.url) {
@@ -59,22 +59,22 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
       return null;
     }
 
-    await this.api.upload(uploadUrl, image.content);
-    await this.api.waitForJobToFinish<UploadAssetStatusResponse>(
-      () => this.api.getUploadStatus(uploadUrl.id),
+    await this.getApi().upload(uploadUrl, image.content);
+    await this.getApi().waitForJobToFinish<UploadAssetStatusResponse>(
+      () => this.getApi().getUploadStatus(uploadUrl.id),
       ['Uploaded', 'Failed'],
     );
 
-    return this.api
+    return this.getApi()
       .getUploadInfo(uploadUrl.id)
       .then((response) => response?.contentLocation);
   }
 
   public async exportAllEntities(): Promise<ExportModel> {
-    const jobStatus = await this.api.createExportJob();
+    const jobStatus = await this.getApi().createExportJob();
 
-    const job = await this.api.waitForJobToFinish<ExportArticlesResponse>(
-      () => this.api.getExportStatus(jobStatus.id),
+    const job = await this.getApi().waitForJobToFinish<ExportArticlesResponse>(
+      () => this.getApi().getExportStatus(jobStatus.id),
       ['Completed', 'Failed', 'Aborted'],
     );
 
@@ -82,23 +82,23 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
       throw Error('Missing downloadURL from export job ' + JSON.stringify(job));
     }
 
-    return await this.api.fetchExportResult(job.downloadURL);
+    return await this.getApi().fetchExportResult(job.downloadURL);
   }
 
   public async syncData(data: SyncModel): Promise<SyncDataResponse> {
     const fileName = 'sync-' + new Date().toISOString() + '.json';
 
-    const { uploadKey } = await this.api.uploadSyncData(
+    const { uploadKey } = await this.getApi().uploadSyncData(
       fileName,
       new Blob([JSON.stringify(data)], {
         type: 'application/json',
       }),
     );
 
-    const job = await this.api.createSyncJob(uploadKey);
+    const job = await this.getApi().createSyncJob(uploadKey);
 
-    return this.api.waitForJobToFinish<SyncDataResponse>(
-      () => this.api.getSyncStatus(job.id),
+    return this.getApi().waitForJobToFinish<SyncDataResponse>(
+      () => this.getApi().getSyncStatus(job.id),
       [
         'Completed',
         'PartialCompleted',
@@ -120,7 +120,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
         .map((d) => d.id)
         .filter((id): id is string => id !== null);
 
-      const result = await this.api.bulkDeleteArticles(ids);
+      const result = await this.getApi().bulkDeleteArticles(ids);
       results.push(result);
     }
     return results;
