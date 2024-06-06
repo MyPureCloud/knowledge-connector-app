@@ -1,12 +1,12 @@
 import { Image } from '../model/image.js';
 import {
-  default as innerFetch,
+  fetch as innerFetch,
   HeadersInit,
   RequestInit,
   Response,
-} from 'node-fetch';
+} from 'undici';
 
-export { Response, RequestInit, HeadersInit } from 'node-fetch';
+export { Response, RequestInit, HeadersInit } from 'undici';
 
 export async function fetchImage(
   url: string,
@@ -23,7 +23,7 @@ export async function fetchImage(
   }
 
   const content = await response.blob();
-  const contentType = response.headers.get('content-type') || '';
+  const contentType = response.headers.get('content-type') ?? '';
 
   return {
     url,

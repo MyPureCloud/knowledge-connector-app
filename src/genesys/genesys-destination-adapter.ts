@@ -10,9 +10,9 @@ import { SyncDataResponse } from '../model/sync-data-response.js';
 import { UploadAssetStatusResponse } from './model/upload-asset-status-response.js';
 import { ExportArticlesResponse } from './model/export-articles-response.js';
 import { BulkDeleteResponse } from '../model/bulk-delete-response.js';
-import logger from '../utils/logger.js';
 import { GenesysDestinationApi } from './genesys-destination-api.js';
 import { DestinationAdapter } from '../adapter/destination-adapter.js';
+import { getLogger } from '../utils/logger.js';
 
 /**
  * GenesysDestinationAdapter is used by {@Link Uploader} to send collected data to Genesys Knowledge
@@ -50,12 +50,12 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
   }
 
   public async uploadImage(hash: string, image: Image): Promise<string | null> {
-    logger.debug('uploading image ' + image.url);
+    getLogger().debug('uploading image ' + image.url);
     const uploadUrl = await this.getApi().getUploadImageUrl({
       name: hash + '-' + image.name,
     });
     if (!uploadUrl?.url) {
-      logger.warn(`Cannot upload image [${image.url}]`);
+      getLogger().warn(`Cannot upload image [${image.url}]`);
       return null;
     }
 

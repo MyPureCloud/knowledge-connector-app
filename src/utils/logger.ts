@@ -1,8 +1,16 @@
-import winston from 'winston';
+export interface Logger {
+  error(message: string): void;
+  warn(message: string): void;
+  info(message: string): void;
+  debug(message: string): void;
+}
 
-const logger = winston.createLogger({
-  transports: [new winston.transports.Console()],
-  level: 'info',
-});
+let current: Logger = console;
 
-export default logger;
+export function setLogger(logger: Logger): void {
+  current = logger;
+}
+
+export function getLogger(): Logger {
+  return current;
+}

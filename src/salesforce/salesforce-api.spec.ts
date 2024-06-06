@@ -10,7 +10,7 @@ jest.mock('../utils/web-client.js');
 describe('SalesforceApi', () => {
   let api: SalesforceApi;
   let mockFetch: jest.Mock<typeof fetch>;
-  let config: SalesforceConfig = {
+  const config: SalesforceConfig = {
     salesforceLoginUrl: 'https://login-url',
     salesforceApiVersion: 'v56.0',
     salesforceClientId: 'client-id',

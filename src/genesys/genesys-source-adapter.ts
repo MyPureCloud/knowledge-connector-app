@@ -8,7 +8,7 @@ import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
 import { Image } from '../model/image.js';
 import { ExportArticlesResponse } from './model/export-articles-response.js';
 import { fetchImage } from '../utils/web-client.js';
-import logger from '../utils/logger.js';
+import { getLogger } from '../utils/logger.js';
 
 /**
  * GenesysSourceAdapter implements {@Link SourceAdapter} to fetch data from Genesys Knowledge's API
@@ -51,9 +51,9 @@ export class GenesysSourceAdapter
   }
 
   private async exportAllEntities(): Promise<ExportModel> {
-    logger.debug('Export articles in loader');
+    getLogger().debug('Export articles in loader');
     const jobStatus = await this.api.createExportJob();
-    logger.debug('Export job ' + JSON.stringify(jobStatus));
+    getLogger().debug('Export job ' + JSON.stringify(jobStatus));
     const job = await this.api.waitForJobToFinish<ExportArticlesResponse>(
       () => this.api.getExportStatus(jobStatus.id),
       ['Completed', 'Failed', 'Aborted'],

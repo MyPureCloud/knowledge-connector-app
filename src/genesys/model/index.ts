@@ -1,0 +1,12 @@
+export { ExportArticlesRequest } from './export-articles-request.js';
+export { ExportArticlesResponse } from './export-articles-response.js';
+export { GenesysDestinationConfig } from './genesys-destination-config.js';
+export { GenesysSourceConfig } from './genesys-source-config.js';
+export { JobStatus } from './job-status.js';
+export { JobStatusResponse } from './job-status-response.js';
+export { SearchAssetRequest } from './search-asset-request.js';
+export { SearchAssetResponse, AssetResponse } from './search-asset-response.js';
+export { TokenResponse } from './token-response.js';
+export { UploadAssetRequest } from './upload-asset-request.js';
+export { UploadAssetResponse } from './upload-asset-response.js';
+export { UploadAssetStatusResponse } from './upload-asset-status-response.js';

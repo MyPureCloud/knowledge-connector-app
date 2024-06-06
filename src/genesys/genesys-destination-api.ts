@@ -5,7 +5,6 @@ import {
 } from './model/search-asset-response.js';
 import { UploadAssetResponse } from './model/upload-asset-response.js';
 import { UploadAssetRequest } from './model/upload-asset-request.js';
-import { Blob } from 'buffer';
 import { UploadAssetStatusResponse } from './model/upload-asset-status-response.js';
 import { SyncDataResponse } from '../model/sync-data-response.js';
 import { SyncDataRequest } from '../model/sync-data-request.js';
@@ -17,7 +16,7 @@ import { GenesysDestinationConfig } from './model/genesys-destination-config.js'
 import { fetch } from '../utils/web-client.js';
 
 export class GenesysDestinationApi extends GenesysApi {
-  private config: GenesysDestinationConfig = {};
+  protected config: GenesysDestinationConfig = {};
 
   public initialize(config: GenesysDestinationConfig): Promise<void> {
     this.config = config;

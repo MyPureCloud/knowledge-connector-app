@@ -4,8 +4,8 @@ import { ServiceNowConfig } from './model/servicenow-config.js';
 import { ServiceNowApi } from './servicenow-api.js';
 import { ServiceNowArticle } from './model/servicenow-article.js';
 import { Image } from '../model/image.js';
-import logger from '../utils/logger.js';
 import { ServiceNowArticleAttachment } from './model/servicenow-article-attachment.js';
+import { getLogger } from '../utils/logger.js';
 
 export class ServiceNowAdapter
   implements
@@ -40,7 +40,9 @@ export class ServiceNowAdapter
     const info = await this.getAttachmentInfo(attachmentIdMatch[1]);
     if (!info) {
       articleId = articleId.split(':')[1];
-      logger.warn(`Cannot find attachment [${url}] for article [${articleId}]`);
+      getLogger().warn(
+        `Cannot find attachment [${url}] for article [${articleId}]`,
+      );
       return null;
     }
 
