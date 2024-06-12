@@ -10,7 +10,7 @@ describe('ServiceNowApi', () => {
   const CATEGORY_ID_2 = '56873484398434';
 
   const baseUrl: string =
-    'https://test-url.com/api/sn_km_api/knowledge/articles?fields=category,text,workflow_state,topic';
+    'https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category';
   const headers = {
     headers: {
       Authorization: 'Basic dXNlcjpwYXNzd29yZA==',
@@ -263,7 +263,7 @@ describe('ServiceNowApi', () => {
     it('should throw error', async () => {
       await api.initialize(config);
       await expect(() => api.fetchAllArticles()).rejects.toThrow(
-        'Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=category,text,workflow_state,topic&limit=50] failed with status [500] and message [null]',
+        'Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=50] failed with status [500] and message [null]',
       );
     });
   });

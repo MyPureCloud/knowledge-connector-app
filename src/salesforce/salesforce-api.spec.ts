@@ -33,7 +33,7 @@ describe('SalesforceApi', () => {
         salesforceChannel: 'Pkb',
         salesforceLanguageCode: 'de',
         salesforceCategories:
-          '{"something":"someone","otherGroup":"other category"}',
+          '{"something":"someone","otherGroup":"other_category"}',
       });
 
       mockFetch.mockResolvedValueOnce({

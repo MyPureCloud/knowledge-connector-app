@@ -3,7 +3,6 @@ import { ServiceNowArticle } from './model/servicenow-article.js';
 import { fetch, Response } from '../utils/web-client.js';
 import { ServiceNowResponse } from './model/servicenow-response.js';
 import { ServiceNowArticleAttachment } from './model/servicenow-article-attachment.js';
-import { ServiceNowCategoryFilter } from './model/servicenow-category-filter.js';
 
 export class ServiceNowApi {
   private config: ServiceNowConfig = {};
@@ -16,7 +15,7 @@ export class ServiceNowApi {
 
   public async fetchAllArticles(): Promise<ServiceNowArticle[]> {
     return await this.getPage<ServiceNowArticle>(
-      `/api/sn_km_api/knowledge/articles?fields=category,text,workflow_state,topic&limit=${this.limit}`,
+      `/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=${this.limit}`,
     );
   }
 
@@ -32,7 +31,7 @@ export class ServiceNowApi {
     let list = json.result.articles;
 
     if (json.result.meta.count > end) {
-      const nextUrl = `/api/sn_km_api/knowledge/articles?fields=category,text,workflow_state,topic&limit=${this.limit}&offset=${end}`;
+      const nextUrl = `/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=${this.limit}&offset=${end}`;
       const tail = await this.getPage<T>(nextUrl);
       list = list.concat(tail);
     }
