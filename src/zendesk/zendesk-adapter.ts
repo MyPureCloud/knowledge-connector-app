@@ -8,7 +8,7 @@ import { Image } from '../model/image.js';
 import { ZendeskApi } from './zendesk-api.js';
 import { SourceAdapter } from '../adapter/source-adapter.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
-import logger from '../utils/logger.js';
+import { getLogger } from '../utils/logger.js';
 
 export class ZendeskAdapter
   implements
@@ -51,7 +51,9 @@ export class ZendeskAdapter
     const info = await this.getAttachmentInfo(articleId, url);
 
     if (!info) {
-      logger.warn(`Cannot find attachment [${url}] for article [${articleId}]`);
+      getLogger().warn(
+        `Cannot find attachment [${url}] for article [${articleId}]`,
+      );
       return null;
     }
 

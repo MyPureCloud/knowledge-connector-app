@@ -7,5 +7,5 @@ export interface ServiceNowConfig extends Config {
   limit?: string;
   servicenowKnowledgeBases?: string;
   servicenowLanguage?: string;
-  servicenowCategoryNames?: string;
+  servicenowCategories?: string;
 }

@@ -1,5 +1,5 @@
 export interface DocumentUploadResponse {
   url?: string;
-  headers?: string;
+  headers?: Record<string, string>;
   uploadKey: string;
 }

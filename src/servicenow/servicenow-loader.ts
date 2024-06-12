@@ -6,7 +6,7 @@ import { ServiceNowConfig } from './model/servicenow-config.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Adapter } from '../adapter/adapter.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
-import logger from '../utils/logger.js';
+import { getLogger } from '../utils/logger.js';
 
 /**
  * ServiceNow is a specific {@Link Loader} implementation for fetching data from ServiceNow API
@@ -24,13 +24,13 @@ export class ServiceNowLoader implements Loader {
   public async run(_input?: ExternalContent): Promise<ExternalContent> {
     validateNonNull(this.adapter, 'Missing source adapter');
 
-    logger.info('Fetching data...');
+    getLogger().info('Fetching data...');
     const articles = await this.adapter!.getAllArticles();
 
     const data = contentMapper(articles);
 
-    logger.info('Categories loaded: ' + data.categories.length);
-    logger.info('Documents loaded: ' + data.documents.length);
+    getLogger().info('Categories loaded: ' + data.categories.length);
+    getLogger().info('Documents loaded: ' + data.documents.length);
 
     return data;
   }

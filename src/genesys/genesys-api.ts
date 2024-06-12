@@ -4,7 +4,7 @@ import { ExportArticlesRequest } from './model/export-articles-request.js';
 import { ExportModel } from '../model/sync-export-model.js';
 import { Config } from '../config.js';
 import { JobStatusResponse } from './model/job-status-response.js';
-import logger from '../utils/logger.js';
+import { getLogger } from '../utils/logger.js';
 import { JobStatus } from './model/job-status.js';
 import { fetch, RequestInit, Response } from '../utils/web-client.js';
 
@@ -75,7 +75,7 @@ export abstract class GenesysApi {
     expectedStatuses: JobStatus[],
   ): Promise<T> {
     const job = await jobStatusGetter();
-    logger.debug('Job ' + JSON.stringify(job));
+    getLogger().debug('Job ' + JSON.stringify(job));
     if (!expectedStatuses.includes(job.status)) {
       return new Promise((resolve, reject) => {
         setTimeout(

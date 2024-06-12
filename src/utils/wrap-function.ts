@@ -1,4 +1,4 @@
-import logger from './logger.js';
+import { getLogger } from './logger.js';
 
 /**
  * Catch, log and rethrow any error
@@ -12,7 +12,7 @@ export default async function wrapFunction<T>(
   try {
     return await fn();
   } catch (error) {
-    logger.error(`${errorMessage}: ${error}`);
+    getLogger().error(`${errorMessage}: ${error}`);
     throw error;
   }
 }

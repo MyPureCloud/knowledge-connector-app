@@ -1,13 +1,11 @@
 import { Processor } from './processor.js';
 import { ExternalContent } from '../model/external-content.js';
-import { Blob } from 'buffer';
 import { createHash } from 'crypto';
 import { Image } from '../model/image.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import { Document, Variation } from '../model/sync-export-model.js';
-import logger from '../utils/logger.js';
 import {
   DocumentBodyBlock,
   DocumentBodyImageBlock,
@@ -24,6 +22,7 @@ import { fetchImage } from '../utils/web-client.js';
 import { ImageConfig } from './image-config.js';
 import { FileReaderClient } from '../utils/file-reader-client.js';
 import { DestinationAdapter } from '../adapter/destination-adapter.js';
+import { getLogger } from '../utils/logger.js';
 
 export class ImageProcessor implements Processor {
   private config: ImageConfig = {};
@@ -53,7 +52,7 @@ export class ImageProcessor implements Processor {
         await this.processArticle(document, variation);
       }
     }
-    logger.info(`Images uploaded: ${this.uploadedImageCount}`);
+    getLogger().info(`Images uploaded: ${this.uploadedImageCount}`);
     return Promise.resolve(content);
   }
 
@@ -62,7 +61,7 @@ export class ImageProcessor implements Processor {
     variation: Variation,
   ): Promise<void> {
     if (!variation.body) {
-      logger.warn('Variation has no body');
+      getLogger().warn('Variation has no body');
       return;
     }
 
@@ -77,11 +76,11 @@ export class ImageProcessor implements Processor {
     articleId: string | null,
     imageBlock: DocumentBodyImageBlock,
   ): Promise<void> {
-    logger.debug('processing image block ' + imageBlock.image.url);
+    getLogger().debug('processing image block ' + imageBlock.image.url);
     const image = await this.fetchImage(articleId, imageBlock.image.url);
 
     if (!image) {
-      logger.warn(
+      getLogger().warn(
         `Cannot fetch image [${imageBlock.image.url}] for article [${articleId}]`,
       );
       return;
@@ -165,11 +164,11 @@ export class ImageProcessor implements Processor {
     let image = await this.adapter!.getAttachment(articleId, url);
 
     if (!image) {
-      logger.info(`Trying to fetch image [${url}] directly`);
+      getLogger().info(`Trying to fetch image [${url}] directly`);
 
       if (this.isRelativeUrl(url)) {
         if (!this.config?.relativeImageBaseUrl) {
-          logger.warn(
+          getLogger().warn(
             `Relative image url [${url}] found but missing RELATIVE_IMAGE_BASE_URL from config`,
           );
           return null;

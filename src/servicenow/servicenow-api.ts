@@ -15,7 +15,7 @@ export class ServiceNowApi {
 
   public async fetchAllArticles(): Promise<ServiceNowArticle[]> {
     return await this.getPage<ServiceNowArticle>(
-      `/api/sn_km_api/knowledge/articles?fields=category,text,workflow_state,topic&limit=${this.limit}`,
+      `/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=${this.limit}`,
     );
   }
 
@@ -28,10 +28,10 @@ export class ServiceNowApi {
 
     const json = (await response.json()) as ServiceNowResponse;
     const end = json.result.meta.end;
-    let list = json.result.articles as ServiceNowArticle[];
+    let list = json.result.articles;
 
     if (json.result.meta.count > end) {
-      const nextUrl = `/api/sn_km_api/knowledge/articles?fields=category,text,workflow_state,topic&limit=${this.limit}&offset=${end}`;
+      const nextUrl = `/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=${this.limit}&offset=${end}`;
       const tail = await this.getPage<T>(nextUrl);
       list = list.concat(tail);
     }
@@ -79,12 +79,10 @@ export class ServiceNowApi {
       params.push(`kb=${esc(this.config.servicenowKnowledgeBases)}`);
     }
 
-    if (this.config.servicenowCategoryNames) {
-      const categories = this.config.servicenowCategoryNames
-        .split(',')
-        .map(cat => esc(`category=${cat}`))
-        .join('^OR');
-      params.push(`filter=${categories}`);
+    if (this.config.servicenowCategories) {
+      params.push(
+        `filter=${esc(this.buildCategoriesFilter(this.config.servicenowCategories))}`,
+      );
     }
 
     if (this.config.servicenowLanguage) {
@@ -96,6 +94,15 @@ export class ServiceNowApi {
     }
 
     return baseUrl;
+  }
+
+  private buildCategoriesFilter(value: string): string {
+    const filters = value.split(',');
+
+    return filters
+      .map((f) => f.trim())
+      .map((f) => `kb_category=${f}`)
+      .join('^OR');
   }
 
   private async verifyResponse(response: Response, url: string): Promise<void> {

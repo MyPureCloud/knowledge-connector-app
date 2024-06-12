@@ -9,5 +9,7 @@ export interface SalesforceConfig extends Config {
   salesforceClientId?: string;
   salesforceClientSecret?: string;
   salesforceLanguageCode?: string;
+  salesforceChannel?: string;
+  salesforceCategories?: string;
   salesforceArticleContentFields?: string;
 }

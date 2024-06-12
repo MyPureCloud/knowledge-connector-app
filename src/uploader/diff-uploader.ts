@@ -6,8 +6,8 @@ import { SyncModel } from '../model/sync-export-model.js';
 import { GenesysDestinationConfig } from '../genesys/model/genesys-destination-config.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
-import logger from '../utils/logger.js';
 import { generatedValueResolver } from './generated-value-resolver.js';
+import { getLogger } from '../utils/logger.js';
 
 /**
  * DiffUploader collects all the new and changed entities into a JSON format and uploads it to Genesys Knowledge's import API
@@ -65,31 +65,31 @@ export class DiffUploader implements Uploader {
       },
     };
 
-    logger.info(
+    getLogger().info(
       'Categories to create: ' + importableContents.categories.created.length,
     );
-    logger.info(
+    getLogger().info(
       'Categories to update: ' + importableContents.categories.updated.length,
     );
-    logger.info(
+    getLogger().info(
       'Categories to delete: ' + importableContents.categories.deleted.length,
     );
-    logger.info(
+    getLogger().info(
       'Labels to create: ' + importableContents.labels.created.length,
     );
-    logger.info(
+    getLogger().info(
       'Labels to update: ' + importableContents.labels.updated.length,
     );
-    logger.info(
+    getLogger().info(
       'Labels to delete: ' + importableContents.labels.deleted.length,
     );
-    logger.info(
+    getLogger().info(
       'Documents to create: ' + importableContents.documents.created.length,
     );
-    logger.info(
+    getLogger().info(
       'Documents to update: ' + importableContents.documents.updated.length,
     );
-    logger.info(
+    getLogger().info(
       'Documents to delete: ' + importableContents.documents.deleted.length,
     );
 
@@ -101,18 +101,18 @@ export class DiffUploader implements Uploader {
       !data.deleteAction.labels.length &&
       !data.deleteAction.documents.length
     ) {
-      logger.info('There is no change to upload.');
+      getLogger().info('There is no change to upload.');
       return;
     }
 
-    logger.info('Uploading data...');
+    getLogger().info('Uploading data...');
 
     const response = await this.adapter!.syncData(data);
-    logger.info('Upload finished');
-    logger.info('Sync job id: ' + response.id);
-    logger.info('Sync job status: ' + response.status);
+    getLogger().info('Upload finished');
+    getLogger().info('Sync job id: ' + response.id);
+    getLogger().info('Sync job status: ' + response.status);
     if (response.failedEntitiesURL) {
-      logger.info('Errors during import: ' + response.failedEntitiesURL);
+      getLogger().info('Errors during import: ' + response.failedEntitiesURL);
     }
   }
 }

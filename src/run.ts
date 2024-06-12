@@ -1,8 +1,15 @@
 import { Pipe } from './pipe/pipe.js';
 import { GenesysDestinationAdapter } from './genesys/genesys-destination-adapter.js';
-import logger from './utils/logger.js';
 import { loadConfigurer } from './utils/configurer-loader.js';
 import { parseConfig } from './utils/config-parser.js';
+import winston from 'winston';
+import { setLogger } from './utils/logger.js';
+
+const logger = winston.createLogger({
+  transports: [new winston.transports.Console()],
+  level: 'info',
+});
+setLogger(logger);
 
 const config = parseConfig();
 

@@ -9,10 +9,10 @@ import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Adapter } from '../adapter/adapter.js';
 import { SyncableContents } from '../model/syncable-contents.js';
 import wrapFunction from '../utils/wrap-function.js';
-import logger from '../utils/logger.js';
 import { Task } from './task.js';
 import { TimerConfig } from './timer-config.js';
 import { Configurer } from './configurer.js';
+import { getLogger } from '../utils/logger.js';
 
 /**
  * Pipe is the collection of tasks and adapters which can be executed to do the sync from source to destination.
@@ -117,7 +117,7 @@ export class Pipe {
       validateNonNull(this.sourceAdapter, 'Missing source adapter');
       validateNonNull(this.destinationAdapter, 'Missing destination adapter');
 
-      logger.info('Started');
+      getLogger().info('Started');
       await Promise.all([
         this.sourceAdapter!.initialize(config),
         this.destinationAdapter!.initialize(config),
@@ -126,7 +126,7 @@ export class Pipe {
       let externalContent = await this.executeLoaders(config);
 
       if (!externalContent) {
-        logger.warn('Loaders returned no data');
+        getLogger().warn('Loaders returned no data');
         return;
       }
 
@@ -141,7 +141,7 @@ export class Pipe {
       await this.executeUploaders(config, importableContents);
       const endTime = Date.now();
       const duration = endTime - startTime;
-      logger.info(`Process took ${duration} milliseconds.`);
+      getLogger().info(`Process took ${duration} milliseconds.`);
     } finally {
       if (killTimer) {
         clearTimeout(killTimer);
@@ -155,7 +155,7 @@ export class Pipe {
     }
     const lifetimeInSeconds = parseInt(config?.killAfterLongRunningSeconds, 10);
     return setTimeout(() => {
-      logger.error(
+      getLogger().error(
         `Connector app did not finish in [${lifetimeInSeconds}] seconds. Killing process`,
       );
       process.exit(1);
@@ -211,7 +211,7 @@ export class Pipe {
     config: Config,
     externalContent: I,
   ): Promise<O> {
-    logger.info(`${task.constructor.name} task running`);
+    getLogger().info(`${task.constructor.name} task running`);
     await wrapFunction(
       () =>
         task.initialize(config, {
@@ -225,7 +225,7 @@ export class Pipe {
       () => task.run(externalContent),
       `Error executing ${task.constructor.name}`,
     );
-    logger.info(`${task.constructor.name} task finished`);
+    getLogger().info(`${task.constructor.name} task finished`);
     return result;
   }
 

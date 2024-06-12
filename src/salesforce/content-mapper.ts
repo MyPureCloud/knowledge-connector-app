@@ -7,6 +7,8 @@ import { SalesforceArticleLayoutItem } from './model/salesforce-article-layout-i
 import { GeneratedValue } from '../utils/generated-value.js';
 import { LabelReference } from '../model/label-reference.js';
 
+const EXCLUDED_FIELD_TYPES = ['DATE_TIME', 'LOOKUP', 'CHECKBOX'];
+
 export function contentMapper(
   categoryGroups: SalesforceCategoryGroup[],
   articles: SalesforceArticleDetails[],
@@ -109,12 +111,19 @@ function buildArticleBody(
   articleItems: SalesforceArticleLayoutItem[],
   contentFields: string[],
 ): string {
-  const contentParts: string[] = [];
-  articleItems.forEach((item) => {
-    if (contentFields.includes(item.name)) {
-      contentParts.push(item.value);
-    }
-  });
+  const contentParts: string[] = articleItems
+    .filter((item) => filterField(item, contentFields))
+    .map((item) => item.value);
 
   return `<p>${contentParts.join('</p><p>')}</p>`;
+}
+
+function filterField(
+  item: SalesforceArticleLayoutItem,
+  contentFields: string[],
+) {
+  return (
+    (contentFields.length === 0 || contentFields.includes(item.name)) &&
+    !EXCLUDED_FIELD_TYPES.includes(item.type)
+  );
 }

@@ -6,7 +6,7 @@ import { SalesforceConfig } from './model/salesforce-config.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Adapter } from '../adapter/adapter.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
-import logger from '../utils/logger.js';
+import { getLogger } from '../utils/logger.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
 
 /**
@@ -26,26 +26,21 @@ export class SalesforceLoader implements Loader {
 
   public async run(_input?: ExternalContent): Promise<ExternalContent> {
     validateNonNull(this.adapter, 'Missing source adapter');
-    validateNonNull(
-      this.config.salesforceArticleContentFields,
-      'Missing SALESFORCE_ARTICLE_CONTENT_FIELDS from config',
-    );
 
-    logger.info('Fetching data...');
+    getLogger().info('Fetching data...');
     const [categories, articles] = await Promise.all([
       this.adapter!.getAllCategories(),
       this.adapter!.getAllArticles(),
     ]);
 
     articles.forEach((article) => this.replaceImageUrls(article));
-    const data = contentMapper(
-      categories,
-      articles,
-      this.config.salesforceArticleContentFields!.split(','),
-    );
 
-    logger.info('Labels loaded: ' + data.labels.length);
-    logger.info('Documents loaded: ' + data.documents.length);
+    const contentFields =
+      this.config.salesforceArticleContentFields?.split(',') || [];
+    const data = contentMapper(categories, articles, contentFields);
+
+    getLogger().info('Labels loaded: ' + data.labels.length);
+    getLogger().info('Documents loaded: ' + data.documents.length);
 
     return data;
   }
