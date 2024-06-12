@@ -57,6 +57,66 @@ describe('SalesforceApi', () => {
         },
       );
     });
+
+    it('should load articles with transformed language code in the header', async () => {
+      await api.initialize({
+        ...config,
+        salesforceChannel: 'Pkb',
+        salesforceLanguageCode: 'de-DE',
+        salesforceCategories: '{"something":"someone"}',
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            articles: [],
+          } as unknown as SalesforceResponse),
+      } as Response);
+
+      await api.fetchAllArticles();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://base-url/services/data/v56.0/support/knowledgeArticles?channel=Pkb&categories={"something":"someone"}',
+        {
+          headers: {
+            Authorization: 'Bearer access-token',
+            'Accept-Language': 'de',
+          },
+        },
+      );
+    });
+
+    it('should load articles with five-character language code in the header', async () => {
+      await api.initialize({
+        ...config,
+        salesforceChannel: 'Pkb',
+        salesforceLanguageCode: 'de-AT',
+        salesforceCategories: '{"something":"someone"}',
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            articles: [],
+          } as unknown as SalesforceResponse),
+      } as Response);
+
+      await api.fetchAllArticles();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://base-url/services/data/v56.0/support/knowledgeArticles?channel=Pkb&categories={"something":"someone"}',
+        {
+          headers: {
+            Authorization: 'Bearer access-token',
+            'Accept-Language': 'de-AT',
+          },
+        },
+      );
+    });
   });
 
   function mockLoginResponse() {

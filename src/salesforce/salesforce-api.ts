@@ -7,9 +7,10 @@ import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
 import { SalesforceCategory } from './model/salesforce-category.js';
 import { URLSearchParams } from 'url';
-import { Image } from '../model/image.js';
+import { Image } from '../model';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import { SalesforceAccessTokenResponse } from './model/salesforce-access-token-response.js';
+import { LANGUAGE_MAPPING } from './salesforce-language-mapping';
 
 export class SalesforceApi {
   private config: SalesforceConfig = {};
@@ -205,6 +206,15 @@ export class SalesforceApi {
       this.config.salesforceLanguageCode,
       'Missing SALESFORCE_LANGUAGE_CODE from config',
     );
+
+    if (this.config.salesforceLanguageCode!.length > 2) {
+      const language = LANGUAGE_MAPPING[this.config.salesforceLanguageCode!] ?? this.config.salesforceLanguageCode!;
+      return {
+        Authorization: 'Bearer ' + this.bearerToken,
+        'Accept-Language': language,
+      };
+    }
+
     return {
       Authorization: 'Bearer ' + this.bearerToken,
       'Accept-Language': this.config.salesforceLanguageCode!,
