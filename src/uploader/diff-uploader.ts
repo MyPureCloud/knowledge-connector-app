@@ -33,8 +33,6 @@ export class DiffUploader implements Uploader {
 
     const data: SyncModel = {
       version: 3,
-      sourceId: this.config?.genesysSourceId,
-      readonlyContent: this.config?.genesysReadonlyContent === 'true',
       importAction: {
         knowledgeBase: {
           id: this.config!.genesysKnowledgeBaseId!,
