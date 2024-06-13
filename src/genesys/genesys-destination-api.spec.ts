@@ -4,19 +4,25 @@ import { fetch, Response } from '../utils/web-client.js';
 import { TokenResponse } from './model/token-response.js';
 import { SearchAssetResponse } from './model/search-asset-response.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { SyncDataResponse } from '../model';
 
 jest.mock('../utils/web-client.js');
 
 describe('GenesysDestinationApi', () => {
+  const KB_ID = 'kb-id';
+
   let genesysDestinationApi: GenesysDestinationApi;
   let mockFetch: jest.Mock<typeof fetch>;
 
+  beforeEach(() => {
+    genesysDestinationApi = new GenesysDestinationApi();
+
+    mockFetch = fetch as jest.Mock<typeof fetch>;
+    mockLoginResponse();
+  });
+
   describe('createExportJob', () => {
     beforeEach(async () => {
-      genesysDestinationApi = new GenesysDestinationApi();
-
-      mockFetch = fetch as jest.Mock<typeof fetch>;
-      mockLoginResponse();
       await genesysDestinationApi.initialize(getConfig());
     });
 
@@ -61,6 +67,42 @@ describe('GenesysDestinationApi', () => {
     });
   });
 
+  describe('createSyncJob', () => {
+    beforeEach(async () => {
+      await genesysDestinationApi.initialize({
+        ...getConfig(),
+        genesysSourceId: 'source-id',
+        genesysReadonlyContent: 'true',
+      });
+    });
+
+    it('should call sync API', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            id: 'sync-id',
+          } as SyncDataResponse),
+      } as Response);
+
+      const response = await genesysDestinationApi.createSyncJob('upload-key');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        `https://base-url/api/v2/knowledge/knowledgeBases/${KB_ID}/synchronize/jobs`,
+        {
+          body: '{"uploadKey":"upload-key","sourceId":"source-id","readonlyContent":true}',
+          headers: {
+            Authorization: 'Bearer access-token',
+            'Content-Type': 'application/json',
+          },
+          method: 'POST',
+        },
+      );
+      expect(response.id).toBe('sync-id');
+    });
+  });
+
   function mockLoginResponse() {
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -76,7 +118,7 @@ describe('GenesysDestinationApi', () => {
       genesysLoginUrl: 'https://login-url',
       genesysClientId: 'client-id',
       genesysClientSecret: 'client-secret',
-      genesysKnowledgeBaseId: 'kb-id',
+      genesysKnowledgeBaseId: KB_ID,
     };
   }
 });

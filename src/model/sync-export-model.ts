@@ -8,8 +8,6 @@ import { DocumentAlternative } from './document-alternative.js';
 
 export interface SyncModel {
   version: number;
-  sourceId?: string;
-  readonlyContent?: boolean;
   importAction: {
     knowledgeBase: {
       id: string;
