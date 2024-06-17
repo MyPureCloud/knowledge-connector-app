@@ -128,12 +128,27 @@ describe('ServiceNowApi', () => {
       checkFetchUrl(expectedUrl);
     });
 
-    it('should fetch articles with a specific language', async () => {
+    it('should fetch articles with a specific two-letter language code', async () => {
       config = {
         ...config,
         servicenowLanguage: 'de',
       };
       const expectedUrl = `${baseUrl}&limit=50&language=de`;
+
+      await api.initialize(config);
+      const response = await api.fetchAllArticles();
+
+      expect(response).toEqual([testArticle]);
+      expect(fetch).toHaveBeenCalledTimes(1);
+      checkFetchUrl(expectedUrl);
+    });
+
+    it('should fetch articles with a transformed five-character language code', async () => {
+      config = {
+        ...config,
+        servicenowLanguage: 'en-US',
+      };
+      const expectedUrl = `${baseUrl}&limit=50&language=en`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();

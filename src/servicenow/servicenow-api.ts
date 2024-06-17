@@ -86,7 +86,11 @@ export class ServiceNowApi {
     }
 
     if (this.config.servicenowLanguage) {
-      params.push(`language=${esc(this.config.servicenowLanguage)}`);
+      const language = this.config.servicenowLanguage.length > 2
+        ? this.config.servicenowLanguage.substring(0, 2)
+        : this.config.servicenowLanguage;
+
+      params.push(`language=${esc(language)}`);
     }
 
     if (params.length > 0) {
