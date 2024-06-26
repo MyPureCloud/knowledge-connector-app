@@ -12,6 +12,8 @@ export function contentMapper(
   categories: ZendeskSection[],
   labels: ZendeskLabel[],
   articles: ZendeskArticle[],
+  fetchCategories: boolean,
+  fetchLabels: boolean,
 ): ExternalContent {
   const sectionIdAndNameMapping = buildIdAndNameMapping(categories);
 
@@ -21,7 +23,14 @@ export function contentMapper(
       : [],
     labels: labels ? labels.map(labelMapper) : [],
     documents: articles
-      ? articles.map((a) => articleMapper(a, sectionIdAndNameMapping))
+      ? articles.map((a) =>
+          articleMapper(
+            a,
+            sectionIdAndNameMapping,
+            fetchCategories,
+            fetchLabels,
+          ),
+        )
       : [],
   };
 }
@@ -64,6 +73,8 @@ function labelMapper(label: ZendeskLabel): Label {
 function articleMapper(
   article: ZendeskArticle,
   sectionIdAndNameMapping: Map<string, string>,
+  fetchCategories: boolean,
+  fetchLabels: boolean,
 ): Document {
   const { id, title, body, draft, section_id, label_names } = article;
 
@@ -81,17 +92,19 @@ function articleMapper(
         body: null,
       },
     ],
-    category: sectionName
-      ? {
+    category:
+      fetchCategories && sectionName
+        ? {
+            id: null,
+            name: sectionName,
+          }
+        : null,
+    labels: fetchLabels
+      ? label_names?.map((label) => ({
           id: null,
-          name: sectionName,
-        }
+          name: String(label),
+        })) || null
       : null,
-    labels:
-      label_names?.map((label) => ({
-        id: null,
-        name: String(label),
-      })) || null,
   };
 
   return {

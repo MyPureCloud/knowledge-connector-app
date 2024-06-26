@@ -1,5 +1,5 @@
 export interface SalesforceCategory {
-  childCategories: SalesforceCategory[];
+  childCategories?: SalesforceCategory[];
   label: string;
   name: string;
   url: string;

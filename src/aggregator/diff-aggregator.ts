@@ -149,7 +149,7 @@ export class DiffAggregator implements Aggregator {
     const { title, alternatives, visible, category, labels, variations } =
       documentVersion;
     return {
-      title,
+      title: title ? title.trim() : title,
       alternatives: alternatives ?? null,
       visible,
       category: category ? this.normalizeCategoryReference(category) : null,
