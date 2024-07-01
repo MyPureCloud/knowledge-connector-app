@@ -1,45 +1,49 @@
 import { Label } from '../../model/label.js';
 import { Category } from '../../model/category.js';
 import { Document } from '../../model/sync-export-model.js';
-import { SyncableContents } from '../../model/syncable-contents.js';
 import { DocumentAlternative } from '../../model/document-alternative.js';
+import { CategoryReference, LabelReference } from '../../model';
 
-export function generateLabel(
+export function generateNormalizedLabel(
   suffix: string,
-  name = 'label-name' + suffix,
-  externalIdPrefix: string = '',
+  id: string | null = null,
+  name: string = 'label-name' + suffix,
+  externalId: string = 'label-external-id' + suffix,
 ): Label {
   return {
-    id: '',
+    id,
     name,
-    externalId: externalIdPrefix + 'labels-' + suffix,
-    color: '',
+    externalId,
+    color: 'generated-value-color',
   };
 }
 
-export function generateCategory(
+export function generateNormalizedCategory(
   suffix: string,
-  name = 'category-name' + suffix,
-  externalIdPrefix: string = '',
+  id: string | null = null,
+  name: string = 'category-name' + suffix,
+  externalId: string = 'category-external-id' + suffix,
+  parentCategory: CategoryReference | null = null,
 ): Category {
   return {
-    id: '',
+    id,
     name,
-    externalId: externalIdPrefix + 'categories-' + suffix,
-    parentCategory: null,
+    externalId,
+    parentCategory,
   };
 }
 
-export function generateDocument(
+export function generateNormalizedDocument(
   suffix: string,
-  title = 'document-name' + suffix,
+  id: string | null = null,
+  title = 'article-title' + suffix,
   alternatives: DocumentAlternative[] | null = null,
   visible: boolean = true,
-  externalIdPrefix: string = '',
+  externalId: string = 'article-external-id' + suffix,
 ): Document {
   return {
-    id: '',
-    externalId: externalIdPrefix + 'documents-' + suffix,
+    id,
+    externalId,
     published: {
       title,
       visible,
@@ -65,15 +69,12 @@ export function generateDocument(
   };
 }
 
-export function generateDocumentWithTable(
-  suffix: string,
-  title = 'document-name' + suffix,
-): Document {
+export function generateDocumentWithTable(suffix: string): Document {
   return {
     id: '',
     externalId: 'documents-' + suffix,
     published: {
-      title,
+      title: 'document-title' + suffix,
       visible: true,
       alternatives: null,
       variations: [
@@ -171,27 +172,27 @@ export function generateDocumentWithTable(
   };
 }
 
-export function generateImportableContents(
-  override: Partial<SyncableContents>,
-): SyncableContents {
+export function generateRawDocument(
+  rawHtml: string = '',
+  category: CategoryReference | null = null,
+  labels: LabelReference[] | null = null,
+): Document {
   return {
-    labels: {
-      created: [],
-      updated: [],
-      deleted: [],
-      ...(override.labels || {}),
+    id: null,
+    externalId: 'article-external-id',
+    published: {
+      title: 'article-title',
+      visible: true,
+      alternatives: null,
+      variations: [
+        {
+          body: null,
+          rawHtml,
+        },
+      ],
+      category,
+      labels,
     },
-    categories: {
-      created: [],
-      updated: [],
-      deleted: [],
-      ...(override.categories || {}),
-    },
-    documents: {
-      created: [],
-      updated: [],
-      deleted: [],
-      ...(override.documents || {}),
-    },
+    draft: null,
   };
 }

@@ -4,9 +4,9 @@ import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Adapter } from '../adapter/adapter.js';
 import { SourceAdapter } from '../adapter/source-adapter.js';
 import {
-  generateCategory,
-  generateDocument,
-  generateLabel,
+  generateNormalizedCategory,
+  generateNormalizedDocument,
+  generateNormalizedLabel,
 } from '../tests/utils/entity-generators.js';
 import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
 import {
@@ -66,15 +66,19 @@ describe('DiffAggregator', () => {
       it('should collect all entities to the created group', async () => {
         const importableContents = await aggregator.run({
           categories: [
-            generateCategory('1'),
-            generateCategory('2'),
-            generateCategory('3'),
+            generateNormalizedCategory('-1'),
+            generateNormalizedCategory('-2'),
+            generateNormalizedCategory('-3'),
           ],
-          labels: [generateLabel('1'), generateLabel('2'), generateLabel('3')],
+          labels: [
+            generateNormalizedLabel('-1'),
+            generateNormalizedLabel('-2'),
+            generateNormalizedLabel('-3'),
+          ],
           documents: [
-            generateDocument('1'),
-            generateDocument('2'),
-            generateDocument('3'),
+            generateNormalizedDocument('-1'),
+            generateNormalizedDocument('-2'),
+            generateNormalizedDocument('-3'),
           ],
         });
 
@@ -92,9 +96,18 @@ describe('DiffAggregator', () => {
             knowledgeBase: {
               id: '',
             },
-            categories: [generateCategory('1'), generateCategory('2')],
-            labels: [generateLabel('1'), generateLabel('2')],
-            documents: [generateDocument('1'), generateDocument('4')],
+            categories: [
+              generateNormalizedCategory('-1', 'category-id-1'),
+              generateNormalizedCategory('-2', 'category-id-2'),
+            ],
+            labels: [
+              generateNormalizedLabel('-1', 'label-id-1'),
+              generateNormalizedLabel('-2', 'label-id-2'),
+            ],
+            documents: [
+              generateNormalizedDocument('-1', 'document-id-1'),
+              generateNormalizedDocument('-4', 'document-id-4'),
+            ],
           },
         });
       });
@@ -102,19 +115,19 @@ describe('DiffAggregator', () => {
       it('should collect entities to the correct group', async () => {
         const importableContents = await aggregator.run({
           categories: [
-            generateCategory('1'),
-            generateCategory('2', 'updated-category'),
-            generateCategory('3'),
+            generateNormalizedCategory('-1'),
+            generateNormalizedCategory('-2', null, 'updated-category'),
+            generateNormalizedCategory('-3'),
           ],
           labels: [
-            generateLabel('1', 'updated-label'),
-            generateLabel('2'),
-            generateLabel('3'),
+            generateNormalizedLabel('-1', null, 'updated-label'),
+            generateNormalizedLabel('-2'),
+            generateNormalizedLabel('-3'),
           ],
           documents: [
-            generateDocument('1', 'updated-document'),
-            generateDocument('2'),
-            generateDocument('3'),
+            generateNormalizedDocument('-1', null, 'updated-document'),
+            generateNormalizedDocument('-2'),
+            generateNormalizedDocument('-3'),
           ],
         });
 
@@ -141,8 +154,18 @@ describe('DiffAggregator', () => {
               autocomplete: true,
             },
           ];
-          const doc1 = generateDocument('1', 'title1', doc1Alternatives);
-          const doc2 = generateDocument('2', 'title2', doc2Alternatives);
+          const doc1 = generateNormalizedDocument(
+            '-1',
+            null,
+            'title1',
+            doc1Alternatives,
+          );
+          const doc2 = generateNormalizedDocument(
+            '-2',
+            null,
+            'title2',
+            doc2Alternatives,
+          );
           mockExportAllEntities.mockResolvedValue({
             version: 3,
             importAction: {
@@ -161,8 +184,8 @@ describe('DiffAggregator', () => {
             categories: [],
             labels: [],
             documents: [
-              generateDocument('1', 'title1'),
-              generateDocument('2', 'updated title'),
+              generateNormalizedDocument('-1', null, 'title1'),
+              generateNormalizedDocument('-2', null, 'updated title'),
             ],
           });
 
@@ -185,8 +208,14 @@ describe('DiffAggregator', () => {
             categories: [],
             labels: [],
             documents: [
-              generateDocument('1', 'title1', null, false),
-              generateDocument('2', 'updated title', null, false),
+              generateNormalizedDocument('-1', null, 'title1', null, false),
+              generateNormalizedDocument(
+                '-2',
+                null,
+                'updated title',
+                null,
+                false,
+              ),
             ],
           });
 
@@ -208,9 +237,9 @@ describe('DiffAggregator', () => {
           it('should alter entity name with suffix', async () => {
             const importableContents = await aggregator.run({
               categories: [
-                generateCategory('1'),
-                generateCategory('not-2', 'category-name2'),
-                generateCategory('3'),
+                generateNormalizedCategory('-1'),
+                generateNormalizedCategory('-not-2', null, 'category-name-2'),
+                generateNormalizedCategory('-3'),
               ],
               labels: [],
               documents: [],
@@ -221,10 +250,10 @@ describe('DiffAggregator', () => {
             verifyGroups(importableContents.documents, 0, 0, 2);
 
             expect(importableContents.categories.created[0].name).toBe(
-              'category-name2-suffix',
+              'category-name-2-suffix',
             );
             expect(importableContents.categories.created[0].externalId).toBe(
-              'categories-not-2',
+              'category-external-id-not-2',
             );
           });
 
@@ -237,9 +266,9 @@ describe('DiffAggregator', () => {
                     id: '',
                   },
                   categories: [
-                    generateCategory('1'),
-                    generateCategory('2'),
-                    generateCategory('2-suffix'),
+                    generateNormalizedCategory('-1'),
+                    generateNormalizedCategory('-2'),
+                    generateNormalizedCategory('-2-suffix'),
                   ],
                   labels: [],
                   documents: [],
@@ -251,15 +280,19 @@ describe('DiffAggregator', () => {
               await expect(async () => {
                 await aggregator.run({
                   categories: [
-                    generateCategory('1'),
-                    generateCategory('not-2', 'category-name2'),
-                    generateCategory('3'),
+                    generateNormalizedCategory('-1'),
+                    generateNormalizedCategory(
+                      '-not-2',
+                      null,
+                      'category-name-2',
+                    ),
+                    generateNormalizedCategory('-3'),
                   ],
                   labels: [],
                   documents: [],
                 });
               }).rejects.toThrow(
-                'Name conflict found with suffix "category-name2-suffix". Try to use different "NAME_CONFLICT_SUFFIX" variable',
+                'Name conflict found with suffix "category-name-2-suffix". Try to use different "NAME_CONFLICT_SUFFIX" variable',
               );
             });
           });
@@ -269,12 +302,14 @@ describe('DiffAggregator', () => {
           it('should throw error', async () => {
             await expect(async () => {
               await aggregator.run({
-                categories: [generateCategory('not-2', 'category-name2')],
+                categories: [
+                  generateNormalizedCategory('-not-2', null, 'category-name-2'),
+                ],
                 labels: [],
                 documents: [],
               });
             }).rejects.toThrow(
-              'Name conflict found "category-name2". Try to use "NAME_CONFLICT_SUFFIX" variable',
+              'Name conflict found "category-name-2". Try to use "NAME_CONFLICT_SUFFIX" variable',
             );
           });
         });
@@ -295,8 +330,8 @@ describe('DiffAggregator', () => {
             const importableContents = await aggregator.run({
               categories: [],
               labels: [
-                generateLabel('1'),
-                generateLabel('not-2', 'label-name2'),
+                generateNormalizedLabel('-1'),
+                generateNormalizedLabel('-not-2', null, 'label-name-2'),
               ],
               documents: [],
             });
@@ -306,10 +341,10 @@ describe('DiffAggregator', () => {
             verifyGroups(importableContents.documents, 0, 0, 2);
 
             expect(importableContents.labels.created[0].name).toBe(
-              'label-name2-suffix',
+              'label-name-2-suffix',
             );
             expect(importableContents.labels.created[0].externalId).toBe(
-              'labels-not-2',
+              'label-external-id-not-2',
             );
           });
 
@@ -323,9 +358,9 @@ describe('DiffAggregator', () => {
                   },
                   categories: [],
                   labels: [
-                    generateLabel('1'),
-                    generateLabel('2'),
-                    generateLabel('2-suffix'),
+                    generateNormalizedLabel('-1'),
+                    generateNormalizedLabel('-2'),
+                    generateNormalizedLabel('-2-suffix'),
                   ],
                   documents: [],
                 },
@@ -337,14 +372,14 @@ describe('DiffAggregator', () => {
                 await aggregator.run({
                   categories: [],
                   labels: [
-                    generateLabel('1'),
-                    generateLabel('not-2', 'label-name2'),
-                    generateLabel('3'),
+                    generateNormalizedLabel('-1'),
+                    generateNormalizedLabel('-not-2', null, 'label-name-2'),
+                    generateNormalizedLabel('-3'),
                   ],
                   documents: [],
                 });
               }).rejects.toThrow(
-                'Name conflict found with suffix "label-name2-suffix". Try to use different "NAME_CONFLICT_SUFFIX" variable',
+                'Name conflict found with suffix "label-name-2-suffix". Try to use different "NAME_CONFLICT_SUFFIX" variable',
               );
             });
           });
@@ -354,12 +389,14 @@ describe('DiffAggregator', () => {
           it('should throw error', async () => {
             await expect(async () => {
               await aggregator.run({
-                categories: [generateCategory('not-2', 'category-name2')],
+                categories: [
+                  generateNormalizedCategory('-not-2', null, 'category-name-2'),
+                ],
                 labels: [],
                 documents: [],
               });
             }).rejects.toThrow(
-              'Name conflict found "category-name2". Try to use "NAME_CONFLICT_SUFFIX" variable',
+              'Name conflict found "category-name-2". Try to use "NAME_CONFLICT_SUFFIX" variable',
             );
           });
         });
@@ -377,19 +414,70 @@ describe('DiffAggregator', () => {
               id: '',
             },
             categories: [
-              generateCategory('1', 'category-source1', source1),
-              generateCategory('1', 'category-source2', source2),
-              generateCategory('2', 'category-del-source2', source2),
+              generateNormalizedCategory(
+                '',
+                'category-id-1',
+                'category-source1',
+                `${source1}-category-external-id-1`,
+              ),
+              generateNormalizedCategory(
+                '',
+                'category-id-2',
+                'category-source2',
+                `${source2}-category-external-id-1`,
+              ),
+              generateNormalizedCategory(
+                '',
+                'category-id-3',
+                'category-del-source2',
+                `${source2}-category-external-id-2`,
+              ),
             ],
             labels: [
-              generateLabel('1', 'label-source1', source1),
-              generateLabel('1', 'label-source2', source2),
-              generateLabel('2', 'label-del-source2', source2),
+              generateNormalizedLabel(
+                '',
+                'label-id-1',
+                'label-source1',
+                `${source1}-label-external-id-1`,
+              ),
+              generateNormalizedLabel(
+                '',
+                'label-id-2',
+                'label-source2',
+                `${source2}-label-external-id-2`,
+              ),
+              generateNormalizedLabel(
+                '',
+                'label-id-3',
+                'label-del-source2',
+                `${source2}-label-external-id-3`,
+              ),
             ],
             documents: [
-              generateDocument('1', 'document-source1', [], true, source1),
-              generateDocument('1', 'document-source2', [], true, source2),
-              generateDocument('2', 'document-del-source2', [], true, source2),
+              generateNormalizedDocument(
+                '-1',
+                'document-id-1',
+                'document-source1',
+                [],
+                true,
+                `${source1}-article-external-id-1`,
+              ),
+              generateNormalizedDocument(
+                '-1',
+                'document-id-2',
+                'document-source2',
+                [],
+                true,
+                `${source2}-article-external-id-1`,
+              ),
+              generateNormalizedDocument(
+                '-2',
+                'document-id-3',
+                'document-del-source2',
+                [],
+                true,
+                `${source2}-article-external-id-2`,
+              ),
             ],
           },
         });
@@ -400,16 +488,50 @@ describe('DiffAggregator', () => {
       it('should collect entities to the correct group', async () => {
         const importableContents = await aggregator.run({
           categories: [
-            generateCategory('1', 'category-update', source2),
-            generateCategory('3', 'category-new', source2),
+            generateNormalizedCategory(
+              '-1',
+              null,
+              'category-update',
+              `${source2}-category-external-id-1`,
+            ),
+            generateNormalizedCategory(
+              '-3',
+              null,
+              'category-new',
+              `${source2}-category-external-id-3`,
+            ),
           ],
           labels: [
-            generateLabel('1', 'label-update', source2),
-            generateLabel('3', 'label-new', source2),
+            generateNormalizedLabel(
+              '',
+              'label-id-1',
+              'label-update',
+              `${source2}-label-external-id-1`,
+            ),
+            generateNormalizedLabel(
+              '',
+              'label-id-3',
+              'label-new',
+              `${source2}-label-external-id-3`,
+            ),
           ],
           documents: [
-            generateDocument('1', 'document-update', [], true, source2),
-            generateDocument('3', 'document-new', [], true, source2),
+            generateNormalizedDocument(
+              '-1',
+              null,
+              'document-update',
+              [],
+              true,
+              `${source2}-article-external-id-1`,
+            ),
+            generateNormalizedDocument(
+              '-3',
+              null,
+              'document-new',
+              [],
+              true,
+              `${source2}-article-external-id-3`,
+            ),
           ],
         });
 

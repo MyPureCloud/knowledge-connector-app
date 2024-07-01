@@ -13,6 +13,7 @@ export function contentMapper(
   categoryGroups: SalesforceCategoryGroup[],
   articles: SalesforceArticleDetails[],
   salesforceArticleContentFields: string[],
+  fetchCategories: boolean,
 ): ExternalContent {
   const labelsMapping = buildIdAndNameMapping(categoryGroups);
 
@@ -26,7 +27,12 @@ export function contentMapper(
     categories: [],
     documents: articles
       ? articles.map((a) =>
-          articleMapper(a, labelsMapping, salesforceArticleContentFields),
+          articleMapper(
+            a,
+            labelsMapping,
+            salesforceArticleContentFields,
+            fetchCategories,
+          ),
         )
       : [],
   };
@@ -75,15 +81,19 @@ function articleMapper(
   article: SalesforceArticleDetails,
   labelIdAndNameMapping: Map<string, string>,
   salesforceArticleContentFields: string[],
+  fetchCategories: boolean,
 ): Document {
   const { id, title, categoryGroups, layoutItems } = article;
 
-  const labels: LabelReference[] = categoryGroups.flatMap((categoryGroup) =>
-    categoryGroup.selectedCategories.map((category) => {
-      const name = labelIdAndNameMapping.get(category.url);
-      return { id: null, name: name! };
-    }),
-  );
+  let labels: LabelReference[] | null = null;
+  if (fetchCategories) {
+    labels = categoryGroups.flatMap((categoryGroup) =>
+      categoryGroup.selectedCategories.map((category) => {
+        const name = labelIdAndNameMapping.get(category.url);
+        return { id: null, name: name! };
+      }),
+    );
+  }
 
   const documentVersion: DocumentVersion = {
     visible: true,

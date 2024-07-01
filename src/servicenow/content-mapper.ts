@@ -4,7 +4,10 @@ import { ServiceNowArticle } from './model/servicenow-article.js';
 import { Category } from '../model/category.js';
 import { CategoryReference } from '../model/category-reference.js';
 
-export function contentMapper(articles: ServiceNowArticle[]): ExternalContent {
+export function contentMapper(
+  articles: ServiceNowArticle[],
+  fetchCategories: boolean,
+): ExternalContent {
   return {
     categories: articles
       ? [
@@ -18,7 +21,9 @@ export function contentMapper(articles: ServiceNowArticle[]): ExternalContent {
       : [],
     labels: [],
     documents: articles
-      ? articles.map((a: ServiceNowArticle) => articleMapper(a))
+      ? articles.map((a: ServiceNowArticle) =>
+          articleMapper(a, fetchCategories),
+        )
       : [],
   };
 }
@@ -27,7 +32,10 @@ function categoryMapper(article: ServiceNowArticle): Category[] {
   return getCategoryWithParent(article);
 }
 
-function articleMapper(article: ServiceNowArticle): Document {
+function articleMapper(
+  article: ServiceNowArticle,
+  fetchCategories: boolean,
+): Document {
   const id = article.id;
   const title = article.title;
   const body = article.fields.text.value;
@@ -43,7 +51,7 @@ function articleMapper(article: ServiceNowArticle): Document {
         body: null,
       },
     ],
-    category: getCategoryReference(article),
+    category: fetchCategories ? getCategoryReference(article) : null,
     labels: null,
   };
 
@@ -111,5 +119,10 @@ function getCategoryReference(
 ): CategoryReference | null {
   const { category } = getCategory(article);
 
-  return category || null;
+  if (!category) {
+    return null;
+  }
+
+  const { id, name } = category;
+  return { id, name };
 }

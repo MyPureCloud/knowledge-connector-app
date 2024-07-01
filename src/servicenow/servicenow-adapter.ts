@@ -58,17 +58,17 @@ export class ServiceNowAdapter
     };
   }
 
-  private async getAttachmentInfo(
-    attachmentId: string,
-  ): Promise<ServiceNowArticleAttachment | undefined> {
-    return this.api.fetchAttachmentInfo(attachmentId);
-  }
-
   public getAllCategories(): Promise<unknown[]> {
     return Promise.reject();
   }
 
   public getAllLabels(): Promise<unknown[]> {
     return Promise.reject();
+  }
+
+  private async getAttachmentInfo(
+    attachmentId: string,
+  ): Promise<ServiceNowArticleAttachment | undefined> {
+    return this.api.fetchAttachmentInfo(attachmentId);
   }
 }

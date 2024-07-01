@@ -8,7 +8,7 @@ import { DiffUploader } from '../uploader/diff-uploader.js';
 import { ServiceNowAdapter } from './servicenow-adapter.js';
 import { ServiceNowLoader } from './servicenow-loader.js';
 
-export const configurer: Configurer = (pipe: Pipe) => {
+export const configurer: Configurer = (pipe: Pipe): void => {
   pipe
     .source(new ServiceNowAdapter())
     .loaders(new ServiceNowLoader())

@@ -31,7 +31,21 @@ export class DiffUploader implements Uploader {
     );
     validateNonNull(this.adapter, 'Missing destination adapter');
 
-    const data: SyncModel = {
+    const data: SyncModel = this.constructSyncModel(importableContents);
+
+    this.logStatistics(importableContents);
+
+    if (this.shouldUpload(data)) {
+      await this.upload(data);
+    } else {
+      getLogger().info('There is no change to upload.');
+    }
+  }
+
+  protected constructSyncModel(
+    importableContents: SyncableContents,
+  ): SyncModel {
+    return {
       version: 3,
       importAction: {
         knowledgeBase: {
@@ -62,7 +76,9 @@ export class DiffUploader implements Uploader {
           .map((label) => label.id!),
       },
     };
+  }
 
+  protected logStatistics(importableContents: SyncableContents): void {
     getLogger().info(
       'Categories to create: ' + importableContents.categories.created.length,
     );
@@ -90,27 +106,30 @@ export class DiffUploader implements Uploader {
     getLogger().info(
       'Documents to delete: ' + importableContents.documents.deleted.length,
     );
+  }
 
-    if (
-      !data.importAction.labels.length &&
-      !data.importAction.categories.length &&
-      !data.importAction.documents.length &&
-      !data.deleteAction.categories.length &&
-      !data.deleteAction.labels.length &&
-      !data.deleteAction.documents.length
-    ) {
-      getLogger().info('There is no change to upload.');
-      return;
-    }
-
+  protected async upload(data: SyncModel): Promise<void> {
     getLogger().info('Uploading data...');
 
     const response = await this.adapter!.syncData(data);
+
     getLogger().info('Upload finished');
     getLogger().info('Sync job id: ' + response.id);
     getLogger().info('Sync job status: ' + response.status);
+
     if (response.failedEntitiesURL) {
       getLogger().info('Errors during import: ' + response.failedEntitiesURL);
     }
+  }
+
+  protected shouldUpload(data: SyncModel): boolean {
+    return !!(
+      data.importAction.labels.length ||
+      data.importAction.categories.length ||
+      data.importAction.documents.length ||
+      data.deleteAction.categories.length ||
+      data.deleteAction.labels.length ||
+      data.deleteAction.documents.length
+    );
   }
 }

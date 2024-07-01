@@ -4,9 +4,9 @@ import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Config } from '../config.js';
 import { ExternalContent } from '../model/external-content.js';
 import {
-  generateCategory,
-  generateDocument,
-  generateLabel,
+  generateNormalizedCategory,
+  generateNormalizedDocument,
+  generateNormalizedLabel,
 } from '../tests/utils/entity-generators.js';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 
@@ -43,16 +43,41 @@ describe('PrefixExternalId', () => {
 
   it('should add prefix to all entities', async () => {
     const content: ExternalContent = {
-      labels: [generateLabel('1'), generateLabel('2'), generateLabel('3')],
+      labels: [
+        generateNormalizedLabel('-1', undefined, undefined, 'labels-1'),
+        generateNormalizedLabel('-2', undefined, undefined, 'labels-2'),
+        generateNormalizedLabel('-3', undefined, undefined, 'labels-3'),
+      ],
       categories: [
-        generateCategory('1'),
-        generateCategory('2'),
-        generateCategory('3'),
+        generateNormalizedCategory('-1', undefined, undefined, 'categories-1'),
+        generateNormalizedCategory('-2', undefined, undefined, 'categories-2'),
+        generateNormalizedCategory('-3', undefined, undefined, 'categories-3'),
       ],
       documents: [
-        generateDocument('1'),
-        generateDocument('2'),
-        generateDocument('3'),
+        generateNormalizedDocument(
+          '-1',
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          'documents-1',
+        ),
+        generateNormalizedDocument(
+          '-2',
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          'documents-2',
+        ),
+        generateNormalizedDocument(
+          '-3',
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          'documents-3',
+        ),
       ],
     };
 

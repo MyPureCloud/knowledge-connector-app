@@ -1,4 +1,3 @@
-import { Loader } from '../pipe/loader.js';
 import { SalesforceAdapter } from './salesforce-adapter.js';
 import { ExternalContent } from '../model/external-content.js';
 import { contentMapper } from './content-mapper.js';
@@ -8,11 +7,13 @@ import { Adapter } from '../adapter/adapter.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import { getLogger } from '../utils/logger.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
+import { AbstractLoader } from '../pipe/abstract-loader.js';
+import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
 
 /**
  * SalesforceLoader is a specific {@Link Loader} implementation for fetching data from Salesforce's API
  */
-export class SalesforceLoader implements Loader {
+export class SalesforceLoader extends AbstractLoader {
   private config: SalesforceConfig = {};
   private adapter?: SalesforceAdapter;
 
@@ -20,6 +21,8 @@ export class SalesforceLoader implements Loader {
     config: SalesforceConfig,
     adapters: AdapterPair<SalesforceAdapter, Adapter>,
   ): Promise<void> {
+    await super.initialize(config, adapters);
+
     this.config = config;
     this.adapter = adapters.sourceAdapter;
   }
@@ -28,16 +31,22 @@ export class SalesforceLoader implements Loader {
     validateNonNull(this.adapter, 'Missing source adapter');
 
     getLogger().info('Fetching data...');
+
     const [categories, articles] = await Promise.all([
-      this.adapter!.getAllCategories(),
-      this.adapter!.getAllArticles(),
+      this.loadCategories(),
+      this.loadArticles(),
     ]);
 
     articles.forEach((article) => this.replaceImageUrls(article));
 
     const contentFields =
       this.config.salesforceArticleContentFields?.split(',') || [];
-    const data = contentMapper(categories, articles, contentFields);
+    const data = contentMapper(
+      categories,
+      articles,
+      contentFields,
+      this.shouldLoadCategories(),
+    );
 
     getLogger().info('Labels loaded: ' + data.labels.length);
     getLogger().info('Documents loaded: ' + data.documents.length);
@@ -68,5 +77,19 @@ export class SalesforceLoader implements Loader {
     const eid = searchParams.get('eid');
     const refid = searchParams.get('refid');
     return `/${eid}/richTextImageFields/${fieldType}/${refid}`;
+  }
+
+  private async loadArticles(): Promise<SalesforceArticleDetails[]> {
+    if (this.shouldLoadArticles()) {
+      return this.adapter!.getAllArticles();
+    }
+    return [];
+  }
+
+  private async loadCategories(): Promise<SalesforceCategoryGroup[]> {
+    if (this.shouldLoadCategories()) {
+      return this.adapter!.getAllCategories();
+    }
+    return [];
   }
 }

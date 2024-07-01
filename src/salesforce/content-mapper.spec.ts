@@ -4,7 +4,7 @@ import { contentMapper } from './content-mapper.js';
 describe('contentMapper', () => {
   describe('article mapper', () => {
     it('should exclude none text fields', () => {
-      const result = contentMapper([], [buildArticle()], []);
+      const result = contentMapper([], [buildArticle()], [], false);
 
       expect(result.documents[0].published?.title).toBe('the title');
       expect(result.documents[0].published?.variations[0].rawHtml).toBe(
@@ -17,6 +17,7 @@ describe('contentMapper', () => {
         [],
         [buildArticle()],
         ['layout item name 5'],
+        false,
       );
 
       expect(result.documents[0].published?.title).toBe('the title');

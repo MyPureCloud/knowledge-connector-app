@@ -149,8 +149,19 @@ RELATIVE_IMAGE_BASE_URL=
 #### Execution timeout
 
 ```
-# Terminates the application after the set timeout in seconds has been reached. Optional
+# Terminates the application after the set timeout in seconds has been reached.
 KILL_AFTER_LONG_RUNNING_SECONDS=
+```
+
+#### Fetch certain entity types only
+
+```
+# Fetch articles from 3rd party. Values: 'true' or 'false'. Default 'true'. 
+FETCH_ARTICLES=
+# Fetch categories from 3rd party. Values: 'true' or 'false'. Default 'true'.
+FETCH_CATEGORIES=
+# Fetch labels from 3rd party. Values: 'true' or 'false'. Default 'true'.
+FETCH_LABELS=
 ```
 
 ### Installation

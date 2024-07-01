@@ -30,7 +30,6 @@ export class Pipe {
   private processorList: Processor[] = [];
   private aggregatorList: Aggregator[] = [];
   private uploaderList: Uploader[] = [];
-  private configurerFn: Configurer | undefined;
 
   /**
    * Define source and destination adapters
@@ -97,7 +96,7 @@ export class Pipe {
   }
 
   public configurer(configurer: Configurer): Pipe {
-    this.configurerFn = configurer;
+    configurer(this);
     return this;
   }
 
@@ -110,10 +109,6 @@ export class Pipe {
     const killTimer = this.startProcessKillTimer(config);
 
     try {
-      if (this.configurerFn) {
-        this.configurerFn(this);
-      }
-
       validateNonNull(this.sourceAdapter, 'Missing source adapter');
       validateNonNull(this.destinationAdapter, 'Missing destination adapter');
 
