@@ -10,7 +10,7 @@ import { URLSearchParams } from 'url';
 import { Image } from '../model';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import { SalesforceAccessTokenResponse } from './model/salesforce-access-token-response.js';
-import { LANGUAGE_MAPPING } from './salesforce-language-mapping';
+import { LANGUAGE_MAPPING } from './salesforce-language-mapping.js';
 
 export class SalesforceApi {
   private config: SalesforceConfig = {};
@@ -208,7 +208,9 @@ export class SalesforceApi {
     );
 
     if (this.config.salesforceLanguageCode!.length > 2) {
-      const language = LANGUAGE_MAPPING[this.config.salesforceLanguageCode!] ?? this.config.salesforceLanguageCode!;
+      const language =
+        LANGUAGE_MAPPING[this.config.salesforceLanguageCode!] ??
+        this.config.salesforceLanguageCode!;
       return {
         Authorization: 'Bearer ' + this.bearerToken,
         'Accept-Language': language,
