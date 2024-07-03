@@ -6,6 +6,8 @@ import { ServiceNowArticle } from './model/servicenow-article.js';
 import { Image } from '../model/image.js';
 import { ServiceNowArticleAttachment } from './model/servicenow-article-attachment.js';
 import { getLogger } from '../utils/logger.js';
+import { AttachmentDomainValidator } from '../processor/attachment-domain-validator.js';
+import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-not-allowed-error.js';
 
 export class ServiceNowAdapter
   implements
@@ -14,6 +16,7 @@ export class ServiceNowAdapter
 {
   private config: ServiceNowConfig = {};
   private api: ServiceNowApi;
+  private attachmentDomainValidator?: AttachmentDomainValidator;
 
   constructor() {
     this.api = new ServiceNowApi();
@@ -21,6 +24,7 @@ export class ServiceNowAdapter
 
   public initialize(config: ServiceNowConfig): Promise<void> {
     this.config = config;
+    this.attachmentDomainValidator = new AttachmentDomainValidator(config);
     return this.api.initialize(config);
   }
 
@@ -47,6 +51,13 @@ export class ServiceNowAdapter
       return null;
     }
 
+    if (
+      !this.attachmentDomainValidator!.isDomainAllowed(
+        info.result.download_link,
+      )
+    ) {
+      throw new AttachmentDomainNotAllowedError(info.result.download_link);
+    }
     const content = await this.api.downloadAttachment(
       info.result.download_link,
     );

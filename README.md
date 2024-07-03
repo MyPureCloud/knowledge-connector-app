@@ -164,6 +164,15 @@ FETCH_CATEGORIES=
 FETCH_LABELS=
 ```
 
+#### Attachment (image) download allow-list
+
+```
+# Comma-separated list of domains names. If specified, images are downloaded only from these source domains (or their subdomains)
+# and uploaded to the destination. Images from other domains are not downloaded and their urls are left unchanged. If left empty,
+# images are downloaded from any domains. Example value: api-cdn.mypurecloud.com,api-cdn.mypurecloud.de
+ATTACHMENT_DOMAIN_ALLOW_LIST=
+```
+
 ### Installation
 
 1. Install dependencies `npm install`

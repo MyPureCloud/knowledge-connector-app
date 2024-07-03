@@ -22,12 +22,15 @@ import { fetchImage } from '../utils/web-client.js';
 import { ImageConfig } from './image-config.js';
 import { FileReaderClient } from '../utils/file-reader-client.js';
 import { DestinationAdapter } from '../adapter/destination-adapter.js';
+import { AttachmentDomainValidator } from './attachment-domain-validator.js';
 import { getLogger } from '../utils/logger.js';
+import { AttachmentDomainNotAllowedError } from './attachment-domain-not-allowed-error.js';
 
 export class ImageProcessor implements Processor {
   private config: ImageConfig = {};
   private adapter?: ImageSourceAdapter;
   private genesysAdapter?: DestinationAdapter;
+  private attachmentDomainValidator?: AttachmentDomainValidator;
   private uploadedImageCount: number = 0;
 
   public async initialize(
@@ -37,6 +40,7 @@ export class ImageProcessor implements Processor {
     this.config = config;
     this.adapter = adapters.sourceAdapter;
     this.genesysAdapter = adapters.destinationAdapter;
+    this.attachmentDomainValidator = new AttachmentDomainValidator(config);
   }
 
   public async run(content: ExternalContent): Promise<ExternalContent> {
@@ -161,7 +165,16 @@ export class ImageProcessor implements Processor {
       return this.readFile(url);
     }
 
-    let image = await this.adapter!.getAttachment(articleId, url);
+    let image: Image | null;
+    try {
+      image = await this.adapter!.getAttachment(articleId, url);
+    } catch (error) {
+      if (error instanceof AttachmentDomainNotAllowedError) {
+        getLogger().warn(error.message);
+        return null;
+      }
+      throw error;
+    }
 
     if (!image) {
       getLogger().info(`Trying to fetch image [${url}] directly`);
@@ -177,6 +190,12 @@ export class ImageProcessor implements Processor {
         url = resolvedURL.href;
       }
 
+      if (!this.attachmentDomainValidator!.isDomainAllowed(url)) {
+        getLogger().warn(
+          'Skipped downloading image, domain not allowed: ' + url,
+        );
+        return null;
+      }
       image = await this.downloadImage(url);
     }
 

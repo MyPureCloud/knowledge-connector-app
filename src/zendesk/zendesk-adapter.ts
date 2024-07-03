@@ -9,6 +9,8 @@ import { ZendeskApi } from './zendesk-api.js';
 import { SourceAdapter } from '../adapter/source-adapter.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
 import { getLogger } from '../utils/logger.js';
+import { AttachmentDomainValidator } from '../processor/attachment-domain-validator.js';
+import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-not-allowed-error.js';
 
 export class ZendeskAdapter
   implements
@@ -17,6 +19,7 @@ export class ZendeskAdapter
 {
   private config: ZendeskConfig = {};
   private attachmentCache: { [key: string]: ZendeskArticleAttachment[] } = {};
+  private attachmentDomainValidator?: AttachmentDomainValidator;
   private api: ZendeskApi;
 
   constructor() {
@@ -25,6 +28,7 @@ export class ZendeskAdapter
 
   public initialize(config: ZendeskConfig): Promise<void> {
     this.config = config;
+    this.attachmentDomainValidator = new AttachmentDomainValidator(config);
     return this.api.initialize(config);
   }
 
@@ -57,6 +61,9 @@ export class ZendeskAdapter
       return null;
     }
 
+    if (!this.attachmentDomainValidator!.isDomainAllowed(url)) {
+      throw new AttachmentDomainNotAllowedError(url);
+    }
     const content = await this.api.downloadAttachment(url);
 
     return {
