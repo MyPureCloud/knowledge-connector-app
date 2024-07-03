@@ -32,7 +32,8 @@ export class ServiceNowAdapter
     articleId: string | null,
     url: string,
   ): Promise<Image | null> {
-    const attachmentIdMatch = url.match(/sys_id=([^&]+)/);
+    // sys_id=e78fb8af47474650376bb52f316d4313 or sys_id&#61;e78fb8af47474650376bb52f316d4313
+    const attachmentIdMatch = url.match(/sys_id(?:=|&#61;)([^&]+)/);
     if (!attachmentIdMatch || !articleId) {
       return null;
     }
