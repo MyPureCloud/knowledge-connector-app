@@ -196,7 +196,13 @@ export class ImageProcessor implements Processor {
         );
         return null;
       }
-      image = await this.downloadImage(url);
+
+      try {
+        image = await this.downloadImage(url);
+      } catch (error) {
+        getLogger().warn(`Unable to fetch image [${url}] directly`);
+        return null;
+      }
     }
 
     return image;

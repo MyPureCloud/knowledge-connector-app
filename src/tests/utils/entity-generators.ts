@@ -9,11 +9,17 @@ export function generateNormalizedLabel(
   id: string | null = null,
   name: string = 'label-name' + suffix,
   externalId: string = 'label-external-id' + suffix,
+  sourceId: string | null = null,
 ): Label {
   return {
     id,
     name,
     externalId,
+    ...(sourceId
+      ? {
+          sourceId,
+        }
+      : {}),
     color: 'generated-value-color',
   };
 }
@@ -24,11 +30,17 @@ export function generateNormalizedCategory(
   name: string = 'category-name' + suffix,
   externalId: string = 'category-external-id' + suffix,
   parentCategory: CategoryReference | null = null,
+  sourceId: string | null = null,
 ): Category {
   return {
     id,
     name,
     externalId,
+    ...(sourceId
+      ? {
+          sourceId,
+        }
+      : {}),
     parentCategory,
   };
 }
@@ -40,10 +52,16 @@ export function generateNormalizedDocument(
   alternatives: DocumentAlternative[] | null = null,
   visible: boolean = true,
   externalId: string = 'article-external-id' + suffix,
+  sourceId: string | null = null,
 ): Document {
   return {
     id,
     externalId,
+    ...(sourceId
+      ? {
+          sourceId,
+        }
+      : {}),
     published: {
       title,
       visible,
