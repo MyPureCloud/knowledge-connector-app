@@ -30,7 +30,7 @@ describe('DiffAggregator', () => {
   let mockExportAllEntities: jest.Mock<() => Promise<ExportModel>>;
 
   describe('run', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       sourceAdapter = {} as typeof sourceAdapter;
       destinationAdapter = new GenesysDestinationAdapter();
       mockExportAllEntities = destinationAdapter.exportAllEntities as jest.Mock<
@@ -42,7 +42,7 @@ describe('DiffAggregator', () => {
       };
       aggregator = new DiffAggregator();
 
-      aggregator.initialize(
+      await aggregator.initialize(
         { protectedFields: 'published.alternatives' },
         adapters,
       );
@@ -225,8 +225,8 @@ describe('DiffAggregator', () => {
 
       describe('when there is a name conflict with category', () => {
         describe('when suffix is configured', () => {
-          beforeEach(() => {
-            aggregator.initialize(
+          beforeEach(async () => {
+            await aggregator.initialize(
               {
                 nameConflictSuffix: '-suffix',
               },
@@ -317,8 +317,8 @@ describe('DiffAggregator', () => {
 
       describe('when there is a name conflict with label', () => {
         describe('when suffix is configured', () => {
-          beforeEach(() => {
-            aggregator.initialize(
+          beforeEach(async () => {
+            await aggregator.initialize(
               {
                 nameConflictSuffix: '-suffix',
               },
@@ -404,140 +404,300 @@ describe('DiffAggregator', () => {
     });
 
     describe('when syncing from multiple sources', () => {
-      const source1: string = 'source1';
-      const source2: string = 'source2';
-      beforeEach(() => {
-        mockExportAllEntities.mockResolvedValue({
-          version: 3,
-          importAction: {
-            knowledgeBase: {
-              id: '',
+      describe('when externalIdPrefix given', () => {
+        const EXTERNAL_PREFIX_1: string = 'external-prefix-1';
+        const EXTERNAL_PREFIX_2: string = 'external-prefix-2';
+
+        beforeEach(async () => {
+          mockExportAllEntities.mockResolvedValue({
+            version: 3,
+            importAction: {
+              knowledgeBase: {
+                id: '',
+              },
+              categories: [
+                generateNormalizedCategory(
+                  '',
+                  'category-id-1',
+                  'category-source1',
+                  `${EXTERNAL_PREFIX_1}-category-external-id-1`,
+                ),
+                generateNormalizedCategory(
+                  '',
+                  'category-id-2',
+                  'category-source2',
+                  `${EXTERNAL_PREFIX_2}-category-external-id-1`,
+                ),
+                generateNormalizedCategory(
+                  '',
+                  'category-id-3',
+                  'category-del-source2',
+                  `${EXTERNAL_PREFIX_2}-category-external-id-2`,
+                ),
+              ],
+              labels: [
+                generateNormalizedLabel(
+                  '',
+                  'label-id-1',
+                  'label-source1',
+                  `${EXTERNAL_PREFIX_1}-label-external-id-1`,
+                ),
+                generateNormalizedLabel(
+                  '',
+                  'label-id-2',
+                  'label-source2',
+                  `${EXTERNAL_PREFIX_2}-label-external-id-2`,
+                ),
+                generateNormalizedLabel(
+                  '',
+                  'label-id-3',
+                  'label-del-source2',
+                  `${EXTERNAL_PREFIX_2}-label-external-id-3`,
+                ),
+              ],
+              documents: [
+                generateNormalizedDocument(
+                  '-1',
+                  'document-id-1',
+                  'document-source1',
+                  [],
+                  true,
+                  `${EXTERNAL_PREFIX_1}-article-external-id-1`,
+                ),
+                generateNormalizedDocument(
+                  '-1',
+                  'document-id-2',
+                  'document-source2',
+                  [],
+                  true,
+                  `${EXTERNAL_PREFIX_2}-article-external-id-1`,
+                ),
+                generateNormalizedDocument(
+                  '-2',
+                  'document-id-3',
+                  'document-del-source2',
+                  [],
+                  true,
+                  `${EXTERNAL_PREFIX_2}-article-external-id-2`,
+                ),
+              ],
             },
+          });
+
+          await aggregator.initialize(
+            { externalIdPrefix: EXTERNAL_PREFIX_2 },
+            adapters,
+          );
+        });
+
+        it('should collect entities to the correct group', async () => {
+          const importableContents = await aggregator.run({
             categories: [
               generateNormalizedCategory(
-                '',
-                'category-id-1',
-                'category-source1',
-                `${source1}-category-external-id-1`,
+                '-1',
+                null,
+                'category-update',
+                `${EXTERNAL_PREFIX_2}-category-external-id-1`,
               ),
               generateNormalizedCategory(
-                '',
-                'category-id-2',
-                'category-source2',
-                `${source2}-category-external-id-1`,
-              ),
-              generateNormalizedCategory(
-                '',
-                'category-id-3',
-                'category-del-source2',
-                `${source2}-category-external-id-2`,
+                '-3',
+                null,
+                'category-new',
+                `${EXTERNAL_PREFIX_2}-category-external-id-3`,
               ),
             ],
             labels: [
               generateNormalizedLabel(
                 '',
                 'label-id-1',
-                'label-source1',
-                `${source1}-label-external-id-1`,
-              ),
-              generateNormalizedLabel(
-                '',
-                'label-id-2',
-                'label-source2',
-                `${source2}-label-external-id-2`,
+                'label-update',
+                `${EXTERNAL_PREFIX_2}-label-external-id-1`,
               ),
               generateNormalizedLabel(
                 '',
                 'label-id-3',
-                'label-del-source2',
-                `${source2}-label-external-id-3`,
+                'label-new',
+                `${EXTERNAL_PREFIX_2}-label-external-id-3`,
               ),
             ],
             documents: [
               generateNormalizedDocument(
                 '-1',
-                'document-id-1',
-                'document-source1',
+                null,
+                'document-update',
                 [],
                 true,
-                `${source1}-article-external-id-1`,
+                `${EXTERNAL_PREFIX_2}-article-external-id-1`,
               ),
               generateNormalizedDocument(
-                '-1',
-                'document-id-2',
-                'document-source2',
+                '-3',
+                null,
+                'document-new',
                 [],
                 true,
-                `${source2}-article-external-id-1`,
-              ),
-              generateNormalizedDocument(
-                '-2',
-                'document-id-3',
-                'document-del-source2',
-                [],
-                true,
-                `${source2}-article-external-id-2`,
+                `${EXTERNAL_PREFIX_2}-article-external-id-3`,
               ),
             ],
-          },
-        });
+          });
 
-        aggregator.initialize({ externalIdPrefix: source2 }, adapters);
+          verifyGroups(importableContents.categories, 1, 1, 1);
+          verifyGroups(importableContents.labels, 1, 1, 1);
+          verifyGroups(importableContents.documents, 1, 1, 1);
+        });
       });
 
-      it('should collect entities to the correct group', async () => {
-        const importableContents = await aggregator.run({
-          categories: [
-            generateNormalizedCategory(
-              '-1',
-              null,
-              'category-update',
-              `${source2}-category-external-id-1`,
-            ),
-            generateNormalizedCategory(
-              '-3',
-              null,
-              'category-new',
-              `${source2}-category-external-id-3`,
-            ),
-          ],
-          labels: [
-            generateNormalizedLabel(
-              '',
-              'label-id-1',
-              'label-update',
-              `${source2}-label-external-id-1`,
-            ),
-            generateNormalizedLabel(
-              '',
-              'label-id-3',
-              'label-new',
-              `${source2}-label-external-id-3`,
-            ),
-          ],
-          documents: [
-            generateNormalizedDocument(
-              '-1',
-              null,
-              'document-update',
-              [],
-              true,
-              `${source2}-article-external-id-1`,
-            ),
-            generateNormalizedDocument(
-              '-3',
-              null,
-              'document-new',
-              [],
-              true,
-              `${source2}-article-external-id-3`,
-            ),
-          ],
+      describe('when genesysSourceId given', () => {
+        const SOURCE_ID_1: string = 'source-id-1';
+        const SOURCE_ID_2: string = 'source-id-2';
+
+        beforeEach(async () => {
+          mockExportAllEntities.mockResolvedValue({
+            version: 3,
+            importAction: {
+              knowledgeBase: {
+                id: '',
+              },
+              categories: [
+                generateNormalizedCategory(
+                  '',
+                  'category-id-1',
+                  'category-source1',
+                  `category-external-id-1-1`,
+                  null,
+                  SOURCE_ID_1,
+                ),
+                generateNormalizedCategory(
+                  '',
+                  'category-id-2',
+                  'category-source2',
+                  `category-external-id-2-1`,
+                  null,
+                  SOURCE_ID_2,
+                ),
+                generateNormalizedCategory(
+                  '',
+                  'category-id-3',
+                  'category-del-source2',
+                  `category-external-id-2-2`,
+                  null,
+                  SOURCE_ID_2,
+                ),
+              ],
+              labels: [
+                generateNormalizedLabel(
+                  '',
+                  'label-id-1',
+                  'label-source1',
+                  `label-external-id-1-1`,
+                  SOURCE_ID_1,
+                ),
+                generateNormalizedLabel(
+                  '',
+                  'label-id-2',
+                  'label-source2',
+                  `label-external-id-2-1`,
+                  SOURCE_ID_2,
+                ),
+                generateNormalizedLabel(
+                  '',
+                  'label-id-3',
+                  'label-del-source2',
+                  `label-external-id-2-2`,
+                  SOURCE_ID_2,
+                ),
+              ],
+              documents: [
+                generateNormalizedDocument(
+                  '-1',
+                  'document-id-1',
+                  'document-source1',
+                  [],
+                  true,
+                  `article-external-id-1-1`,
+                  SOURCE_ID_1,
+                ),
+                generateNormalizedDocument(
+                  '-1',
+                  'document-id-2',
+                  'document-source2',
+                  [],
+                  true,
+                  `article-external-id-2-1`,
+                  SOURCE_ID_2,
+                ),
+                generateNormalizedDocument(
+                  '-2',
+                  'document-id-3',
+                  'document-del-source2',
+                  [],
+                  true,
+                  `article-external-id-2-2`,
+                  SOURCE_ID_2,
+                ),
+              ],
+            },
+          });
+
+          await aggregator.initialize(
+            { genesysSourceId: SOURCE_ID_2 },
+            adapters,
+          );
         });
 
-        verifyGroups(importableContents.categories, 1, 1, 1);
-        verifyGroups(importableContents.labels, 1, 1, 1);
-        verifyGroups(importableContents.documents, 1, 1, 1);
+        it('should collect entities to the correct group', async () => {
+          const importableContents = await aggregator.run({
+            categories: [
+              generateNormalizedCategory(
+                '',
+                null,
+                'category-update',
+                `category-external-id-2-1`,
+              ),
+              generateNormalizedCategory(
+                '',
+                null,
+                'category-new',
+                `category-external-id-2-3`,
+              ),
+            ],
+            labels: [
+              generateNormalizedLabel(
+                '',
+                'label-id-1',
+                'label-update',
+                `label-external-id-2-1`,
+              ),
+              generateNormalizedLabel(
+                '',
+                'label-id-3',
+                'label-new',
+                `label-external-id-2-3`,
+              ),
+            ],
+            documents: [
+              generateNormalizedDocument(
+                '',
+                null,
+                'document-update',
+                [],
+                true,
+                `article-external-id-2-1`,
+              ),
+              generateNormalizedDocument(
+                '',
+                null,
+                'document-new',
+                [],
+                true,
+                `article-external-id-2-3`,
+              ),
+            ],
+          });
+
+          verifyGroups(importableContents.categories, 1, 1, 1);
+          verifyGroups(importableContents.labels, 1, 1, 1);
+          verifyGroups(importableContents.documents, 1, 1, 1);
+        });
       });
     });
 

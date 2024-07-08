@@ -124,9 +124,9 @@ export class DiffAggregator implements Aggregator {
     });
 
     const prefix = this.config.externalIdPrefix;
-    result.deleted = unprocessedStoredItems.filter(
-      (item: T) =>
-        !!item?.externalId && (!prefix || item.externalId.startsWith(prefix)),
+    const sourceId = this.getSourceId();
+    result.deleted = unprocessedStoredItems.filter((item: T) =>
+      this.isFromSameSource(item, prefix, sourceId),
     );
 
     return result;
@@ -276,5 +276,43 @@ export class DiffAggregator implements Aggregator {
         currentItem.name === collectedItem.name &&
         currentItem.externalId !== collectedItem.externalId,
     );
+  }
+
+  private isFromSameSource(
+    item: ExternalIdentifiable,
+    prefix: string | undefined,
+    sourceId: string | null,
+  ): boolean {
+    if (sourceId) {
+      return this.isSourceIdMatch(item, sourceId);
+    }
+
+    if (prefix) {
+      return this.isExternalIdPrefixMatch(item, prefix);
+    }
+
+    return this.hasExternalId(item);
+  }
+
+  private isSourceIdMatch(
+    item: ExternalIdentifiable,
+    sourceId: string | null,
+  ): boolean {
+    return item.sourceId === sourceId;
+  }
+
+  private isExternalIdPrefixMatch(
+    item: ExternalIdentifiable,
+    prefix: string,
+  ): boolean {
+    return !!item?.externalId && item.externalId.startsWith(prefix);
+  }
+
+  private hasExternalId(item: ExternalIdentifiable): boolean {
+    return !!item?.externalId;
+  }
+
+  private getSourceId(): string | null {
+    return this.config.genesysSourceId || null;
   }
 }
