@@ -9,6 +9,8 @@ import { Image } from '../model/image.js';
 import { ExportArticlesResponse } from './model/export-articles-response.js';
 import { fetchImage } from '../utils/web-client.js';
 import { getLogger } from '../utils/logger.js';
+import { AttachmentDomainValidator } from '../processor/attachment-domain-validator.js';
+import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-not-allowed-error.js';
 
 /**
  * GenesysSourceAdapter implements {@Link SourceAdapter} to fetch data from Genesys Knowledge's API
@@ -19,6 +21,7 @@ export class GenesysSourceAdapter
   private config: GenesysSourceConfig = {};
   private api: GenesysSourceApi;
   private exportedKnowledgeData: ExportModel | null = null;
+  private attachmentDomainValidator?: AttachmentDomainValidator;
 
   constructor() {
     this.api = new GenesysSourceApi();
@@ -29,6 +32,7 @@ export class GenesysSourceAdapter
     await this.api.initialize(config);
 
     this.exportedKnowledgeData = await this.exportAllEntities();
+    this.attachmentDomainValidator = new AttachmentDomainValidator(config);
   }
 
   public async getAllArticles(): Promise<Document[]> {
@@ -47,6 +51,9 @@ export class GenesysSourceAdapter
     articleId: string | null,
     url: string,
   ): Promise<Image | null> {
+    if (!this.attachmentDomainValidator!.isDomainAllowed(url)) {
+      throw new AttachmentDomainNotAllowedError(url);
+    }
     return fetchImage(url);
   }
 
