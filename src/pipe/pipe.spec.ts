@@ -177,6 +177,8 @@ describe('Pipe', () => {
       getAllLabels: jest.fn<() => Promise<Label[]>>(),
 
       getAllArticles: jest.fn<() => Promise<Document[]>>(),
+
+      getDocumentLinkRegexps: jest.fn<() => []>(),
     };
   }
 

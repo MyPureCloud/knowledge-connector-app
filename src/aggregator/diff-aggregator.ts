@@ -162,9 +162,11 @@ export class DiffAggregator implements Aggregator {
   }
 
   private normalizeVariation(variation: Variation): Variation {
-    const { body } = variation;
+    const { name, priority, body } = variation;
 
     return {
+      ...(name !== undefined && { name }),
+      ...(priority !== undefined && { priority }),
       body,
     };
   }

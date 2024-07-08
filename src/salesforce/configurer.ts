@@ -7,6 +7,7 @@ import { SalesforceAdapter } from './salesforce-adapter.js';
 import { SalesforceLoader } from './salesforce-loader.js';
 import { HtmlTransformer } from '../processor/html-transformer.js';
 import { PrefixExternalId } from '../processor/prefix-external-id.js';
+import { DocumentLinkProcessor } from '../processor/document-link-processor.js';
 
 export const configurer: Configurer = (pipe: Pipe) => {
   pipe
@@ -16,6 +17,7 @@ export const configurer: Configurer = (pipe: Pipe) => {
       new HtmlTransformer(),
       new ImageProcessor(),
       new PrefixExternalId(),
+      new DocumentLinkProcessor(),
     )
     .aggregator(new DiffAggregator())
     .uploaders(new DiffUploader());

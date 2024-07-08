@@ -11,6 +11,8 @@ export class SalesforceAdapter
     SourceAdapter<SalesforceCategoryGroup, unknown, SalesforceArticleDetails>,
     ImageSourceAdapter
 {
+  private static DOCUMENT_LINK_REGEXPS: string[] = [];
+
   private config: SalesforceConfig = {};
   private api: SalesforceApi;
 
@@ -33,6 +35,10 @@ export class SalesforceAdapter
 
   public getAllLabels(): Promise<unknown[]> {
     return Promise.reject();
+  }
+
+  public getDocumentLinkRegexps(): string[] {
+    return SalesforceAdapter.DOCUMENT_LINK_REGEXPS;
   }
 
   public getAttachment(

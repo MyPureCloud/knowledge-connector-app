@@ -9,4 +9,6 @@ export interface SourceAdapter<C, L, A> extends Adapter {
   getAllLabels(): Promise<L[]>;
 
   getAllArticles(): Promise<A[]>;
+
+  getDocumentLinkRegexps(): string[];
 }

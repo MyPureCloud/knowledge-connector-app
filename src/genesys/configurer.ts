@@ -6,12 +6,17 @@ import { ImageProcessor } from '../processor/image-processor.js';
 import { PrefixExternalId } from '../processor/prefix-external-id.js';
 import { DiffAggregator } from '../aggregator/diff-aggregator.js';
 import { DiffUploader } from '../uploader/diff-uploader.js';
+import { DocumentLinkProcessor } from '../processor/document-link-processor.js';
 
 export const configurer: Configurer = (pipe: Pipe) => {
   pipe
     .source(new GenesysSourceAdapter())
     .loaders(new GenesysLoader())
-    .processors(new ImageProcessor(), new PrefixExternalId())
+    .processors(
+      new ImageProcessor(),
+      new PrefixExternalId(),
+      new DocumentLinkProcessor(),
+    )
     .aggregator(new DiffAggregator())
     .uploaders(new DiffUploader());
 };

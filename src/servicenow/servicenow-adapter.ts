@@ -14,6 +14,10 @@ export class ServiceNowAdapter
     SourceAdapter<unknown, unknown, ServiceNowArticle>,
     ImageSourceAdapter
 {
+  private static DOCUMENT_LINK_REGEXPS: string[] = [
+    '/^https://([a-zA-Z0-9-]+).service-now.com/kb_view.do?sysparm_article=([a-zA-Z0-9]+)$/',
+  ];
+
   private config: ServiceNowConfig = {};
   private api: ServiceNowApi;
   private attachmentDomainValidator?: AttachmentDomainValidator;
@@ -30,6 +34,10 @@ export class ServiceNowAdapter
 
   public getAllArticles(): Promise<ServiceNowArticle[]> {
     return this.api.fetchAllArticles();
+  }
+
+  public getDocumentLinkRegexps(): string[] {
+    return ServiceNowAdapter.DOCUMENT_LINK_REGEXPS;
   }
 
   public async getAttachment(
