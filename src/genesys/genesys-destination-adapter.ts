@@ -50,10 +50,14 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
   }
 
   public async uploadImage(hash: string, image: Image): Promise<string | null> {
-    getLogger().debug('uploading image ' + image.url);
+    const name = this.escapeName(hash + '-' + image.name);
+
+    getLogger().debug(`Uploading image from ${image.url} with name ${name}`);
+
     const uploadUrl = await this.getApi().getUploadImageUrl({
-      name: hash + '-' + image.name,
+      name,
     });
+
     if (!uploadUrl?.url) {
       getLogger().warn(`Cannot upload image [${image.url}]`);
       return null;
@@ -128,5 +132,9 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
 
   public getApi(): GenesysDestinationApi {
     return this.api;
+  }
+
+  private escapeName(name: string): string {
+    return name.replaceAll(/[\\{^}%`\]">[~<#|/ ]/g, '-');
   }
 }
