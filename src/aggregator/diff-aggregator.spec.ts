@@ -6,6 +6,7 @@ import { SourceAdapter } from '../adapter/source-adapter.js';
 import {
   generateNormalizedCategory,
   generateNormalizedDocument,
+  generateNormalizedDocumentWithInternalDocumentLinks,
   generateNormalizedLabel,
 } from '../tests/utils/entity-generators.js';
 import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
@@ -85,6 +86,44 @@ describe('DiffAggregator', () => {
         verifyGroups(importableContents.categories, 3, 0, 0);
         verifyGroups(importableContents.labels, 3, 0, 0);
         verifyGroups(importableContents.documents, 3, 0, 0);
+      });
+    });
+
+    describe('when export contains generated fields', () => {
+      beforeEach(() => {
+        mockExportAllEntities.mockResolvedValue({
+          version: 3,
+          importAction: {
+            knowledgeBase: {
+              id: '',
+            },
+            categories: [],
+            labels: [],
+            documents: [
+              generateNormalizedDocumentWithInternalDocumentLinks(
+                '-1',
+                'https://modified.url/article/123',
+              ),
+            ],
+          },
+        });
+      });
+
+      it('should remove generated content and thus not detect change', async () => {
+        const importableContents = await aggregator.run({
+          categories: [],
+          labels: [],
+          documents: [
+            generateNormalizedDocumentWithInternalDocumentLinks(
+              '-1',
+              undefined,
+            ),
+          ],
+        });
+
+        expect(importableContents.documents.created.length).toBe(0);
+        expect(importableContents.documents.updated.length).toBe(0);
+        expect(importableContents.documents.deleted.length).toBe(0);
       });
     });
 

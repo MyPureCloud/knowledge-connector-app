@@ -248,14 +248,14 @@ export class DiffAggregator implements Aggregator {
       document.published?.variations.forEach((variation) =>
         extractLinkBlocksFromVariation(variation).forEach((block) => {
           if (block.externalDocumentId) {
-            block.hyperlink = null;
+            block.hyperlink = undefined;
           }
         }),
       );
       document.draft?.variations.forEach((variation) =>
         extractLinkBlocksFromVariation(variation).forEach((block) => {
           if (block.externalDocumentId) {
-            block.hyperlink = null;
+            block.hyperlink = undefined;
           }
         }),
       );

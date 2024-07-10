@@ -7,7 +7,6 @@ import { Adapter } from '../adapter/adapter.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import { getLogger } from '../utils/logger.js';
 import { AbstractLoader } from '../pipe/abstract-loader.js';
-import { ServiceNowArticle } from './model/servicenow-article';
 
 /**
  * ServiceNow is a specific {@Link Loader} implementation for fetching data from ServiceNow API
@@ -34,6 +33,7 @@ export class ServiceNowLoader extends AbstractLoader {
 
     if (!this.shouldLoadArticles()) {
       data.documents = [];
+      data.articleLookupTable = new Map<string, string>();
     }
     if (!this.shouldLoadCategories()) {
       data.categories = [];

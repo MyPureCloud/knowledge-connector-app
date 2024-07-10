@@ -80,25 +80,33 @@ describe('PrefixExternalId', () => {
           'documents-3',
         ),
       ],
+      articleLookupTable: new Map<string, string>([
+        ['key1', 'article-external-id-1'],
+        ['key2', 'article-external-id-2'],
+        ['key3', 'article-external-id-3'],
+      ]),
     };
 
     const result = await prefixExternalIdProcessor.run(content);
 
-    function expectListWithExternalIdPrefix(
-      entities: ExternalIdentifiable[],
-      entityType: string,
-    ) {
-      expect(entities.length).toBe(3);
-      entities.forEach((item, index) =>
-        expect(item.externalId).toBe(
-          `${EXTERNAL_ID_PREFIX}${entityType}-${index + 1}`,
-        ),
-      );
-    }
+    (['labels', 'categories', 'documents'] as (keyof typeof result)[]).forEach(
+      (entityType) => {
+        const entities = result[entityType] as ExternalIdentifiable[];
+        expect(entities.length).toBe(3);
+        entities.forEach((item, index) =>
+          expect(item.externalId).toBe(
+            `${EXTERNAL_ID_PREFIX}${entityType}-${index + 1}`,
+          ),
+        );
+      },
+    );
 
-    expectListWithExternalIdPrefix(result.labels, 'labels');
-    expectListWithExternalIdPrefix(result.categories, 'categories');
-    expectListWithExternalIdPrefix(result.documents, 'documents');
+    const entriesArray = Array.from(result.articleLookupTable?.entries() ?? []);
+    entriesArray.forEach(([key, externalId], index) =>
+      expect(externalId).toBe(
+        `${EXTERNAL_ID_PREFIX}article-external-id-${index + 1}`,
+      ),
+    );
   });
 
   it('should ignore missing configuration', async () => {

@@ -42,7 +42,7 @@ export class DocumentLinkProcessor implements Processor {
           );
 
           if (externalId) {
-            block.hyperlink = null;
+            block.hyperlink = undefined;
             block.externalDocumentId = externalId;
           }
         });

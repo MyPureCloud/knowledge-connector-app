@@ -73,6 +73,7 @@ describe('ZendeskLoader', () => {
         labels: [LABEL],
         documents: [DOCUMENT],
         categories: [CATEGORY],
+        articleLookupTable: new Map<string, string>(),
       });
     });
 
@@ -101,6 +102,7 @@ describe('ZendeskLoader', () => {
             ]),
           ],
           categories: [],
+          articleLookupTable: new Map<string, string>(),
         });
         expect(mockGetAllCategories).not.toHaveBeenCalled();
       });
@@ -133,6 +135,7 @@ describe('ZendeskLoader', () => {
             ),
           ],
           categories: [CATEGORY],
+          articleLookupTable: new Map<string, string>(),
         });
         expect(mockGetAllLabels).not.toHaveBeenCalled();
       });
@@ -156,6 +159,7 @@ describe('ZendeskLoader', () => {
           labels: [LABEL],
           documents: [],
           categories: [CATEGORY],
+          articleLookupTable: new Map<string, string>(),
         });
         expect(mockGetAllArticles).not.toHaveBeenCalled();
       });

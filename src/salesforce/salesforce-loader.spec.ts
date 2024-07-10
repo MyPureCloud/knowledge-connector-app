@@ -71,6 +71,7 @@ describe('SalesforceLoader', () => {
         labels: [LABEL],
         documents: [DOCUMENT],
         categories: [],
+        articleLookupTable: new Map<string, string>(),
       });
     });
 
@@ -98,6 +99,7 @@ describe('SalesforceLoader', () => {
             ),
           ],
           categories: [],
+          articleLookupTable: new Map<string, string>(),
         });
         expect(mockGetAllCategories).not.toHaveBeenCalled();
       });
@@ -121,6 +123,7 @@ describe('SalesforceLoader', () => {
           labels: [LABEL],
           documents: [],
           categories: [],
+          articleLookupTable: new Map<string, string>(),
         });
         expect(mockGetAllArticles).not.toHaveBeenCalled();
       });

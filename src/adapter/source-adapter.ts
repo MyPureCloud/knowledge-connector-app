@@ -1,5 +1,4 @@
 import { Adapter } from './adapter.js';
-import { ExternalContent } from '../model';
 
 /**
  * Adapter to connect to source system
