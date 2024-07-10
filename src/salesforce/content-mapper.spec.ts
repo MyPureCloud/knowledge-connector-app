@@ -32,6 +32,7 @@ describe('contentMapper', () => {
       id: 'text',
       title: 'the title',
       categoryGroups: [],
+      urlName: 'testUrl',
       layoutItems: [
         {
           label: 'layout item label 1',

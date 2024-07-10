@@ -47,11 +47,7 @@ export class GenesysSourceAdapter
     return this.exportedKnowledgeData?.importAction?.labels || [];
   }
 
-  public extractDocumentIdFromUrl(
-    articleLookupTable: Map<string, string>,
-    hyperlink: string,
-  ): string | undefined {
-    // TODO
+  public getDocumentLinkMatcherRegexp(): RegExp | undefined {
     return undefined;
   }
 

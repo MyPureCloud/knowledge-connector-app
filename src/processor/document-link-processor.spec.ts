@@ -13,12 +13,13 @@ import {
   SyncModel,
 } from '../model';
 import { generateDocumentWithLinkedDocuments } from '../tests/utils/entity-generators';
+import { ServiceNowAdapter } from '../servicenow';
 
 describe('DocumentLinkProcessor', function () {
   let linkProcessor: DocumentLinkProcessor;
   let sourceAdapter: SourceAdapter<any, any, any>;
   let adapters: AdapterPair<SourceAdapter<any, any, any>, DestinationAdapter>;
-  let mockExtractDocumentIdFromUrl: jest.Mock<() => string | undefined>;
+  let mockGetDocumentLinkMatcherRegexp: jest.Mock<() => RegExp | undefined>;
 
   beforeEach(async () => {
     sourceAdapter = {
@@ -26,18 +27,12 @@ describe('DocumentLinkProcessor', function () {
       getAllCategories: jest.fn<() => Promise<any[]>>(),
       getAllLabels: jest.fn<() => Promise<any[]>>(),
       getAllArticles: jest.fn<() => Promise<any[]>>(),
-      extractDocumentIdFromUrl:
-        jest.fn<
-          (
-            articleLookupTable: Map<string, string>,
-            hyperlink: string | null,
-          ) => string | undefined
-        >(),
+      getDocumentLinkMatcherRegexp: jest.fn<() => RegExp | undefined>(),
     };
 
-    mockExtractDocumentIdFromUrl =
-      sourceAdapter.extractDocumentIdFromUrl as jest.Mock<
-        () => string | undefined
+    mockGetDocumentLinkMatcherRegexp =
+      sourceAdapter.getDocumentLinkMatcherRegexp as jest.Mock<
+        () => RegExp | undefined
       >;
 
     const destinationAdapter: DestinationAdapter = {
@@ -73,7 +68,9 @@ describe('DocumentLinkProcessor', function () {
 
   it('should replace hyperlink field with externalDocumentId for linked doc text block', async function () {
     const externalId = 'some-external-id';
-    mockExtractDocumentIdFromUrl.mockReturnValue(externalId);
+    mockGetDocumentLinkMatcherRegexp.mockReturnValue(
+      /sysparm_article=([A-Za-z0-9]+)/,
+    );
     const result = await linkProcessor.run({
       categories: [],
       labels: [],
@@ -84,29 +81,29 @@ describe('DocumentLinkProcessor', function () {
     const blocks =
       result.documents[0].published?.variations[0].body?.blocks ?? [];
     expect(blocks.length).toBe(4);
-    expect(blocks[0].paragraph?.blocks[0].text?.hyperlink).toBeNull();
+    expect(blocks[0].paragraph?.blocks[0].text?.hyperlink).toBeUndefined();
     expect(blocks[0].paragraph?.blocks[0].text?.externalDocumentId).toBe(
       externalId,
     );
-    expect(blocks[1].list?.blocks[0].blocks[0].text?.hyperlink).toBeNull();
+    expect(blocks[1].list?.blocks[0].blocks[0].text?.hyperlink).toBeUndefined();
     expect(blocks[1].list?.blocks[0].blocks[0].text?.externalDocumentId).toBe(
       externalId,
     );
-    expect(blocks[2].paragraph?.blocks[0].image?.hyperlink).toBeNull();
+    expect(blocks[2].paragraph?.blocks[0].image?.hyperlink).toBeUndefined();
     expect(blocks[2].paragraph?.blocks[0].image?.externalDocumentId).toBe(
       externalId,
     );
     expect(
       blocks[3].table?.rows[0].cells[0].blocks[0].list?.blocks[0].blocks[0].text
         ?.hyperlink,
-    ).toBeNull();
+    ).toBeUndefined();
     expect(
       blocks[3].table?.rows[0].cells[0].blocks[0].list?.blocks[0].blocks[0].text
         ?.externalDocumentId,
     ).toBe(externalId);
     expect(
       blocks[3].table?.rows[0].cells[1].blocks[0].image?.hyperlink,
-    ).toBeNull();
+    ).toBeUndefined();
     expect(
       blocks[3].table?.rows[0].cells[1].blocks[0].image?.externalDocumentId,
     ).toBe(externalId);

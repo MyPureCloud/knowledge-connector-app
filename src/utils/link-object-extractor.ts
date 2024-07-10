@@ -17,6 +17,23 @@ import {
 } from 'knowledge-html-converter';
 import { DocumentBodyListBlock } from 'knowledge-html-converter/dist/models/blocks/document-body-list';
 
+export function extractDocumentIdFromUrl(
+  articleLookupTable: Map<string, string>,
+  hyperlink: string,
+  regexp: RegExp | undefined,
+): string | undefined {
+  if (!regexp) {
+    return undefined;
+  }
+
+  const match = hyperlink.match(regexp);
+  if (!match || !match[1]) {
+    return undefined;
+  }
+  const articleNumber = match[1];
+  return articleLookupTable.get(articleNumber);
+}
+
 export function extractLinkBlocksFromVariation(
   variation: Variation,
 ): LinkBlock[] {

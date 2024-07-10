@@ -178,13 +178,7 @@ describe('Pipe', () => {
 
       getAllArticles: jest.fn<() => Promise<Document[]>>(),
 
-      extractDocumentIdFromUrl:
-        jest.fn<
-          (
-            articleLookupTable: Map<string, string>,
-            hyperlink: string | null,
-          ) => string | undefined
-        >(),
+      getDocumentLinkMatcherRegexp: jest.fn<() => RegExp | undefined>(),
     };
   }
 

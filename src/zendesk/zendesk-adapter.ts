@@ -44,11 +44,7 @@ export class ZendeskAdapter
     return this.api.fetchAllLabels();
   }
 
-  public extractDocumentIdFromUrl(
-    articleLookupTable: Map<string, string>,
-    hyperlink: string,
-  ): string | undefined {
-    // TODO
+  public getDocumentLinkMatcherRegexp(): RegExp | undefined {
     return undefined;
   }
 

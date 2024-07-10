@@ -4,7 +4,10 @@ import { ExternalContent } from '../model';
 import { SourceAdapter } from '../adapter/source-adapter';
 import { DestinationAdapter } from '../adapter/destination-adapter';
 import { Config } from '../config';
-import { extractLinkBlocksFromVariation } from '../utils/link-object-extractor.js';
+import {
+  extractDocumentIdFromUrl,
+  extractLinkBlocksFromVariation,
+} from '../utils/link-object-extractor.js';
 import { getLogger } from '../utils/logger.js';
 
 export class DocumentLinkProcessor implements Processor {
@@ -36,9 +39,10 @@ export class DocumentLinkProcessor implements Processor {
             return;
           }
 
-          const externalId = this.sourceAdapter?.extractDocumentIdFromUrl(
+          const externalId = extractDocumentIdFromUrl(
             articleLookupTable,
             block.hyperlink,
+            this.sourceAdapter?.getDocumentLinkMatcherRegexp(),
           );
 
           if (externalId) {

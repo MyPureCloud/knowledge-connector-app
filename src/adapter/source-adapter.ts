@@ -10,8 +10,5 @@ export interface SourceAdapter<C, L, A> extends Adapter {
 
   getAllArticles(): Promise<A[]>;
 
-  extractDocumentIdFromUrl(
-    articleLookupTable: Map<string, string>,
-    hyperlink: string,
-  ): string | undefined;
+  getDocumentLinkMatcherRegexp(): RegExp | undefined;
 }

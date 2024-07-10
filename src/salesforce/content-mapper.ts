@@ -141,6 +141,10 @@ function filterField(
 
 function buildArticleLookupTable(articles: SalesforceArticleDetails[]) {
   const lookupTable: Map<string, string> = new Map<string, string>();
-  // TODO
+  articles.forEach((article) => {
+    if (article.urlName) {
+      lookupTable.set(article.urlName, article.id);
+    }
+  });
   return lookupTable;
 }

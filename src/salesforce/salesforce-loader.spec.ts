@@ -71,7 +71,9 @@ describe('SalesforceLoader', () => {
         labels: [LABEL],
         documents: [DOCUMENT],
         categories: [],
-        articleLookupTable: new Map<string, string>(),
+        articleLookupTable: new Map<string, string>([
+          ['testUrlName', 'article-external-id'],
+        ]),
       });
     });
 
@@ -99,7 +101,9 @@ describe('SalesforceLoader', () => {
             ),
           ],
           categories: [],
-          articleLookupTable: new Map<string, string>(),
+          articleLookupTable: new Map<string, string>([
+            ['testUrlName', 'article-external-id'],
+          ]),
         });
         expect(mockGetAllCategories).not.toHaveBeenCalled();
       });
@@ -150,6 +154,7 @@ function generateArticle(): SalesforceArticleDetails {
   return {
     id: 'article-external-id',
     title: 'article-title',
+    urlName: 'testUrlName',
     categoryGroups: [
       {
         label: 'category-group-label',

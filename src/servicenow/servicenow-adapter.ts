@@ -34,16 +34,8 @@ export class ServiceNowAdapter
     return this.api.fetchAllArticles();
   }
 
-  public extractDocumentIdFromUrl(
-    articleLookupTable: Map<string, string>,
-    hyperlink: string,
-  ): string | undefined {
-    const match = hyperlink.match(ServiceNowAdapter.ARTICLE_NUMBER_REGEX);
-    if (!match || !match[1]) {
-      return undefined;
-    }
-    const articleNumber = match[1];
-    return articleLookupTable.get(articleNumber);
+  public getDocumentLinkMatcherRegexp(): RegExp | undefined {
+    return ServiceNowAdapter.ARTICLE_NUMBER_REGEX;
   }
 
   public async getAttachment(
