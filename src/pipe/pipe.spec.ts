@@ -181,9 +181,9 @@ describe('Pipe', () => {
       extractDocumentIdFromUrl:
         jest.fn<
           (
-            articleLookupTable: { [key: string]: string },
+            articleLookupTable: Map<string, string>,
             hyperlink: string | null,
-          ) => string | null
+          ) => string | undefined
         >(),
     };
   }

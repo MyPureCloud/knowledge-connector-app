@@ -35,15 +35,15 @@ export class ServiceNowAdapter
   }
 
   public extractDocumentIdFromUrl(
-    articleLookupTable: { [key: string]: string },
+    articleLookupTable: Map<string, string>,
     hyperlink: string,
-  ): string | null {
+  ): string | undefined {
     const match = hyperlink.match(ServiceNowAdapter.ARTICLE_NUMBER_REGEX);
     if (!match || !match[1]) {
-      return null; // Return the captured value if a match is found
+      return undefined;
     }
     const articleNumber = match[1];
-    return articleLookupTable[articleNumber];
+    return articleLookupTable.get(articleNumber);
   }
 
   public async getAttachment(

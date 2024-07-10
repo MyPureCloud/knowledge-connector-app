@@ -42,19 +42,6 @@ export class ServiceNowLoader extends AbstractLoader {
     getLogger().info('Categories loaded: ' + data.categories.length);
     getLogger().info('Documents loaded: ' + data.documents.length);
 
-    data.articleLookupTable = this.buildArticleLoopUpTable(articles);
-
     return data;
-  }
-
-  private buildArticleLoopUpTable(articles: ServiceNowArticle[]) {
-    const lookupTable: { [key: string]: string } = {};
-    articles.forEach((article) => {
-      if (article.number) {
-        // TODO: ext id prefix?
-        lookupTable[article.number] = article.id;
-      }
-    });
-    return lookupTable;
   }
 }

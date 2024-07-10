@@ -45,11 +45,11 @@ export class ZendeskAdapter
   }
 
   public extractDocumentIdFromUrl(
-    articleLookupTable: { [key: string]: string },
+    articleLookupTable: Map<string, string>,
     hyperlink: string,
-  ): string | null {
+  ): string | undefined {
     // TODO
-    return null;
+    return undefined;
   }
 
   public async getAttachment(

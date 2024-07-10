@@ -24,19 +24,33 @@ export class PrefixExternalId implements Processor {
     const prefix = this.config.externalIdPrefix;
 
     if (prefix) {
-      this.replaceExternalId(content.documents, prefix);
-      this.replaceExternalId(content.categories, prefix);
-      this.replaceExternalId(content.labels, prefix);
+      this.replaceListExternalId(content.documents, prefix);
+      this.replaceListExternalId(content.categories, prefix);
+      this.replaceListExternalId(content.labels, prefix);
+      this.replaceMapExternalId(content.articleLookupTable, prefix);
     }
     return content;
   }
 
-  private replaceExternalId(
+  private replaceListExternalId(
     list: ExternalIdentifiable[],
     prefix: string,
   ): void {
     list.forEach((item) => {
       item.externalId = prefix + item.externalId;
+    });
+  }
+
+  private replaceMapExternalId(
+    map: Map<string, string> | undefined,
+    prefix: string,
+  ): void {
+    if (!map) {
+      return;
+    }
+
+    map.forEach((value, key) => {
+      map.set(key, prefix + value);
     });
   }
 }

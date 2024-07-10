@@ -9,6 +9,7 @@ import {
   generateNormalizedLabel,
 } from '../tests/utils/entity-generators.js';
 import { beforeEach, describe, expect, it } from '@jest/globals';
+import { ExternalIdentifiable } from '../model';
 
 describe('PrefixExternalId', () => {
   const EXTERNAL_ID_PREFIX = 'this-is-the-prefix-';
@@ -83,16 +84,21 @@ describe('PrefixExternalId', () => {
 
     const result = await prefixExternalIdProcessor.run(content);
 
-    (['labels', 'categories', 'documents'] as (keyof typeof result)[]).forEach(
-      (entityType) => {
-        expect(result[entityType].length).toBe(3);
-        result[entityType].forEach((item, index) =>
-          expect(item.externalId).toBe(
-            `${EXTERNAL_ID_PREFIX}${entityType}-${index + 1}`,
-          ),
-        );
-      },
-    );
+    function expectListWithExternalIdPrefix(
+      entities: ExternalIdentifiable[],
+      entityType: string,
+    ) {
+      expect(entities.length).toBe(3);
+      entities.forEach((item, index) =>
+        expect(item.externalId).toBe(
+          `${EXTERNAL_ID_PREFIX}${entityType}-${index + 1}`,
+        ),
+      );
+    }
+
+    expectListWithExternalIdPrefix(result.labels, 'labels');
+    expectListWithExternalIdPrefix(result.categories, 'categories');
+    expectListWithExternalIdPrefix(result.documents, 'documents');
   });
 
   it('should ignore missing configuration', async () => {

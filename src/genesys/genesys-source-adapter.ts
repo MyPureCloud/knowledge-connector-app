@@ -48,11 +48,11 @@ export class GenesysSourceAdapter
   }
 
   public extractDocumentIdFromUrl(
-    articleLookupTable: { [key: string]: string },
+    articleLookupTable: Map<string, string>,
     hyperlink: string,
-  ): string | null {
+  ): string | undefined {
     // TODO
-    return '';
+    return undefined;
   }
 
   public async getAttachment(

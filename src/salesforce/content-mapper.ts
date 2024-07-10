@@ -35,6 +35,7 @@ export function contentMapper(
           ),
         )
       : [],
+    articleLookupTable: buildArticleLookupTable(articles),
   };
 }
 
@@ -136,4 +137,10 @@ function filterField(
     (contentFields.length === 0 || contentFields.includes(item.name)) &&
     !EXCLUDED_FIELD_TYPES.includes(item.type)
   );
+}
+
+function buildArticleLookupTable(articles: SalesforceArticleDetails[]) {
+  const lookupTable: Map<string, string> = new Map<string, string>();
+  // TODO
+  return lookupTable;
 }

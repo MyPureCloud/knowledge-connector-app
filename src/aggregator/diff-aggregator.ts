@@ -22,6 +22,7 @@ import { GeneratedValue } from '../utils/generated-value.js';
 import { DestinationAdapter } from '../adapter/destination-adapter.js';
 import { NamedEntity } from '../model/named-entity.js';
 import { DiffAggregatorConfig } from './diff-aggregator-config.js';
+import { extractLinkBlocksFromVariation } from '../utils/link-object-extractor.js';
 
 /**
  * The DiffAggregator transforms the ExternalContent into ImportableContents,
@@ -54,6 +55,7 @@ export class DiffAggregator implements Aggregator {
       storedItems.categories,
     );
     this.resolveNameConflicts(collectedItems.labels, storedItems.labels);
+    this.removeGeneratedContent(storedItems);
 
     const importAction = exportResult.importAction;
     return {
@@ -236,6 +238,27 @@ export class DiffAggregator implements Aggregator {
       if (_.has(source, path)) {
         _.set(destination, path, _.get(source, path));
       }
+    });
+  }
+
+  private removeGeneratedContent<T extends object>(
+    content: ExternalContent,
+  ): void {
+    content.documents.forEach((document) => {
+      document.published?.variations.forEach((variation) =>
+        extractLinkBlocksFromVariation(variation).forEach((block) => {
+          if (block.externalDocumentId) {
+            block.hyperlink = null;
+          }
+        }),
+      );
+      document.draft?.variations.forEach((variation) =>
+        extractLinkBlocksFromVariation(variation).forEach((block) => {
+          if (block.externalDocumentId) {
+            block.hyperlink = null;
+          }
+        }),
+      );
     });
   }
 

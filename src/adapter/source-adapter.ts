@@ -12,7 +12,7 @@ export interface SourceAdapter<C, L, A> extends Adapter {
   getAllArticles(): Promise<A[]>;
 
   extractDocumentIdFromUrl(
-    articleLookupTable: { [key: string]: string },
+    articleLookupTable: Map<string, string>,
     hyperlink: string,
-  ): string | null;
+  ): string | undefined;
 }

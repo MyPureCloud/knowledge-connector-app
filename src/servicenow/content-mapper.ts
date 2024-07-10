@@ -25,6 +25,7 @@ export function contentMapper(
           articleMapper(a, fetchCategories),
         )
       : [],
+    articleLookupTable: buildArticleLookupTable(articles),
   };
 }
 
@@ -125,4 +126,14 @@ function getCategoryReference(
 
   const { id, name } = category;
   return { id, name };
+}
+
+function buildArticleLookupTable(articles: ServiceNowArticle[]) {
+  const lookupTable: Map<string, string> = new Map<string, string>();
+  articles.forEach((article) => {
+    if (article.number) {
+      lookupTable.set(article.number, article.id);
+    }
+  });
+  return lookupTable;
 }

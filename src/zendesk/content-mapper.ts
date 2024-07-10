@@ -32,6 +32,7 @@ export function contentMapper(
           ),
         )
       : [],
+    articleLookupTable: buildArticleLookupTable(articles),
   };
 }
 
@@ -127,4 +128,10 @@ function buildIdAndNameMapping(items: ZendeskCategory[]): Map<string, string> {
   }
 
   return mapping;
+}
+
+function buildArticleLookupTable(articles: ZendeskArticle[]) {
+  const lookupTable: Map<string, string> = new Map<string, string>();
+  // TODO
+  return lookupTable;
 }

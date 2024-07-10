@@ -2,6 +2,7 @@ import { ExternalContent } from '../model/external-content.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
 import { Document } from '../model/sync-export-model.js';
+import { ServiceNowArticle } from '../servicenow/model/servicenow-article';
 
 export function contentMapper(
   categories: Category[],
@@ -12,6 +13,7 @@ export function contentMapper(
     categories: categories ? categories.map(categoryMapper) : [],
     labels: labels ? labels.map(labelMapper) : [],
     documents: documents ? documents.map(documentMapper) : [],
+    articleLookupTable: buildArticleLookupTable(documents),
   };
 }
 
@@ -46,4 +48,10 @@ function documentMapper(article: Document): Document {
     published,
     draft,
   };
+}
+
+function buildArticleLookupTable(documents: Document[]) {
+  const lookupTable: Map<string, string> = new Map<string, string>();
+  // TODO
+  return lookupTable;
 }
