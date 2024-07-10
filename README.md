@@ -146,6 +146,14 @@ NAME_CONFLICT_SUFFIX=
 RELATIVE_IMAGE_BASE_URL=
 ```
 
+#### Allow image loading from local filesystem
+
+```
+# When enabled, image tags with "file:" are processed and uploaded to destination.
+# Disabled by default.
+ALLOW_IMAGE_FROM_FILESYSTEM=true
+```
+
 #### Execution timeout
 
 ```

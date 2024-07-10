@@ -95,6 +95,15 @@ export class Pipe {
     return this;
   }
 
+  /**
+   * Define single uploader task
+   * @param {Uploader} uploader
+   */
+  public uploader(uploader: Uploader): Pipe {
+    this.uploaderList = [uploader];
+    return this;
+  }
+
   public configurer(configurer: Configurer): Pipe {
     configurer(this);
     return this;

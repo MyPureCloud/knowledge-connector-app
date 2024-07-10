@@ -32,6 +32,7 @@ export class ImageProcessor implements Processor {
   private genesysAdapter?: DestinationAdapter;
   private attachmentDomainValidator?: AttachmentDomainValidator;
   private uploadedImageCount: number = 0;
+  private allowImageFromFilesystem: boolean = false;
 
   public async initialize(
     config: ImageConfig,
@@ -41,6 +42,8 @@ export class ImageProcessor implements Processor {
     this.adapter = adapters.sourceAdapter;
     this.genesysAdapter = adapters.destinationAdapter;
     this.attachmentDomainValidator = new AttachmentDomainValidator(config);
+    this.allowImageFromFilesystem =
+      this.config.allowImageFromFilesystem === 'true';
   }
 
   public async run(content: ExternalContent): Promise<ExternalContent> {
@@ -80,11 +83,13 @@ export class ImageProcessor implements Processor {
     articleId: string | null,
     imageBlock: DocumentBodyImageBlock,
   ): Promise<void> {
-    getLogger().debug('processing image block ' + imageBlock.image.url);
+    getLogger().debug(
+      'Processing image block with URL ' + imageBlock.image.url,
+    );
     const image = await this.fetchImage(articleId, imageBlock.image.url);
 
     if (!image) {
-      getLogger().warn(
+      getLogger().debug(
         `Cannot fetch image [${imageBlock.image.url}] for article [${articleId}]`,
       );
       return;
@@ -94,8 +99,12 @@ export class ImageProcessor implements Processor {
     let result = await this.genesysAdapter!.lookupImage(hash);
 
     if (!result) {
-      result = await this.genesysAdapter!.uploadImage(hash, image);
-      this.uploadedImageCount++;
+      try {
+        result = await this.genesysAdapter!.uploadImage(hash, image);
+        this.uploadedImageCount++;
+      } catch (error) {
+        getLogger().error(`Cannot upload image ${image.url}`);
+      }
     }
 
     if (result) {
@@ -162,7 +171,11 @@ export class ImageProcessor implements Processor {
     url: string,
   ): Promise<Image | null> {
     if (url.startsWith('file:')) {
-      return this.readFile(url);
+      if (this.allowImageFromFilesystem) {
+        return this.readFile(url);
+      } else {
+        return null;
+      }
     }
 
     let image: Image | null;
@@ -170,18 +183,18 @@ export class ImageProcessor implements Processor {
       image = await this.adapter!.getAttachment(articleId, url);
     } catch (error) {
       if (error instanceof AttachmentDomainNotAllowedError) {
-        getLogger().warn(error.message);
+        getLogger().debug(error.message);
         return null;
       }
       throw error;
     }
 
     if (!image) {
-      getLogger().info(`Trying to fetch image [${url}] directly`);
+      getLogger().debug(`Trying to fetch image [${url}] directly`);
 
       if (this.isRelativeUrl(url)) {
         if (!this.config?.relativeImageBaseUrl) {
-          getLogger().warn(
+          getLogger().debug(
             `Relative image url [${url}] found but missing RELATIVE_IMAGE_BASE_URL from config`,
           );
           return null;
@@ -191,7 +204,7 @@ export class ImageProcessor implements Processor {
       }
 
       if (!this.attachmentDomainValidator!.isDomainAllowed(url)) {
-        getLogger().warn(
+        getLogger().debug(
           'Skipped downloading image, domain not allowed: ' + url,
         );
         return null;
