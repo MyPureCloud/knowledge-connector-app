@@ -13,13 +13,18 @@ import { BulkDeleteResponse } from '../model/bulk-delete-response.js';
 import { GenesysDestinationApi } from './genesys-destination-api.js';
 import { DestinationAdapter } from '../adapter/destination-adapter.js';
 import { getLogger } from '../utils/logger.js';
+import { fileTypeFromBuffer } from 'file-type';
+import { FileTypeNotSupportedError } from './file-type-not-supported-error.js';
+
+const SUPPORTED_FORMATS = ['jpeg', 'jpg', 'png', 'gif'];
 
 /**
  * GenesysDestinationAdapter is used by {@Link Uploader} to send collected data to Genesys Knowledge
  */
 export class GenesysDestinationAdapter implements DestinationAdapter {
+  private readonly api: GenesysDestinationApi;
+
   private config: GenesysDestinationConfig = {};
-  private api: GenesysDestinationApi;
 
   constructor() {
     this.api = new GenesysDestinationApi();
@@ -50,6 +55,8 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
   }
 
   public async uploadImage(hash: string, image: Image): Promise<string | null> {
+    await this.validateFileType(image);
+
     const name = this.escapeName(hash + '-' + image.name);
 
     getLogger().debug(`Uploading image from ${image.url} with name ${name}`);
@@ -136,5 +143,18 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
 
   private escapeName(name: string): string {
     return name.replaceAll(/[\\{^}%`\]">[~<#|/ ]/g, '-');
+  }
+
+  private async validateFileType(image: Image): Promise<void> {
+    const fileType = await fileTypeFromBuffer(
+      await image.content.arrayBuffer(),
+    );
+
+    if (!fileType?.ext || !SUPPORTED_FORMATS.includes(fileType.ext)) {
+      throw new FileTypeNotSupportedError(
+        fileType?.ext || 'unknown',
+        SUPPORTED_FORMATS,
+      );
+    }
   }
 }

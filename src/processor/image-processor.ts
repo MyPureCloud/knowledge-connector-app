@@ -99,8 +99,12 @@ export class ImageProcessor implements Processor {
     let result = await this.genesysAdapter!.lookupImage(hash);
 
     if (!result) {
-      result = await this.genesysAdapter!.uploadImage(hash, image);
-      this.uploadedImageCount++;
+      try {
+        result = await this.genesysAdapter!.uploadImage(hash, image);
+        this.uploadedImageCount++;
+      } catch (error) {
+        getLogger().error(`Cannot upload image ${image.url}`);
+      }
     }
 
     if (result) {

@@ -41,7 +41,9 @@ export class SalesforceLoader extends AbstractLoader {
 
     const contentFields = (
       this.config.salesforceArticleContentFields?.split(',') || []
-    ).filter((f) => f.trim().length > 0);
+    )
+      .map((f) => f.trim())
+      .filter((f) => f.length > 0);
 
     const data = contentMapper(
       categories,
