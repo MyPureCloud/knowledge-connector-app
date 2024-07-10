@@ -55,8 +55,8 @@ export class ZendeskAdapter
     const info = await this.getAttachmentInfo(articleId, url);
 
     if (!info) {
-      getLogger().warn(
-        `Cannot find attachment [${url}] for article [${articleId}]`,
+      getLogger().debug(
+        `No attachment found with url [${url}] for article [${articleId}]`,
       );
       return null;
     }
@@ -82,8 +82,10 @@ export class ZendeskAdapter
       this.attachmentCache[articleId] =
         await this.api.fetchAttachmentInfoListForArticle(articleId);
     }
-    return this.attachmentCache[articleId].find((item) =>
-      item.content_url.startsWith(contentUrl),
+    return this.attachmentCache[articleId].find(
+      (item) =>
+        item.content_url.startsWith(contentUrl) ||
+        contentUrl.startsWith(item.content_url),
     );
   }
 }
