@@ -39,8 +39,10 @@ export class SalesforceLoader extends AbstractLoader {
 
     articles.forEach((article) => this.replaceImageUrls(article));
 
-    const contentFields =
-      this.config.salesforceArticleContentFields?.split(',') || [];
+    const contentFields = (
+      this.config.salesforceArticleContentFields?.split(',') || []
+    ).filter((f) => f.trim().length > 0);
+
     const data = contentMapper(
       categories,
       articles,
