@@ -7,6 +7,7 @@ import { Adapter } from '../adapter/adapter.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import { getLogger } from '../utils/logger.js';
 import { AbstractLoader } from '../pipe/abstract-loader.js';
+import { ServiceNowArticle } from './model/servicenow-article';
 
 /**
  * ServiceNow is a specific {@Link Loader} implementation for fetching data from ServiceNow API
@@ -41,6 +42,19 @@ export class ServiceNowLoader extends AbstractLoader {
     getLogger().info('Categories loaded: ' + data.categories.length);
     getLogger().info('Documents loaded: ' + data.documents.length);
 
+    data.articleLookupTable = this.buildArticleLoopUpTable(articles);
+
     return data;
+  }
+
+  private buildArticleLoopUpTable(articles: ServiceNowArticle[]) {
+    const lookupTable: { [key: string]: string } = {};
+    articles.forEach((article) => {
+      if (article.number) {
+        // TODO: ext id prefix?
+        lookupTable[article.number] = article.id;
+      }
+    });
+    return lookupTable;
   }
 }

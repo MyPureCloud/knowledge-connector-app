@@ -18,8 +18,6 @@ import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-
 export class GenesysSourceAdapter
   implements SourceAdapter<Category, Label, Document>, ImageSourceAdapter
 {
-  private static DOCUMENT_LINK_REGEXPS: string[] = [];
-
   private config: GenesysSourceConfig = {};
   private api: GenesysSourceApi;
   private exportedKnowledgeData: ExportModel | null = null;
@@ -49,8 +47,12 @@ export class GenesysSourceAdapter
     return this.exportedKnowledgeData?.importAction?.labels || [];
   }
 
-  public getDocumentLinkRegexps(): string[] {
-    return GenesysSourceAdapter.DOCUMENT_LINK_REGEXPS;
+  public extractDocumentIdFromUrl(
+    articleLookupTable: { [key: string]: string },
+    hyperlink: string,
+  ): string | null {
+    // TODO
+    return '';
   }
 
   public async getAttachment(

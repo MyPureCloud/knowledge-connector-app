@@ -1,4 +1,5 @@
 import { Adapter } from './adapter.js';
+import { ExternalContent } from '../model';
 
 /**
  * Adapter to connect to source system
@@ -10,5 +11,8 @@ export interface SourceAdapter<C, L, A> extends Adapter {
 
   getAllArticles(): Promise<A[]>;
 
-  getDocumentLinkRegexps(): string[];
+  extractDocumentIdFromUrl(
+    articleLookupTable: { [key: string]: string },
+    hyperlink: string,
+  ): string | null;
 }

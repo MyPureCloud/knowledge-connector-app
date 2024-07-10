@@ -11,8 +11,6 @@ export class SalesforceAdapter
     SourceAdapter<SalesforceCategoryGroup, unknown, SalesforceArticleDetails>,
     ImageSourceAdapter
 {
-  private static DOCUMENT_LINK_REGEXPS: string[] = [];
-
   private config: SalesforceConfig = {};
   private api: SalesforceApi;
 
@@ -37,8 +35,12 @@ export class SalesforceAdapter
     return Promise.reject();
   }
 
-  public getDocumentLinkRegexps(): string[] {
-    return SalesforceAdapter.DOCUMENT_LINK_REGEXPS;
+  public extractDocumentIdFromUrl(
+    articleLookupTable: { [key: string]: string },
+    hyperlink: string,
+  ): string | null {
+    // TODO
+    return '';
   }
 
   public getAttachment(

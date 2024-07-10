@@ -14,31 +14,43 @@ import {
   DocumentBodyImage,
   DocumentBodyList,
   DocumentBodyTable,
+  DocumentBodyTableCellBlock,
+  DocumentBodyTableRowBlock,
+  DocumentListContentBlock,
+  DocumentTableContentBlock,
   DocumentText,
 } from 'knowledge-html-converter';
+import { DocumentBodyListBlock } from 'knowledge-html-converter/dist/models/blocks/document-body-list';
 
 export class DocumentLinkProcessor implements Processor {
-  private regexps: string[] = [];
+  private sourceAdapter?: SourceAdapter<any, any, any>;
 
   public async initialize(
     _config: Config,
     adapters: AdapterPair<SourceAdapter<any, any, any>, DestinationAdapter>,
   ): Promise<void> {
-    this.regexps = adapters.sourceAdapter.getDocumentLinkRegexps();
+    this.sourceAdapter = adapters.sourceAdapter;
   }
 
   public async run(content: ExternalContent): Promise<ExternalContent> {
+    const articleLookupTable = content.articleLookupTable;
+    if (!articleLookupTable) {
+      // TODO: log that skip due to there was no lookup table
+      return content;
+    }
+
     content.documents.forEach((document) => {
       [
         ...(document.published?.variations || []),
         ...(document.draft?.variations || []),
       ].forEach((variation) => {
         this.extractLinkBlocksFromVariation(variation).forEach((block) => {
-          // TODO update the block itself
-          const linkBlock = block as LinkBlock;
-          const externalId = this.extractDocumentIdFromUrl(linkBlock.hyperlink);
+          const externalId = this.sourceAdapter?.extractDocumentIdFromUrl(
+            articleLookupTable,
+            block.hyperlink,
+          );
           if (externalId) {
-            linkBlock.externalDocumentId = externalId;
+            block.externalDocumentId = externalId;
           }
         });
       });
@@ -46,34 +58,23 @@ export class DocumentLinkProcessor implements Processor {
     return content;
   }
 
-  private extractDocumentIdFromUrl(url: string | null): string | null {
-    if (!url) {
-      return null;
-    }
-
-    for (const regex of this.regexps) {
-      const match = url.match(regex);
-      if (match && match[2]) {
-        return match[2]; // Return the captured value if a match is found
-      }
-    }
-    return null;
-  }
-
-  private extractLinkBlocksFromVariation(variation: Variation): Object[] {
+  private extractLinkBlocksFromVariation(variation: Variation): LinkBlock[] {
     if (!variation || !variation.body || !variation.body.blocks) {
       return [];
     }
 
-    variation.body.blocks.map((block) =>
-      this.extractLinkBlocksFromDocumentBodyBlock(block),
-    );
-    return [];
+    return variation.body.blocks
+      .map((block) => this.extractLinkBlocksFromDocumentBodyBlock(block))
+      .flat();
   }
 
   private extractLinkBlocksFromDocumentBodyBlock(
     block: DocumentBodyBlock,
-  ): Object[] {
+  ): LinkBlock[] {
+    if (!block) {
+      return [];
+    }
+
     switch (block.type) {
       case 'Paragraph':
         return this.extractLinkBlocksFromParagraph(block.paragraph);
@@ -91,57 +92,165 @@ export class DocumentLinkProcessor implements Processor {
 
   private extractLinkBlocksFromParagraph(
     paragraphBlock: DocumentBodyParagraph | undefined,
-  ): Object[] {
-    if (!paragraphBlock) {
+  ): LinkBlock[] {
+    if (!paragraphBlock || !paragraphBlock.blocks) {
       return [];
     }
 
-    return paragraphBlock.blocks.map((block) =>
-      this.extractLinkBlocksFromDocumentContentBlock(block),
-    );
+    return paragraphBlock.blocks
+      .map((block) => this.extractLinkBlocksFromDocumentContentBlock(block))
+      .flat();
   }
 
   private extractLinkBlocksFromImage(
     image: DocumentBodyImage | undefined,
-  ): Object[] {
+  ): LinkBlock[] {
     if (!image) {
       return [];
     }
     return this.extractLinkBlocksFromImage(image);
   }
 
-  private extractLinkBlocksFromList(list: DocumentBodyList | undefined) {
-    return [];
+  private extractLinkBlocksFromList(
+    list: DocumentBodyList | undefined,
+  ): LinkBlock[] {
+    if (!list || !list.blocks) {
+      return [];
+    }
+
+    return list.blocks
+      .map((block) => this.extractLinkBlocksFromDocumentBodyListBlock(block))
+      .flat();
   }
 
-  private extractLinkBlocksFromTable(table: DocumentBodyTable | undefined) {
-    return [];
+  private extractLinkBlocksFromTable(
+    table: DocumentBodyTable | undefined,
+  ): LinkBlock[] {
+    if (!table) {
+      return [];
+    }
+
+    return table.rows
+      .map((block) =>
+        this.extractLinkBlocksFromDocumentBodyTableRowBlock(block),
+      )
+      .flat();
   }
 
   private extractLinkBlocksFromDocumentContentBlock(
     block: DocumentContentBlock | undefined,
-  ) {
+  ): LinkBlock[] {
     if (!block) {
       return [];
     }
 
     switch (block.type) {
       case 'Text':
-        return this.extractLinkBlocksFromTextBlock(block.text);
+        return this.extractLinkBlocksFromDocumentText(block.text);
       case 'Image':
-        return this.extractLinkBlocksFromImageBlock(block.image);
+        return this.extractLinkBlocksFromDocumentBodyImage(block.image);
       default:
         return [];
     }
   }
 
-  private extractLinkBlocksFromTextBlock(text: DocumentText | undefined) {
-    return [text];
+  private extractLinkBlocksFromDocumentText(
+    text: DocumentText | undefined,
+  ): LinkBlock[] {
+    if (!text || !text.hyperlink) {
+      return [];
+    }
+
+    return [text as LinkBlock];
   }
 
-  private extractLinkBlocksFromImageBlock(
+  private extractLinkBlocksFromDocumentBodyImage(
     image: DocumentBodyImage | undefined,
-  ) {
-    return [image];
+  ): LinkBlock[] {
+    if (!image || !image.hyperlink) {
+      return [];
+    }
+
+    return [image as LinkBlock];
+  }
+
+  private extractLinkBlocksFromDocumentBodyListBlock(
+    block: DocumentBodyListBlock | undefined,
+  ): LinkBlock[] {
+    if (!block || !block.blocks) {
+      return [];
+    }
+
+    return block.blocks
+      .map((block) => this.extractLinkBlocksFromDocumentListContentBlock(block))
+      .flat();
+  }
+
+  private extractLinkBlocksFromDocumentListContentBlock(
+    block: DocumentListContentBlock | undefined,
+  ): LinkBlock[] {
+    if (!block) {
+      return [];
+    }
+
+    switch (block.type) {
+      case 'Text':
+        return this.extractLinkBlocksFromDocumentText(block.text);
+      case 'Image':
+        return this.extractLinkBlocksFromImage(block.image);
+      case 'OrderedList':
+      case 'UnorderedList':
+        return this.extractLinkBlocksFromList(block.list);
+      default:
+        return [];
+    }
+  }
+
+  private extractLinkBlocksFromDocumentBodyTableRowBlock(
+    row: DocumentBodyTableRowBlock,
+  ): LinkBlock[] {
+    if (!row) {
+      return [];
+    }
+
+    return row.cells
+      .map((cell) => this.extractLinkBlocksFromDocumentBodyTableCellBlock(cell))
+      .flat();
+  }
+
+  private extractLinkBlocksFromDocumentBodyTableCellBlock(
+    cell: DocumentBodyTableCellBlock,
+  ): LinkBlock[] {
+    if (!cell) {
+      return [];
+    }
+
+    return cell.blocks
+      .map((block) =>
+        this.extractLinkBlocksFromDocumentBodyTableContentBlock(block),
+      )
+      .flat();
+  }
+
+  private extractLinkBlocksFromDocumentBodyTableContentBlock(
+    block: DocumentTableContentBlock,
+  ): LinkBlock[] {
+    if (!block) {
+      return [];
+    }
+
+    switch (block.type) {
+      case 'Paragraph':
+        return this.extractLinkBlocksFromParagraph(block.paragraph);
+      case 'Text':
+        return this.extractLinkBlocksFromDocumentText(block.text);
+      case 'Image':
+        return this.extractLinkBlocksFromImage(block.image);
+      case 'OrderedList':
+      case 'UnorderedList':
+        return this.extractLinkBlocksFromList(block.list);
+      default:
+        return [];
+    }
   }
 }

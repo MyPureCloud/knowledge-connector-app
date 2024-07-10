@@ -6,4 +6,5 @@ export interface ExternalContent {
   categories: Category[];
   labels: Label[];
   documents: Document[];
+  articleLookupTable?: { [key: string]: string };
 }

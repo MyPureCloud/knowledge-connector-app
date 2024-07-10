@@ -14,9 +14,7 @@ export class ServiceNowAdapter
     SourceAdapter<unknown, unknown, ServiceNowArticle>,
     ImageSourceAdapter
 {
-  private static DOCUMENT_LINK_REGEXPS: string[] = [
-    '/^https://([a-zA-Z0-9-]+).service-now.com/kb_view.do?sysparm_article=([a-zA-Z0-9]+)$/',
-  ];
+  private static ARTICLE_NUMBER_REGEX = /sysparm_article=([A-Za-z0-9]+)/;
 
   private config: ServiceNowConfig = {};
   private api: ServiceNowApi;
@@ -36,8 +34,16 @@ export class ServiceNowAdapter
     return this.api.fetchAllArticles();
   }
 
-  public getDocumentLinkRegexps(): string[] {
-    return ServiceNowAdapter.DOCUMENT_LINK_REGEXPS;
+  public extractDocumentIdFromUrl(
+    articleLookupTable: { [key: string]: string },
+    hyperlink: string,
+  ): string | null {
+    const match = hyperlink.match(ServiceNowAdapter.ARTICLE_NUMBER_REGEX);
+    if (!match || !match[1]) {
+      return null; // Return the captured value if a match is found
+    }
+    const articleNumber = match[1];
+    return articleLookupTable[articleNumber];
   }
 
   public async getAttachment(

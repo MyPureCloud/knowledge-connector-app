@@ -17,8 +17,6 @@ export class ZendeskAdapter
     SourceAdapter<ZendeskCategory, ZendeskLabel, ZendeskArticle>,
     ImageSourceAdapter
 {
-  private static DOCUMENT_LINK_REGEXPS: string[] = [];
-
   private config: ZendeskConfig = {};
   private attachmentCache: { [key: string]: ZendeskArticleAttachment[] } = {};
   private attachmentDomainValidator?: AttachmentDomainValidator;
@@ -46,8 +44,12 @@ export class ZendeskAdapter
     return this.api.fetchAllLabels();
   }
 
-  public getDocumentLinkRegexps(): string[] {
-    return ZendeskAdapter.DOCUMENT_LINK_REGEXPS;
+  public extractDocumentIdFromUrl(
+    articleLookupTable: { [key: string]: string },
+    hyperlink: string,
+  ): string | null {
+    // TODO
+    return null;
   }
 
   public async getAttachment(

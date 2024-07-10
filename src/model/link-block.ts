@@ -1,5 +1,5 @@
 export interface LinkBlock {
-  hyperlink: string | null;
+  hyperlink: string;
   externalDocumentId: string | null;
   externalVariationName: string | null;
 }
