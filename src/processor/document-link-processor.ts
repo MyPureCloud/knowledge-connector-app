@@ -3,25 +3,31 @@ import { AdapterPair } from '../adapter/adapter-pair';
 import { ExternalContent } from '../model';
 import { SourceAdapter } from '../adapter/source-adapter';
 import { DestinationAdapter } from '../adapter/destination-adapter';
-import { Config } from '../config';
 import {
   extractDocumentIdFromUrl,
   extractLinkBlocksFromVariation,
 } from '../utils/link-object-extractor.js';
 import { getLogger } from '../utils/logger.js';
+import { DocumentLinkProcessorConfig } from './document-link-processor-config.js';
 
 export class DocumentLinkProcessor implements Processor {
+  private config: DocumentLinkProcessorConfig = {};
   private sourceAdapter?: SourceAdapter<any, any, any>;
 
   public async initialize(
-    _config: Config,
+    config: DocumentLinkProcessorConfig,
     adapters: AdapterPair<SourceAdapter<any, any, any>, DestinationAdapter>,
   ): Promise<void> {
+    this.config = config;
     this.sourceAdapter = adapters.sourceAdapter;
   }
 
   public async run(content: ExternalContent): Promise<ExternalContent> {
     const articleLookupTable = content.articleLookupTable;
+    if (this.config.updateDocumentLinks !== 'true') {
+      return content;
+    }
+
     if (!articleLookupTable) {
       getLogger().warn(
         'Cannot update internal article links. Lookup table does not exist',
