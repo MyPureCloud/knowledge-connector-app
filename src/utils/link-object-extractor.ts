@@ -31,8 +31,8 @@ export function extractDocumentIdFromUrl(
   if (!match || !match[1]) {
     return undefined;
   }
-  const articleNumber = match[1];
-  return articleLookupTable.get(articleNumber);
+  const key = match.slice(1).join('#');
+  return articleLookupTable.get(key);
 }
 
 export function extractLinkBlocksFromVariation(

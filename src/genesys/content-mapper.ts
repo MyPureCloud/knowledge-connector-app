@@ -55,6 +55,20 @@ function buildArticleLookupTable(documents: Document[]) {
     string,
     ExternalLink
   >();
-  // TODO
+  documents.forEach((document) => {
+    document.published?.variations.forEach((variation) => {
+      lookupTable.set(`${document.id}#${variation.id}`, {
+        externalDocumentId: document.id ?? undefined,
+        externalVariationName: variation.name,
+      });
+    });
+    document.draft?.variations.forEach((variation) => {
+      lookupTable.set(`${document.id}#${variation.id}`, {
+        externalDocumentId: document.id ?? undefined,
+        externalVariationName: variation.name,
+      });
+    });
+  });
+
   return lookupTable;
 }
