@@ -7,6 +7,7 @@ import { ZendeskSection } from './model/zendesk-section.js';
 import { Document, DocumentVersion } from '../model/sync-export-model.js';
 import { ZendeskCategory } from './model/zendesk-category.js';
 import { GeneratedValue } from '../utils/generated-value.js';
+import { ExternalLink } from '../model/external-link';
 
 export function contentMapper(
   categories: ZendeskSection[],
@@ -131,7 +132,10 @@ function buildIdAndNameMapping(items: ZendeskCategory[]): Map<string, string> {
 }
 
 function buildArticleLookupTable(articles: ZendeskArticle[]) {
-  const lookupTable: Map<string, string> = new Map<string, string>();
+  const lookupTable: Map<string, ExternalLink> = new Map<
+    string,
+    ExternalLink
+  >();
   // TODO
   return lookupTable;
 }

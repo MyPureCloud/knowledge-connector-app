@@ -4,6 +4,7 @@ import { Adapter } from '../adapter/adapter.js';
 import { ExternalContent } from '../model/external-content.js';
 import { PrefixExternalIdConfig } from './prefix-external-id-config.js';
 import { ExternalIdentifiable } from '../model/external-identifiable.js';
+import { ExternalLink } from '../model/external-link';
 
 /**
  * Processor to extend every external ID with given prefix. Use EXTERNAL_ID_PREFIX in configuration.
@@ -42,15 +43,15 @@ export class PrefixExternalId implements Processor {
   }
 
   private replaceMapExternalId(
-    map: Map<string, string> | undefined,
+    map: Map<string, ExternalLink> | undefined,
     prefix: string,
   ): void {
     if (!map) {
       return;
     }
 
-    map.forEach((value, key) => {
-      map.set(key, prefix + value);
+    map.forEach((value) => {
+      value.externalDocumentId = prefix + value.externalDocumentId;
     });
   }
 }

@@ -6,6 +6,7 @@ import { SalesforceArticleDetails } from './model/salesforce-article-details.js'
 import { SalesforceArticleLayoutItem } from './model/salesforce-article-layout-item.js';
 import { GeneratedValue } from '../utils/generated-value.js';
 import { LabelReference } from '../model/label-reference.js';
+import { ExternalLink } from '../model/external-link';
 
 const EXCLUDED_FIELD_TYPES = ['DATE_TIME', 'LOOKUP', 'CHECKBOX'];
 
@@ -140,10 +141,13 @@ function filterField(
 }
 
 function buildArticleLookupTable(articles: SalesforceArticleDetails[]) {
-  const lookupTable: Map<string, string> = new Map<string, string>();
+  const lookupTable: Map<string, ExternalLink> = new Map<
+    string,
+    ExternalLink
+  >();
   articles.forEach((article) => {
     if (article.urlName) {
-      lookupTable.set(article.urlName, article.id);
+      lookupTable.set(article.urlName, { externalDocumentId: article.id });
     }
   });
   return lookupTable;

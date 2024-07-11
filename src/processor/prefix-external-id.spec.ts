@@ -10,6 +10,7 @@ import {
 } from '../tests/utils/entity-generators.js';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ExternalIdentifiable } from '../model';
+import { ExternalLink } from '../model/external-link';
 
 describe('PrefixExternalId', () => {
   const EXTERNAL_ID_PREFIX = 'this-is-the-prefix-';
@@ -80,10 +81,10 @@ describe('PrefixExternalId', () => {
           'documents-3',
         ),
       ],
-      articleLookupTable: new Map<string, string>([
-        ['key1', 'article-external-id-1'],
-        ['key2', 'article-external-id-2'],
-        ['key3', 'article-external-id-3'],
+      articleLookupTable: new Map<string, ExternalLink>([
+        ['key1', { externalDocumentId: 'article-external-id-1' }],
+        ['key2', { externalDocumentId: 'article-external-id-2' }],
+        ['key3', { externalDocumentId: 'article-external-id-3' }],
       ]),
     };
 

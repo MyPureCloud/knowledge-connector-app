@@ -3,6 +3,7 @@ import { Document, DocumentVersion } from '../model/sync-export-model.js';
 import { ServiceNowArticle } from './model/servicenow-article.js';
 import { Category } from '../model/category.js';
 import { CategoryReference } from '../model/category-reference.js';
+import { ExternalLink } from '../model/external-link';
 
 export function contentMapper(
   articles: ServiceNowArticle[],
@@ -129,10 +130,13 @@ function getCategoryReference(
 }
 
 function buildArticleLookupTable(articles: ServiceNowArticle[]) {
-  const lookupTable: Map<string, string> = new Map<string, string>();
+  const lookupTable: Map<string, ExternalLink> = new Map<
+    string,
+    ExternalLink
+  >();
   articles.forEach((article) => {
     if (article.number) {
-      lookupTable.set(article.number, article.id);
+      lookupTable.set(article.number, { externalDocumentId: article.id });
     }
   });
   return lookupTable;

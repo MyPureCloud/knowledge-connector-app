@@ -2,6 +2,7 @@ import { ExternalContent } from '../model/external-content.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
 import { Document } from '../model/sync-export-model.js';
+import { ExternalLink } from '../model/external-link';
 
 export function contentMapper(
   categories: Category[],
@@ -50,7 +51,10 @@ function documentMapper(article: Document): Document {
 }
 
 function buildArticleLookupTable(documents: Document[]) {
-  const lookupTable: Map<string, string> = new Map<string, string>();
+  const lookupTable: Map<string, ExternalLink> = new Map<
+    string,
+    ExternalLink
+  >();
   // TODO
   return lookupTable;
 }

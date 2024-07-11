@@ -16,12 +16,13 @@ import {
   DocumentText,
 } from 'knowledge-html-converter';
 import { DocumentBodyListBlock } from 'knowledge-html-converter/dist/models/blocks/document-body-list';
+import { ExternalLink } from '../model/external-link';
 
 export function extractDocumentIdFromUrl(
-  articleLookupTable: Map<string, string>,
+  articleLookupTable: Map<string, ExternalLink>,
   hyperlink: string,
   regexp: RegExp | undefined,
-): string | undefined {
+): ExternalLink | undefined {
   if (!regexp) {
     return undefined;
   }

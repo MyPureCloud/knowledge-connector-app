@@ -14,6 +14,7 @@ import {
 } from '../model';
 import { generateDocumentWithLinkedDocuments } from '../tests/utils/entity-generators';
 import { ServiceNowAdapter } from '../servicenow';
+import { ExternalLink } from '../model/external-link';
 
 describe('DocumentLinkProcessor', function () {
   let linkProcessor: DocumentLinkProcessor;
@@ -75,7 +76,9 @@ describe('DocumentLinkProcessor', function () {
       categories: [],
       labels: [],
       documents: [generateDocumentWithLinkedDocuments('1')],
-      articleLookupTable: new Map<string, string>([['KB0012439', externalId]]),
+      articleLookupTable: new Map<string, ExternalLink>([
+        ['KB0012439', { externalDocumentId: externalId }],
+      ]),
     });
 
     const blocks =

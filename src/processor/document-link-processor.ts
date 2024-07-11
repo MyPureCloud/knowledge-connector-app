@@ -45,15 +45,16 @@ export class DocumentLinkProcessor implements Processor {
             return;
           }
 
-          const externalId = extractDocumentIdFromUrl(
+          const externalLink = extractDocumentIdFromUrl(
             articleLookupTable,
             block.hyperlink,
             this.sourceAdapter?.getDocumentLinkMatcherRegexp(),
           );
 
-          if (externalId) {
+          if (externalLink) {
             block.hyperlink = undefined;
-            block.externalDocumentId = externalId;
+            block.externalDocumentId = externalLink.externalDocumentId;
+            block.externalVariationName = externalLink.externalVariationName;
           }
         });
       });
