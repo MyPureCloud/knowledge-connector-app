@@ -13,7 +13,6 @@ import {
   SyncModel,
 } from '../model';
 import { generateDocumentWithLinkedDocuments } from '../tests/utils/entity-generators';
-import { ServiceNowAdapter } from '../servicenow';
 import { ExternalLink } from '../model/external-link';
 
 describe('DocumentLinkProcessor', function () {
@@ -64,7 +63,7 @@ describe('DocumentLinkProcessor', function () {
 
     linkProcessor = new DocumentLinkProcessor();
 
-    await linkProcessor.initialize({}, adapters);
+    await linkProcessor.initialize({ updateDocumentLinks: 'true' }, adapters);
   });
 
   it('should replace hyperlink field with externalDocumentId for linked doc text block', async function () {

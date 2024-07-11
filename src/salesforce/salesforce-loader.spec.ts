@@ -7,6 +7,7 @@ import { SalesforceLoader } from './salesforce-loader.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details';
 import { generateRawDocument } from '../tests/utils/entity-generators.js';
 import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
+import { ExternalLink } from '../model/external-link';
 
 const mockGetAllArticles = jest.fn<() => Promise<SalesforceArticleDetails[]>>();
 const mockGetAttachment =
@@ -71,8 +72,8 @@ describe('SalesforceLoader', () => {
         labels: [LABEL],
         documents: [DOCUMENT],
         categories: [],
-        articleLookupTable: new Map<string, string>([
-          ['testUrlName', 'article-external-id'],
+        articleLookupTable: new Map<string, ExternalLink>([
+          ['testUrlName', { externalDocumentId: 'article-external-id' }],
         ]),
       });
     });
@@ -101,8 +102,8 @@ describe('SalesforceLoader', () => {
             ),
           ],
           categories: [],
-          articleLookupTable: new Map<string, string>([
-            ['testUrlName', 'article-external-id'],
+          articleLookupTable: new Map<string, ExternalLink>([
+            ['testUrlName', { externalDocumentId: 'article-external-id' }],
           ]),
         });
         expect(mockGetAllCategories).not.toHaveBeenCalled();
@@ -127,7 +128,7 @@ describe('SalesforceLoader', () => {
           labels: [LABEL],
           documents: [],
           categories: [],
-          articleLookupTable: new Map<string, string>(),
+          articleLookupTable: new Map<string, ExternalLink>(),
         });
         expect(mockGetAllArticles).not.toHaveBeenCalled();
       });

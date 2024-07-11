@@ -103,8 +103,8 @@ describe('PrefixExternalId', () => {
     );
 
     const entriesArray = Array.from(result.articleLookupTable?.entries() ?? []);
-    entriesArray.forEach(([key, externalId], index) =>
-      expect(externalId).toBe(
+    entriesArray.forEach(([key, externalLink], index) =>
+      expect(externalLink.externalDocumentId).toBe(
         `${EXTERNAL_ID_PREFIX}article-external-id-${index + 1}`,
       ),
     );
