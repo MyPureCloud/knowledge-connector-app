@@ -271,7 +271,7 @@ export function generateDocumentWithLinkedDocuments(suffix: string): Document {
                       text: {
                         text: 'Link 1',
                         hyperlink:
-                          'https://genesysdev.service-now.com/kb_view.do?sysparm_article=KB0012439',
+                          'https://test.service-now.com/kb_view.do?sysparm_article=KB0012439',
                       },
                     },
                   ],
@@ -289,7 +289,7 @@ export function generateDocumentWithLinkedDocuments(suffix: string): Document {
                           text: {
                             text: 'Link 2',
                             hyperlink:
-                              'https://genesysdev.service-now.com/kb_view.do?sysparm_article=KB0012439',
+                              'https://test.service-now.com/kb_view.do?sysparm_article=KB0012439',
                           },
                         },
                       ],
@@ -302,7 +302,7 @@ export function generateDocumentWithLinkedDocuments(suffix: string): Document {
                           image: {
                             url: 'https://api-cdn.inindca.com/response-assets/v2/uploads/1d30ecab-5f52-4cfc-b2c0-895bbf05976f/6f7a568c-7811-4472-9f24-f4f306df8672.da879d57-ce15-4f1e-a9c0-77e015e1d179.png',
                             hyperlink:
-                              'https://genesysdev.service-now.com/kb_view.do?sysparm_article=KB0012439',
+                              'https://test.service-now.com/kb_view.do?sysparm_article=KB0012439',
                           },
                         },
                       ],
@@ -319,7 +319,7 @@ export function generateDocumentWithLinkedDocuments(suffix: string): Document {
                       image: {
                         url: 'https://api-cdn.inindca.com/response-assets/v2/uploads/1d30ecab-5f52-4cfc-b2c0-895bbf05976f/564b6dfe-79a1-446c-a2db-34ec3639499f.38546ccf-d2af-493b-b740-69a490a43bf0.jpg',
                         hyperlink:
-                          'https://genesysdev.service-now.com/kb_view.do?sysparm_article=KB0012439',
+                          'https://test.service-now.com/kb_view.do?sysparm_article=KB0012439',
                       },
                     },
                   ],
@@ -345,7 +345,7 @@ export function generateDocumentWithLinkedDocuments(suffix: string): Document {
                                         text: {
                                           text: 'Link 5',
                                           hyperlink:
-                                            'https://genesysdev.service-now.com/kb_view.do?sysparm_article=KB0012439',
+                                            'https://test.service-now.com/kb_view.do?sysparm_article=KB0012439',
                                         },
                                       },
                                     ],
@@ -362,7 +362,7 @@ export function generateDocumentWithLinkedDocuments(suffix: string): Document {
                               image: {
                                 url: 'https://api-cdn.inindca.com/response-assets/v2/uploads/1d30ecab-5f52-4cfc-b2c0-895bbf05976f/6f7a568c-7811-4472-9f24-f4f306df8672.da879d57-ce15-4f1e-a9c0-77e015e1d179.png',
                                 hyperlink:
-                                  'https://genesysdev.service-now.com/kb_view.do?sysparm_article=KB0012439',
+                                  'https://test.service-now.com/kb_view.do?sysparm_article=KB0012439',
                               },
                             },
                           ],

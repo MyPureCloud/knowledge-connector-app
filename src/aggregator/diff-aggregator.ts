@@ -241,18 +241,12 @@ export class DiffAggregator implements Aggregator {
     });
   }
 
-  private removeGeneratedContent<T extends object>(
-    content: ExternalContent,
-  ): void {
+  private removeGeneratedContent(content: ExternalContent): void {
     content.documents.forEach((document) => {
-      document.published?.variations.forEach((variation) =>
-        extractLinkBlocksFromVariation(variation).forEach((block) => {
-          if (block.externalDocumentId) {
-            block.hyperlink = undefined;
-          }
-        }),
-      );
-      document.draft?.variations.forEach((variation) =>
+      [
+        ...(document.published?.variations ?? []),
+        ...(document.draft?.variations ?? []),
+      ].forEach((variation) =>
         extractLinkBlocksFromVariation(variation).forEach((block) => {
           if (block.externalDocumentId) {
             block.hyperlink = undefined;

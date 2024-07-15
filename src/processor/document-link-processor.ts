@@ -1,8 +1,8 @@
-import { Processor } from './processor';
-import { AdapterPair } from '../adapter/adapter-pair';
-import { ExternalContent } from '../model';
-import { SourceAdapter } from '../adapter/source-adapter';
-import { DestinationAdapter } from '../adapter/destination-adapter';
+import { Processor } from './processor.js';
+import { AdapterPair } from '../adapter/adapter-pair.js';
+import { ExternalContent } from '../model/external-content.js';
+import { SourceAdapter } from '../adapter/source-adapter.js';
+import { DestinationAdapter } from '../adapter/destination-adapter.js';
 import {
   extractDocumentIdFromUrl,
   extractLinkBlocksFromVariation,

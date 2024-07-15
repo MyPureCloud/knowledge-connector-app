@@ -56,13 +56,10 @@ function buildArticleLookupTable(documents: Document[]) {
     ExternalLink
   >();
   documents.forEach((document) => {
-    document.published?.variations.forEach((variation) => {
-      lookupTable.set(`${document.id}#${variation.id}`, {
-        externalDocumentId: document.id ?? undefined,
-        externalVariationName: variation.name,
-      });
-    });
-    document.draft?.variations.forEach((variation) => {
+    [
+      ...(document.published?.variations || []),
+      ...(document.draft?.variations || []),
+    ].forEach((variation) => {
       lookupTable.set(`${document.id}#${variation.id}`, {
         externalDocumentId: document.id ?? undefined,
         externalVariationName: variation.name,

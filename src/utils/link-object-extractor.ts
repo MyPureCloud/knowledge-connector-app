@@ -1,21 +1,21 @@
 import { Variation } from '../model';
 import { LinkBlock } from '../model/link-block';
-import { DocumentBodyBlock } from 'knowledge-html-converter/dist/models/blocks/document-body-block';
 import {
-  DocumentBodyParagraph,
-  DocumentContentBlock,
-} from 'knowledge-html-converter/dist/models/blocks/document-body-paragraph';
-import {
+  DocumentBodyBlock,
   DocumentBodyImage,
   DocumentBodyList,
+  DocumentBodyListBlock,
+  DocumentBodyParagraph,
   DocumentBodyTable,
+  DocumentBodyTableCaptionItem,
   DocumentBodyTableCellBlock,
+  DocumentBodyTableProperties,
   DocumentBodyTableRowBlock,
+  DocumentContentBlock,
   DocumentListContentBlock,
   DocumentTableContentBlock,
   DocumentText,
 } from 'knowledge-html-converter';
-import { DocumentBodyListBlock } from 'knowledge-html-converter/dist/models/blocks/document-body-list';
 import { ExternalLink } from '../model/external-link';
 
 export function extractDocumentIdFromUrl(
@@ -38,7 +38,7 @@ export function extractDocumentIdFromUrl(
 export function extractLinkBlocksFromVariation(
   variation: Variation,
 ): LinkBlock[] {
-  if (!variation || !variation.body || !variation.body.blocks) {
+  if (!variation?.body?.blocks) {
     return [];
   }
 
@@ -72,7 +72,7 @@ function extractLinkBlocksFromDocumentBodyBlock(
 function extractLinkBlocksFromParagraph(
   paragraphBlock: DocumentBodyParagraph | undefined,
 ): LinkBlock[] {
-  if (!paragraphBlock || !paragraphBlock.blocks) {
+  if (!paragraphBlock?.blocks) {
     return [];
   }
 
@@ -93,7 +93,7 @@ function extractLinkBlocksFromImage(
 function extractLinkBlocksFromList(
   list: DocumentBodyList | undefined,
 ): LinkBlock[] {
-  if (!list || !list.blocks) {
+  if (!list?.blocks) {
     return [];
   }
 
@@ -109,9 +109,47 @@ function extractLinkBlocksFromTable(
     return [];
   }
 
-  return table.rows
+  const propertiesLinkBlocks: LinkBlock[] =
+    extractLinkBlocksFromTableProperties(table.properties);
+  const tableLinkBlocks = table.rows
     .map((block) => extractLinkBlocksFromDocumentBodyTableRowBlock(block))
     .flat();
+
+  return [...propertiesLinkBlocks, ...tableLinkBlocks];
+}
+
+function extractLinkBlocksFromTableProperties(
+  properties: DocumentBodyTableProperties | undefined,
+): LinkBlock[] {
+  if (!properties?.caption?.blocks) {
+    return [];
+  }
+
+  return properties?.caption?.blocks
+    .map((block) => extractLinkBlocksFromDocumentBodyTableCaptionItem(block))
+    .flat();
+}
+
+function extractLinkBlocksFromDocumentBodyTableCaptionItem(
+  block: DocumentBodyTableCaptionItem | undefined,
+): LinkBlock[] {
+  if (!block) {
+    return [];
+  }
+
+  switch (block.type) {
+    case 'Text':
+      return extractLinkBlocksFromDocumentText(block.text);
+    case 'Paragraph':
+      return extractLinkBlocksFromParagraph(block.paragraph);
+    case 'Image':
+      return extractLinkBlocksFromDocumentBodyImage(block.image);
+    case 'OrderedList':
+    case 'UnorderedList':
+      return extractLinkBlocksFromList(block.list);
+    default:
+      return [];
+  }
 }
 
 function extractLinkBlocksFromDocumentContentBlock(
@@ -154,7 +192,7 @@ function extractLinkBlocksFromDocumentBodyImage(
 function extractLinkBlocksFromDocumentBodyListBlock(
   block: DocumentBodyListBlock | undefined,
 ): LinkBlock[] {
-  if (!block || !block.blocks) {
+  if (!block?.blocks) {
     return [];
   }
 
@@ -186,7 +224,7 @@ function extractLinkBlocksFromDocumentListContentBlock(
 function extractLinkBlocksFromDocumentBodyTableRowBlock(
   row: DocumentBodyTableRowBlock,
 ): LinkBlock[] {
-  if (!row) {
+  if (!row?.cells) {
     return [];
   }
 
@@ -198,7 +236,7 @@ function extractLinkBlocksFromDocumentBodyTableRowBlock(
 function extractLinkBlocksFromDocumentBodyTableCellBlock(
   cell: DocumentBodyTableCellBlock,
 ): LinkBlock[] {
-  if (!cell) {
+  if (!cell?.blocks) {
     return [];
   }
 
@@ -224,6 +262,8 @@ function extractLinkBlocksFromDocumentBodyTableContentBlock(
     case 'OrderedList':
     case 'UnorderedList':
       return extractLinkBlocksFromList(block.list);
+    case 'Table':
+      return extractLinkBlocksFromTable(block.table);
     default:
       return [];
   }
