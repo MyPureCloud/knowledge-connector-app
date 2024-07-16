@@ -17,16 +17,19 @@ import { ExternalLink } from '../model/external-link';
 
 describe('DocumentLinkProcessor', function () {
   let linkProcessor: DocumentLinkProcessor;
-  let sourceAdapter: SourceAdapter<any, any, any>;
-  let adapters: AdapterPair<SourceAdapter<any, any, any>, DestinationAdapter>;
+  let sourceAdapter: SourceAdapter<unknown, unknown, unknown>;
+  let adapters: AdapterPair<
+    SourceAdapter<unknown, unknown, unknown>,
+    DestinationAdapter
+  >;
   let mockGetDocumentLinkMatcherRegexp: jest.Mock<() => RegExp | undefined>;
 
   beforeEach(async () => {
     sourceAdapter = {
       initialize: jest.fn<() => Promise<void>>(),
-      getAllCategories: jest.fn<() => Promise<any[]>>(),
-      getAllLabels: jest.fn<() => Promise<any[]>>(),
-      getAllArticles: jest.fn<() => Promise<any[]>>(),
+      getAllCategories: jest.fn<() => Promise<unknown[]>>(),
+      getAllLabels: jest.fn<() => Promise<unknown[]>>(),
+      getAllArticles: jest.fn<() => Promise<unknown[]>>(),
       getDocumentLinkMatcherRegexp: jest.fn<() => RegExp | undefined>(),
     };
 
@@ -34,6 +37,10 @@ describe('DocumentLinkProcessor', function () {
       sourceAdapter.getDocumentLinkMatcherRegexp as jest.Mock<
         () => RegExp | undefined
       >;
+
+    mockGetDocumentLinkMatcherRegexp.mockReturnValue(
+      /sysparm_article=([A-Za-z0-9]+)/,
+    );
 
     const destinationAdapter: DestinationAdapter = {
       initialize: jest
@@ -68,9 +75,6 @@ describe('DocumentLinkProcessor', function () {
 
   it('should replace hyperlink field with externalDocumentId for linked doc text block', async function () {
     const externalId = 'some-external-id';
-    mockGetDocumentLinkMatcherRegexp.mockReturnValue(
-      /sysparm_article=([A-Za-z0-9]+)/,
-    );
     const result = await linkProcessor.run({
       categories: [],
       labels: [],

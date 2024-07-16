@@ -12,14 +12,17 @@ import { DocumentLinkProcessorConfig } from './document-link-processor-config.js
 
 export class DocumentLinkProcessor implements Processor {
   private config: DocumentLinkProcessorConfig = {};
-  private sourceAdapter?: SourceAdapter<any, any, any>;
+  private regexp: RegExp | undefined;
 
   public async initialize(
     config: DocumentLinkProcessorConfig,
-    adapters: AdapterPair<SourceAdapter<any, any, any>, DestinationAdapter>,
+    adapters: AdapterPair<
+      SourceAdapter<unknown, unknown, unknown>,
+      DestinationAdapter
+    >,
   ): Promise<void> {
     this.config = config;
-    this.sourceAdapter = adapters.sourceAdapter;
+    this.regexp = adapters.sourceAdapter.getDocumentLinkMatcherRegexp();
   }
 
   public async run(content: ExternalContent): Promise<ExternalContent> {
@@ -48,7 +51,7 @@ export class DocumentLinkProcessor implements Processor {
           const externalLink = extractDocumentIdFromUrl(
             articleLookupTable,
             block.hyperlink,
-            this.sourceAdapter?.getDocumentLinkMatcherRegexp(),
+            this.regexp,
           );
 
           if (externalLink) {

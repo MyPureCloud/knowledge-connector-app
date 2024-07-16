@@ -131,11 +131,7 @@ function buildIdAndNameMapping(items: ZendeskCategory[]): Map<string, string> {
   return mapping;
 }
 
-function buildArticleLookupTable(articles: ZendeskArticle[]) {
-  const lookupTable: Map<string, ExternalLink> = new Map<
-    string,
-    ExternalLink
-  >();
+function buildArticleLookupTable(_articles: ZendeskArticle[]) {
   // TODO
-  return lookupTable;
+  return new Map<string, ExternalLink>();
 }
