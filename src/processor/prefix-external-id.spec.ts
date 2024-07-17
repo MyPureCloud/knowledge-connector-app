@@ -9,6 +9,8 @@ import {
   generateNormalizedLabel,
 } from '../tests/utils/entity-generators.js';
 import { beforeEach, describe, expect, it } from '@jest/globals';
+import { ExternalLink } from '../model/external-link.js';
+import { ExternalIdentifiable } from '../model/external-identifiable.js';
 
 describe('PrefixExternalId', () => {
   const EXTERNAL_ID_PREFIX = 'this-is-the-prefix-';
@@ -79,19 +81,33 @@ describe('PrefixExternalId', () => {
           'documents-3',
         ),
       ],
+      articleLookupTable: new Map<string, ExternalLink>([
+        ['key1', { externalDocumentId: 'article-external-id-1' }],
+        ['key2', { externalDocumentId: 'article-external-id-2' }],
+        ['key3', { externalDocumentId: 'article-external-id-3' }],
+      ]),
     };
 
     const result = await prefixExternalIdProcessor.run(content);
 
     (['labels', 'categories', 'documents'] as (keyof typeof result)[]).forEach(
       (entityType) => {
-        expect(result[entityType].length).toBe(3);
-        result[entityType].forEach((item, index) =>
+        const entities = result[entityType] as ExternalIdentifiable[];
+        expect(entities.length).toBe(3);
+        entities.forEach((item, index) =>
           expect(item.externalId).toBe(
             `${EXTERNAL_ID_PREFIX}${entityType}-${index + 1}`,
           ),
         );
       },
+    );
+
+    const entriesArray = Array.from(result.articleLookupTable?.entries() ?? []);
+    expect(entriesArray.length).toBeGreaterThan(0);
+    entriesArray.forEach(([, externalLink], index) =>
+      expect(externalLink.externalDocumentId).toBe(
+        `${EXTERNAL_ID_PREFIX}article-external-id-${index + 1}`,
+      ),
     );
   });
 

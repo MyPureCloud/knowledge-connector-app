@@ -4,6 +4,7 @@ import { Adapter } from '../adapter/adapter.js';
 import { ExternalContent } from '../model/external-content.js';
 import { PrefixExternalIdConfig } from './prefix-external-id-config.js';
 import { ExternalIdentifiable } from '../model/external-identifiable.js';
+import { ExternalLink } from '../model/external-link.js';
 
 /**
  * Processor to extend every external ID with given prefix. Use EXTERNAL_ID_PREFIX in configuration.
@@ -24,19 +25,33 @@ export class PrefixExternalId implements Processor {
     const prefix = this.config.externalIdPrefix;
 
     if (prefix) {
-      this.replaceExternalId(content.documents, prefix);
-      this.replaceExternalId(content.categories, prefix);
-      this.replaceExternalId(content.labels, prefix);
+      this.replaceListExternalId(content.documents, prefix);
+      this.replaceListExternalId(content.categories, prefix);
+      this.replaceListExternalId(content.labels, prefix);
+      this.replaceMapExternalId(content.articleLookupTable, prefix);
     }
     return content;
   }
 
-  private replaceExternalId(
+  private replaceListExternalId(
     list: ExternalIdentifiable[],
     prefix: string,
   ): void {
     list.forEach((item) => {
       item.externalId = prefix + item.externalId;
+    });
+  }
+
+  private replaceMapExternalId(
+    map: Map<string, ExternalLink> | undefined,
+    prefix: string,
+  ): void {
+    if (!map) {
+      return;
+    }
+
+    map.forEach((value) => {
+      value.externalDocumentId = prefix + value.externalDocumentId;
     });
   }
 }

@@ -50,6 +50,9 @@ export interface DocumentVersion {
 }
 
 export interface Variation {
+  id?: string;
+  priority?: number;
+  name?: string;
   rawHtml?: string;
   body: {
     blocks: DocumentBodyBlock[];

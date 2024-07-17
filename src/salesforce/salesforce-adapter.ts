@@ -11,6 +11,7 @@ export class SalesforceAdapter
     SourceAdapter<SalesforceCategoryGroup, unknown, SalesforceArticleDetails>,
     ImageSourceAdapter
 {
+  private static URL_NAME_REGEX = /\/articles\/[^/]+\/Knowledge\/([^/]+)/;
   private config: SalesforceConfig = {};
   private api: SalesforceApi;
 
@@ -33,6 +34,10 @@ export class SalesforceAdapter
 
   public getAllLabels(): Promise<unknown[]> {
     return Promise.reject();
+  }
+
+  public getDocumentLinkMatcherRegexp(): RegExp | undefined {
+    return SalesforceAdapter.URL_NAME_REGEX;
   }
 
   public getAttachment(

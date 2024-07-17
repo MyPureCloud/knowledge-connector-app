@@ -44,6 +44,10 @@ export class ZendeskAdapter
     return this.api.fetchAllLabels();
   }
 
+  public getDocumentLinkMatcherRegexp(): RegExp | undefined {
+    return undefined;
+  }
+
   public async getAttachment(
     articleId: string | null,
     url: string,

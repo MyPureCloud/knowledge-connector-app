@@ -172,6 +172,13 @@ FETCH_CATEGORIES=
 FETCH_LABELS=
 ```
 
+#### Update links
+
+```
+# Update document links, so they point to their synced document counterpart in destination instead of source. 
+UPDATE_DOCUMENT_LINKS=
+```
+
 #### Attachment (image) download allow-list
 
 ```

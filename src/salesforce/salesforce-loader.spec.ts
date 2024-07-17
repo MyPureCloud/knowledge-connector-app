@@ -4,9 +4,10 @@ import { Image } from '../model';
 import { SalesforceAdapter } from './salesforce-adapter.js';
 import { SalesforceConfig } from './model/salesforce-config.js';
 import { SalesforceLoader } from './salesforce-loader.js';
-import { SalesforceArticleDetails } from './model/salesforce-article-details';
+import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
 import { generateRawDocument } from '../tests/utils/entity-generators.js';
 import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
+import { ExternalLink } from '../model/external-link.js';
 
 const mockGetAllArticles = jest.fn<() => Promise<SalesforceArticleDetails[]>>();
 const mockGetAttachment =
@@ -71,6 +72,9 @@ describe('SalesforceLoader', () => {
         labels: [LABEL],
         documents: [DOCUMENT],
         categories: [],
+        articleLookupTable: new Map<string, ExternalLink>([
+          ['testUrlName', { externalDocumentId: 'article-external-id' }],
+        ]),
       });
     });
 
@@ -98,6 +102,9 @@ describe('SalesforceLoader', () => {
             ),
           ],
           categories: [],
+          articleLookupTable: new Map<string, ExternalLink>([
+            ['testUrlName', { externalDocumentId: 'article-external-id' }],
+          ]),
         });
         expect(mockGetAllCategories).not.toHaveBeenCalled();
       });
@@ -121,6 +128,7 @@ describe('SalesforceLoader', () => {
           labels: [LABEL],
           documents: [],
           categories: [],
+          articleLookupTable: new Map<string, ExternalLink>(),
         });
         expect(mockGetAllArticles).not.toHaveBeenCalled();
       });
@@ -147,6 +155,7 @@ function generateArticle(): SalesforceArticleDetails {
   return {
     id: 'article-external-id',
     title: 'article-title',
+    urlName: 'testUrlName',
     categoryGroups: [
       {
         label: 'category-group-label',

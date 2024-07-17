@@ -9,6 +9,7 @@ import {
   generateNormalizedCategory,
   generateRawDocument,
 } from '../tests/utils/entity-generators';
+import { ExternalLink } from '../model/external-link.js';
 
 const mockGetAllArticles = jest.fn<() => Promise<ServiceNowArticle[]>>();
 const mockGetAttachment =
@@ -77,6 +78,9 @@ describe('ServiceNowLoader', () => {
         labels: [],
         documents: [DOCUMENT],
         categories: [CATEGORY, TOPIC],
+        articleLookupTable: new Map<string, ExternalLink>([
+          ['article-number', { externalDocumentId: 'article-external-id' }],
+        ]),
       });
     });
 
@@ -98,6 +102,9 @@ describe('ServiceNowLoader', () => {
           labels: [],
           documents: [generateRawDocument('<p>article body</p>')],
           categories: [],
+          articleLookupTable: new Map<string, ExternalLink>([
+            ['article-number', { externalDocumentId: 'article-external-id' }],
+          ]),
         });
       });
     });
@@ -120,6 +127,7 @@ describe('ServiceNowLoader', () => {
           labels: [],
           documents: [],
           categories: [CATEGORY, TOPIC],
+          articleLookupTable: new Map<string, ExternalLink>(),
         });
       });
     });
@@ -147,6 +155,7 @@ function generateArticle(): ServiceNowArticle {
     id: 'article-external-id',
     title: 'article-title',
     snippet: 'article-snippet',
+    number: 'article-number',
     fields: {
       category: {
         name: 'category-name',

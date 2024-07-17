@@ -3,6 +3,7 @@ import { Document, DocumentVersion } from '../model/sync-export-model.js';
 import { ServiceNowArticle } from './model/servicenow-article.js';
 import { Category } from '../model/category.js';
 import { CategoryReference } from '../model/category-reference.js';
+import { ExternalLink } from '../model/external-link.js';
 
 export function contentMapper(
   articles: ServiceNowArticle[],
@@ -25,6 +26,7 @@ export function contentMapper(
           articleMapper(a, fetchCategories),
         )
       : [],
+    articleLookupTable: buildArticleLookupTable(articles),
   };
 }
 
@@ -125,4 +127,17 @@ function getCategoryReference(
 
   const { id, name } = category;
   return { id, name };
+}
+
+function buildArticleLookupTable(articles: ServiceNowArticle[]) {
+  const lookupTable: Map<string, ExternalLink> = new Map<
+    string,
+    ExternalLink
+  >();
+  articles.forEach((article) => {
+    if (article.number) {
+      lookupTable.set(article.number, { externalDocumentId: article.id });
+    }
+  });
+  return lookupTable;
 }

@@ -6,6 +6,7 @@ import { SalesforceArticleDetails } from './model/salesforce-article-details.js'
 import { SalesforceArticleLayoutItem } from './model/salesforce-article-layout-item.js';
 import { GeneratedValue } from '../utils/generated-value.js';
 import { LabelReference } from '../model/label-reference.js';
+import { ExternalLink } from '../model/external-link.js';
 
 const EXCLUDED_FIELD_TYPES = ['DATE_TIME', 'LOOKUP', 'CHECKBOX'];
 
@@ -35,6 +36,7 @@ export function contentMapper(
           ),
         )
       : [],
+    articleLookupTable: buildArticleLookupTable(articles),
   };
 }
 
@@ -136,4 +138,17 @@ function filterField(
     (contentFields.length === 0 || contentFields.includes(item.name)) &&
     !EXCLUDED_FIELD_TYPES.includes(item.type)
   );
+}
+
+function buildArticleLookupTable(articles: SalesforceArticleDetails[]) {
+  const lookupTable: Map<string, ExternalLink> = new Map<
+    string,
+    ExternalLink
+  >();
+  articles.forEach((article) => {
+    if (article.urlName) {
+      lookupTable.set(article.urlName, { externalDocumentId: article.id });
+    }
+  });
+  return lookupTable;
 }

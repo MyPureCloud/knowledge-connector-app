@@ -14,6 +14,8 @@ export class ServiceNowAdapter
     SourceAdapter<unknown, unknown, ServiceNowArticle>,
     ImageSourceAdapter
 {
+  private static ARTICLE_NUMBER_REGEX = /sysparm_article=([A-Za-z0-9]+)/;
+
   private config: ServiceNowConfig = {};
   private api: ServiceNowApi;
   private attachmentDomainValidator?: AttachmentDomainValidator;
@@ -30,6 +32,10 @@ export class ServiceNowAdapter
 
   public getAllArticles(): Promise<ServiceNowArticle[]> {
     return this.api.fetchAllArticles();
+  }
+
+  public getDocumentLinkMatcherRegexp(): RegExp | undefined {
+    return ServiceNowAdapter.ARTICLE_NUMBER_REGEX;
   }
 
   public async getAttachment(

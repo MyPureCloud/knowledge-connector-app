@@ -7,6 +7,7 @@ import { ZendeskSection } from './model/zendesk-section.js';
 import { Document, DocumentVersion } from '../model/sync-export-model.js';
 import { ZendeskCategory } from './model/zendesk-category.js';
 import { GeneratedValue } from '../utils/generated-value.js';
+import { ExternalLink } from '../model/external-link.js';
 
 export function contentMapper(
   categories: ZendeskSection[],
@@ -32,6 +33,7 @@ export function contentMapper(
           ),
         )
       : [],
+    articleLookupTable: buildArticleLookupTable(articles),
   };
 }
 
@@ -127,4 +129,9 @@ function buildIdAndNameMapping(items: ZendeskCategory[]): Map<string, string> {
   }
 
   return mapping;
+}
+
+function buildArticleLookupTable(_articles: ZendeskArticle[]) {
+  // TODO
+  return new Map<string, ExternalLink>();
 }

@@ -18,6 +18,9 @@ import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-
 export class GenesysSourceAdapter
   implements SourceAdapter<Category, Label, Document>, ImageSourceAdapter
 {
+  private static DOCUMENT_LINK_REGEXP =
+    /grn:knowledge:::documentVariation\/[0-9a-fA-F-]+\/([0-9a-fA-F-]+)\/([0-9a-fA-F-]+)/;
+
   private config: GenesysSourceConfig = {};
   private api: GenesysSourceApi;
   private exportedKnowledgeData: ExportModel | null = null;
@@ -45,6 +48,10 @@ export class GenesysSourceAdapter
 
   public async getAllLabels(): Promise<Label[]> {
     return this.exportedKnowledgeData?.importAction?.labels || [];
+  }
+
+  public getDocumentLinkMatcherRegexp(): RegExp | undefined {
+    return GenesysSourceAdapter.DOCUMENT_LINK_REGEXP;
   }
 
   public async getAttachment(

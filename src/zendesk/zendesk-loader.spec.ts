@@ -11,7 +11,8 @@ import {
   generateNormalizedCategory,
   generateNormalizedLabel,
   generateRawDocument,
-} from '../tests/utils/entity-generators';
+} from '../tests/utils/entity-generators.js';
+import { ExternalLink } from '../model/external-link.js';
 
 const mockGetAllArticles = jest.fn<() => Promise<ZendeskArticle[]>>();
 const mockGetAttachment =
@@ -73,6 +74,7 @@ describe('ZendeskLoader', () => {
         labels: [LABEL],
         documents: [DOCUMENT],
         categories: [CATEGORY],
+        articleLookupTable: new Map<string, ExternalLink>(),
       });
     });
 
@@ -101,6 +103,7 @@ describe('ZendeskLoader', () => {
             ]),
           ],
           categories: [],
+          articleLookupTable: new Map<string, ExternalLink>(),
         });
         expect(mockGetAllCategories).not.toHaveBeenCalled();
       });
@@ -133,6 +136,7 @@ describe('ZendeskLoader', () => {
             ),
           ],
           categories: [CATEGORY],
+          articleLookupTable: new Map<string, ExternalLink>(),
         });
         expect(mockGetAllLabels).not.toHaveBeenCalled();
       });
@@ -156,6 +160,7 @@ describe('ZendeskLoader', () => {
           labels: [LABEL],
           documents: [],
           categories: [CATEGORY],
+          articleLookupTable: new Map<string, ExternalLink>(),
         });
         expect(mockGetAllArticles).not.toHaveBeenCalled();
       });
