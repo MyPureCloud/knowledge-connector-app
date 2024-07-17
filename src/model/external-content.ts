@@ -1,7 +1,7 @@
 import { Label } from './label.js';
 import { Category } from './category.js';
 import { Document } from './sync-export-model.js';
-import { ExternalLink } from './external-link';
+import { ExternalLink } from './external-link.js';
 
 export interface ExternalContent {
   categories: Category[];

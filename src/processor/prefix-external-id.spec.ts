@@ -9,8 +9,8 @@ import {
   generateNormalizedLabel,
 } from '../tests/utils/entity-generators.js';
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import { ExternalIdentifiable } from '../model';
-import { ExternalLink } from '../model/external-link';
+import { ExternalLink } from '../model/external-link.js';
+import { ExternalIdentifiable } from '../model/external-identifiable.js';
 
 describe('PrefixExternalId', () => {
   const EXTERNAL_ID_PREFIX = 'this-is-the-prefix-';

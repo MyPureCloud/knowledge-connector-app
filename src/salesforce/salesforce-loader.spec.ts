@@ -4,10 +4,10 @@ import { Image } from '../model';
 import { SalesforceAdapter } from './salesforce-adapter.js';
 import { SalesforceConfig } from './model/salesforce-config.js';
 import { SalesforceLoader } from './salesforce-loader.js';
-import { SalesforceArticleDetails } from './model/salesforce-article-details';
+import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
 import { generateRawDocument } from '../tests/utils/entity-generators.js';
 import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
-import { ExternalLink } from '../model/external-link';
+import { ExternalLink } from '../model/external-link.js';
 
 const mockGetAllArticles = jest.fn<() => Promise<SalesforceArticleDetails[]>>();
 const mockGetAttachment =

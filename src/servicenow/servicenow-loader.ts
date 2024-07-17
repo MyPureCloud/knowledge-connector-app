@@ -7,7 +7,7 @@ import { Adapter } from '../adapter/adapter.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import { getLogger } from '../utils/logger.js';
 import { AbstractLoader } from '../pipe/abstract-loader.js';
-import { ExternalLink } from '../model/external-link';
+import { ExternalLink } from '../model/external-link.js';
 
 /**
  * ServiceNow is a specific {@Link Loader} implementation for fetching data from ServiceNow API

@@ -6,7 +6,7 @@ import { SalesforceArticleDetails } from './model/salesforce-article-details.js'
 import { SalesforceArticleLayoutItem } from './model/salesforce-article-layout-item.js';
 import { GeneratedValue } from '../utils/generated-value.js';
 import { LabelReference } from '../model/label-reference.js';
-import { ExternalLink } from '../model/external-link';
+import { ExternalLink } from '../model/external-link.js';
 
 const EXCLUDED_FIELD_TYPES = ['DATE_TIME', 'LOOKUP', 'CHECKBOX'];
 

@@ -11,8 +11,8 @@ import {
   generateNormalizedCategory,
   generateNormalizedLabel,
   generateRawDocument,
-} from '../tests/utils/entity-generators';
-import { ExternalLink } from '../model/external-link';
+} from '../tests/utils/entity-generators.js';
+import { ExternalLink } from '../model/external-link.js';
 
 const mockGetAllArticles = jest.fn<() => Promise<ZendeskArticle[]>>();
 const mockGetAttachment =

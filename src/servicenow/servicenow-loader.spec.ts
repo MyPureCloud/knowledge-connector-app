@@ -9,7 +9,7 @@ import {
   generateNormalizedCategory,
   generateRawDocument,
 } from '../tests/utils/entity-generators';
-import { ExternalLink } from '../model/external-link';
+import { ExternalLink } from '../model/external-link.js';
 
 const mockGetAllArticles = jest.fn<() => Promise<ServiceNowArticle[]>>();
 const mockGetAttachment =

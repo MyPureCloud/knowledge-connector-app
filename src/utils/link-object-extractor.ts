@@ -1,5 +1,5 @@
-import { Variation } from '../model';
-import { LinkBlock } from '../model/link-block';
+import { Variation } from '../model/sync-export-model.js';
+import { LinkBlock } from '../model/link-block.js';
 import {
   DocumentBodyBlock,
   DocumentBodyImage,
@@ -16,7 +16,7 @@ import {
   DocumentTableContentBlock,
   DocumentText,
 } from 'knowledge-html-converter';
-import { ExternalLink } from '../model/external-link';
+import { ExternalLink } from '../model/external-link.js';
 
 export function extractDocumentIdFromUrl(
   articleLookupTable: Map<string, ExternalLink>,

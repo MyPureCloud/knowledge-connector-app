@@ -2,7 +2,7 @@ import { ExternalContent } from '../model/external-content.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
 import { Document } from '../model/sync-export-model.js';
-import { ExternalLink } from '../model/external-link';
+import { ExternalLink } from '../model/external-link.js';
 
 export function contentMapper(
   categories: Category[],

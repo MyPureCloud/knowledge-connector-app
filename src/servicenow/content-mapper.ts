@@ -3,7 +3,7 @@ import { Document, DocumentVersion } from '../model/sync-export-model.js';
 import { ServiceNowArticle } from './model/servicenow-article.js';
 import { Category } from '../model/category.js';
 import { CategoryReference } from '../model/category-reference.js';
-import { ExternalLink } from '../model/external-link';
+import { ExternalLink } from '../model/external-link.js';
 
 export function contentMapper(
   articles: ServiceNowArticle[],

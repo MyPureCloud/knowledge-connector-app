@@ -3,17 +3,17 @@ import { DocumentLinkProcessor } from './document-link-processor.js';
 import { SourceAdapter } from '../adapter/source-adapter.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
 import { DestinationAdapter } from '../adapter/destination-adapter.js';
-import { Config } from '../config';
+import { Config } from '../config.js';
 import {
-  BulkDeleteResponse,
   Document,
   ExportModel,
-  Image,
-  SyncDataResponse,
   SyncModel,
-} from '../model';
-import { generateDocumentWithLinkedDocuments } from '../tests/utils/entity-generators';
-import { ExternalLink } from '../model/external-link';
+} from '../model/sync-export-model.js';
+import { Image } from '../model/image.js';
+import { SyncDataResponse } from '../model/sync-data-response.js';
+import { BulkDeleteResponse } from '../model/bulk-delete-response.js';
+import { ExternalLink } from '../model/external-link.js';
+import { generateDocumentWithLinkedDocuments } from '../tests/utils/entity-generators.js';
 
 describe('DocumentLinkProcessor', function () {
   let linkProcessor: DocumentLinkProcessor;
