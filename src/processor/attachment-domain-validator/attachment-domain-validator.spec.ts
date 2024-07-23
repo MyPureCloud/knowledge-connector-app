@@ -34,17 +34,21 @@ describe('AttachmentDomainValidator', function () {
     const validator = new AttachmentDomainValidator({
       attachmentDomainAllowList: 'api-cdn.mypurecloud.com',
     });
-    expect(validator.isDomainAllowed('https://api-cdn.mypurecloud.com/image.jpg')).toBe(
-      true,
-    );
     expect(
-      validator.isDomainAllowed('https://subdomain.api-cdn.mypurecloud.com/image.jpg'),
+      validator.isDomainAllowed('https://api-cdn.mypurecloud.com/image.jpg'),
+    ).toBe(true);
+    expect(
+      validator.isDomainAllowed(
+        'https://subdomain.api-cdn.mypurecloud.com/image.jpg',
+      ),
     ).toBe(true);
     expect(
       validator.isDomainAllowed('https://other.mypurecloud.com/image.jpg'),
     ).toBe(false);
     expect(
-      validator.isDomainAllowed('https://other-api-cdn.mypurecloud.com/image.jpg'),
+      validator.isDomainAllowed(
+        'https://other-api-cdn.mypurecloud.com/image.jpg',
+      ),
     ).toBe(false);
   });
 

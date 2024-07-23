@@ -1,16 +1,16 @@
+import { beforeEach, describe, expect, it } from '@jest/globals';
 import { PrefixExternalId } from './prefix-external-id.js';
-import { Adapter } from '../adapter/adapter.js';
-import { AdapterPair } from '../adapter/adapter-pair.js';
-import { Config } from '../config.js';
-import { ExternalContent } from '../model/external-content.js';
+import { Adapter } from '../../adapter/adapter.js';
+import { AdapterPair } from '../../adapter/adapter-pair.js';
+import { Config } from '../../config.js';
+import { ExternalContent } from '../../model/external-content.js';
 import {
   generateNormalizedCategory,
   generateNormalizedDocument,
   generateNormalizedLabel,
-} from '../tests/utils/entity-generators.js';
-import { beforeEach, describe, expect, it } from '@jest/globals';
-import { ExternalLink } from '../model/external-link.js';
-import { ExternalIdentifiable } from '../model/external-identifiable.js';
+} from '../../tests/utils/entity-generators.js';
+import { ExternalLink } from '../../model/external-link.js';
+import { ExternalIdentifiable } from '../../model/external-identifiable.js';
 
 describe('PrefixExternalId', () => {
   const EXTERNAL_ID_PREFIX = 'this-is-the-prefix-';

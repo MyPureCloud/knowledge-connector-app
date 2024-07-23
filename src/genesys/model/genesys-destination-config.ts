@@ -1,4 +1,4 @@
-import { PrefixExternalIdConfig } from '../../processor/prefix-external-id-config.js';
+import { PrefixExternalIdConfig } from '../../processor/prefix-external-id/prefix-external-id-config.js';
 
 export interface GenesysDestinationConfig extends PrefixExternalIdConfig {
   genesysLoginUrl?: string;

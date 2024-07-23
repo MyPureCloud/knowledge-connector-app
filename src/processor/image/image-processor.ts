@@ -1,11 +1,11 @@
-import { Processor } from './processor.js';
-import { ExternalContent } from '../model/external-content.js';
+import { Processor } from '../processor.js';
+import { ExternalContent } from '../../model/external-content.js';
 import { createHash } from 'crypto';
-import { Image } from '../model/image.js';
-import { AdapterPair } from '../adapter/adapter-pair.js';
-import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
-import { validateNonNull } from '../utils/validate-non-null.js';
-import { Document, Variation } from '../model/sync-export-model.js';
+import { Image } from '../../model/image.js';
+import { AdapterPair } from '../../adapter/adapter-pair.js';
+import { ImageSourceAdapter } from '../../adapter/image-source-adapter.js';
+import { validateNonNull } from '../../utils/validate-non-null.js';
+import { Document, Variation } from '../../model/sync-export-model.js';
 import {
   DocumentBodyBlock,
   DocumentBodyImageBlock,
@@ -18,13 +18,13 @@ import {
   DocumentContentBlock,
   DocumentTableContentBlock,
 } from 'knowledge-html-converter';
-import { fetchImage } from '../utils/web-client.js';
+import { fetchImage } from '../../utils/web-client.js';
 import { ImageConfig } from './image-config.js';
-import { FileReaderClient } from '../utils/file-reader-client.js';
-import { DestinationAdapter } from '../adapter/destination-adapter.js';
-import { AttachmentDomainValidator } from './attachment-domain-validator.js';
-import { getLogger } from '../utils/logger.js';
-import { AttachmentDomainNotAllowedError } from './attachment-domain-not-allowed-error.js';
+import { FileReaderClient } from '../../utils/file-reader-client.js';
+import { DestinationAdapter } from '../../adapter/destination-adapter.js';
+import { AttachmentDomainValidator } from '../attachment-domain-validator/attachment-domain-validator.js';
+import { getLogger } from '../../utils/logger.js';
+import { AttachmentDomainNotAllowedError } from '../attachment-domain-validator/attachment-domain-not-allowed-error.js';
 
 export class ImageProcessor implements Processor {
   private config: ImageConfig = {};

@@ -1,8 +1,8 @@
-import { Processor } from './processor.js';
-import { Config } from '../config.js';
-import { AdapterPair } from '../adapter/adapter-pair.js';
-import { Adapter } from '../adapter/adapter.js';
-import { ExternalContent } from '../model/external-content.js';
+import { Processor } from '../processor.js';
+import { Config } from '../../config.js';
+import { AdapterPair } from '../../adapter/adapter-pair.js';
+import { Adapter } from '../../adapter/adapter.js';
+import { ExternalContent } from '../../model/external-content.js';
 import { convertHtmlToBlocks } from 'knowledge-html-converter';
 
 export class HtmlTransformer implements Processor {

@@ -1,13 +1,13 @@
-import { Processor } from './processor.js';
-import { AdapterPair } from '../adapter/adapter-pair.js';
-import { ExternalContent } from '../model/external-content.js';
-import { SourceAdapter } from '../adapter/source-adapter.js';
-import { DestinationAdapter } from '../adapter/destination-adapter.js';
+import { Processor } from '../processor.js';
+import { AdapterPair } from '../../adapter/adapter-pair.js';
+import { ExternalContent } from '../../model/external-content.js';
+import { SourceAdapter } from '../../adapter/source-adapter.js';
+import { DestinationAdapter } from '../../adapter/destination-adapter.js';
 import {
   extractDocumentIdFromUrl,
   extractLinkBlocksFromVariation,
-} from '../utils/link-object-extractor.js';
-import { getLogger } from '../utils/logger.js';
+} from '../../utils/link-object-extractor.js';
+import { getLogger } from '../../utils/logger.js';
 import { DocumentLinkProcessorConfig } from './document-link-processor-config.js';
 
 export class DocumentLinkProcessor implements Processor {

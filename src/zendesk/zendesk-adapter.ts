@@ -9,8 +9,8 @@ import { ZendeskApi } from './zendesk-api.js';
 import { SourceAdapter } from '../adapter/source-adapter.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
 import { getLogger } from '../utils/logger.js';
-import { AttachmentDomainValidator } from '../processor/attachment-domain-validator.js';
-import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-not-allowed-error.js';
+import { AttachmentDomainValidator } from '../processor/attachment-domain-validator/attachment-domain-validator.js';
+import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-validator/attachment-domain-not-allowed-error.js';
 
 export class ZendeskAdapter
   implements
