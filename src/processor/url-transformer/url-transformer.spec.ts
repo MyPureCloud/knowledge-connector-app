@@ -84,7 +84,7 @@ describe('UrlTransformer', () => {
       );
     });
 
-    it('should fix image urls', async () => {
+    it('should fix hyperlink urls', async () => {
       const result = await transformer.run(content);
 
       verifyUrl(result, HYPERLINKS, true);
@@ -106,7 +106,7 @@ describe('UrlTransformer', () => {
       );
     });
 
-    it('should fix hyperlinks & image urls', async () => {
+    it('should fix hyperlink & image urls', async () => {
       const result = await transformer.run(content);
 
       verifyUrl(result, HYPERLINKS, true);
