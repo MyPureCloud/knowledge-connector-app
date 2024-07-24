@@ -88,6 +88,7 @@ function articleMapper(
     visible: true,
     alternatives: null,
     title,
+    externalUrl: null,
     variations: [
       {
         rawHtml: body,

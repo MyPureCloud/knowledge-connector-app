@@ -42,6 +42,7 @@ export interface Document extends ExternalIdentifiable {
 
 export interface DocumentVersion {
   title: string;
+  externalUrl: string | null;
   alternatives: DocumentAlternative[] | null;
   visible: boolean;
   category: CategoryReference | null;

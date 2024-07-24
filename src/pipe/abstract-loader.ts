@@ -30,4 +30,8 @@ export abstract class AbstractLoader implements Loader {
   protected shouldLoadLabels(): boolean {
     return this._config.fetchLabels !== 'false';
   }
+
+  protected shouldBuildExternalUrls(): boolean {
+    return this._config.buildExternalUrls === 'true';
+  }
 }

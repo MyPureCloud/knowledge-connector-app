@@ -14,13 +14,15 @@ import { ExternalLink } from '../model/external-link.js';
  */
 export class ServiceNowLoader extends AbstractLoader {
   private adapter?: ServiceNowAdapter;
+  private config: ServiceNowConfig = {};
 
   public async initialize(
-    _config: ServiceNowConfig,
+    config: ServiceNowConfig,
     adapters: AdapterPair<ServiceNowAdapter, Adapter>,
   ): Promise<void> {
-    await super.initialize(_config, adapters);
+    await super.initialize(config, adapters);
 
+    this.config = config;
     this.adapter = adapters.sourceAdapter;
   }
 
@@ -30,7 +32,12 @@ export class ServiceNowLoader extends AbstractLoader {
     getLogger().info('Fetching data...');
     const articles = await this.adapter!.getAllArticles();
 
-    const data = contentMapper(articles, this.shouldLoadCategories());
+    const data = contentMapper(
+      articles,
+      this.shouldLoadCategories(),
+      this.shouldBuildExternalUrls(),
+      this.config,
+    );
 
     if (!this.shouldLoadArticles()) {
       data.documents = [];

@@ -7,16 +7,25 @@ import { SalesforceArticleLayoutItem } from './model/salesforce-article-layout-i
 import { GeneratedValue } from '../utils/generated-value.js';
 import { LabelReference } from '../model/label-reference.js';
 import { ExternalLink } from '../model/external-link.js';
+import { SalesforceConfig } from './model/salesforce-config';
 
 const EXCLUDED_FIELD_TYPES = ['DATE_TIME', 'LOOKUP', 'CHECKBOX'];
 
 export function contentMapper(
   categoryGroups: SalesforceCategoryGroup[],
   articles: SalesforceArticleDetails[],
-  salesforceArticleContentFields: string[],
+  config: SalesforceConfig,
   fetchCategories: boolean,
+  buildExternalUrls: boolean,
 ): ExternalContent {
   const labelsMapping = buildIdAndNameMapping(categoryGroups);
+  const contentFields = (
+    config.salesforceArticleContentFields?.split(',') || []
+  )
+    .map((f) => f.trim())
+    .filter((f) => f.length > 0);
+  const baseUrl = config.salesforceLightningBaseUrl;
+  const language = config.salesforceLightningLanguageCode;
 
   return {
     labels: Array.from(labelsMapping, ([key, value]) => ({
@@ -31,8 +40,11 @@ export function contentMapper(
           articleMapper(
             a,
             labelsMapping,
-            salesforceArticleContentFields,
+            contentFields,
             fetchCategories,
+            buildExternalUrls,
+            baseUrl,
+            language,
           ),
         )
       : [],
@@ -84,6 +96,9 @@ function articleMapper(
   labelIdAndNameMapping: Map<string, string>,
   salesforceArticleContentFields: string[],
   fetchCategories: boolean,
+  buildExternalUrls: boolean,
+  baseUrl?: string,
+  language?: string,
 ): Document {
   const { id, title, categoryGroups, layoutItems } = article;
 
@@ -101,6 +116,9 @@ function articleMapper(
     visible: true,
     alternatives: null,
     title,
+    externalUrl: buildExternalUrls
+      ? buildExternalUrl(baseUrl, language, article.urlName)
+      : null,
     variations: [
       {
         rawHtml: buildArticleBody(layoutItems, salesforceArticleContentFields),
@@ -151,4 +169,16 @@ function buildArticleLookupTable(articles: SalesforceArticleDetails[]) {
     }
   });
   return lookupTable;
+}
+
+function buildExternalUrl(
+  baseUrl?: string,
+  language?: string,
+  urlName?: string,
+): string | null {
+  if (!baseUrl || !language || !urlName) {
+    return null;
+  }
+
+  return `${baseUrl}/articles/${language}/Knowledge/${urlName}`;
 }

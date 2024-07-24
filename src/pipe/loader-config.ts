@@ -4,4 +4,5 @@ export interface LoaderConfig extends Config {
   fetchCategories?: string;
   fetchLabels?: string;
   fetchArticles?: string;
+  buildExternalUrls?: string;
 }

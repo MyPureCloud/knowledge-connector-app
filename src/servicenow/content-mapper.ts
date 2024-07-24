@@ -4,10 +4,13 @@ import { ServiceNowArticle } from './model/servicenow-article.js';
 import { Category } from '../model/category.js';
 import { CategoryReference } from '../model/category-reference.js';
 import { ExternalLink } from '../model/external-link.js';
+import { ServiceNowConfig } from './model/servicenow-config';
 
 export function contentMapper(
   articles: ServiceNowArticle[],
   fetchCategories: boolean,
+  buildExternalUrls: boolean,
+  config: ServiceNowConfig,
 ): ExternalContent {
   return {
     categories: articles
@@ -23,7 +26,12 @@ export function contentMapper(
     labels: [],
     documents: articles
       ? articles.map((a: ServiceNowArticle) =>
-          articleMapper(a, fetchCategories),
+          articleMapper(
+            a,
+            fetchCategories,
+            buildExternalUrls,
+            config.servicenowBaseUrl,
+          ),
         )
       : [],
     articleLookupTable: buildArticleLookupTable(articles),
@@ -37,6 +45,8 @@ function categoryMapper(article: ServiceNowArticle): Category[] {
 function articleMapper(
   article: ServiceNowArticle,
   fetchCategories: boolean,
+  buildExternalUrls: boolean,
+  baseUrl?: string,
 ): Document {
   const id = article.id;
   const title = article.title;
@@ -45,6 +55,9 @@ function articleMapper(
 
   const documentVersion: DocumentVersion = {
     visible: true,
+    externalUrl: buildExternalUrls
+      ? buildExternalUrl(baseUrl, article.number)
+      : null,
     alternatives: null,
     title,
     variations: [
@@ -140,4 +153,15 @@ function buildArticleLookupTable(articles: ServiceNowArticle[]) {
     }
   });
   return lookupTable;
+}
+
+function buildExternalUrl(
+  baseUrl?: string,
+  articleNumber?: string,
+): string | null {
+  if (!baseUrl || !articleNumber) {
+    return null;
+  }
+
+  return `${baseUrl}/kb_view.do?sysparm_article=${articleNumber}`;
 }
