@@ -23,6 +23,7 @@ import { DestinationAdapter } from '../adapter/destination-adapter.js';
 import { NamedEntity } from '../model/named-entity.js';
 import { DiffAggregatorConfig } from './diff-aggregator-config.js';
 import { extractLinkBlocksFromVariation } from '../utils/link-object-extractor.js';
+import { getLogger } from '../utils/logger.js';
 
 /**
  * The DiffAggregator transforms the ExternalContent into ImportableContents,
@@ -32,6 +33,7 @@ import { extractLinkBlocksFromVariation } from '../utils/link-object-extractor.j
 export class DiffAggregator implements Aggregator {
   private config: DiffAggregatorConfig = {};
   private adapter?: DestinationAdapter;
+  private allowPruneAllEntities: boolean = false;
 
   public async initialize(
     config: DiffAggregatorConfig,
@@ -39,6 +41,8 @@ export class DiffAggregator implements Aggregator {
   ): Promise<void> {
     this.config = config;
     this.adapter = adapters.destinationAdapter;
+
+    this.allowPruneAllEntities = config.allowPruneAllEntities === 'true';
   }
 
   public async run(
@@ -130,6 +134,21 @@ export class DiffAggregator implements Aggregator {
     result.deleted = unprocessedStoredItems.filter((item: T) =>
       this.isFromSameSource(item, prefix, sourceId),
     );
+
+    const storedItemsFromSameSource = storedItems.filter((item: T) =>
+      this.isFromSameSource(item, prefix, sourceId),
+    );
+    if (
+      result.deleted.length > 0 &&
+      result.deleted.length === storedItemsFromSameSource.length &&
+      result.created.length === 0 &&
+      !this.allowPruneAllEntities
+    ) {
+      getLogger().error(
+        'Prune all entities are not allowed. This protection can be disabled with ALLOW_PRUNE_ALL_ENTITIES=true in the configuration.',
+      );
+      throw new Error('Prune all entities are not allowed');
+    }
 
     return result;
   }

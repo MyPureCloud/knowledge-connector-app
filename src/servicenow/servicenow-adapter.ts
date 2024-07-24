@@ -6,8 +6,8 @@ import { ServiceNowArticle } from './model/servicenow-article.js';
 import { Image } from '../model/image.js';
 import { ServiceNowArticleAttachment } from './model/servicenow-article-attachment.js';
 import { getLogger } from '../utils/logger.js';
-import { AttachmentDomainValidator } from '../processor/attachment-domain-validator.js';
-import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-not-allowed-error.js';
+import { AttachmentDomainValidator } from '../processor/attachment-domain-validator/attachment-domain-validator.js';
+import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-validator/attachment-domain-not-allowed-error.js';
 
 export class ServiceNowAdapter
   implements

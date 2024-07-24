@@ -1,17 +1,17 @@
-import { AdapterPair } from '../adapter/adapter-pair.js';
+import { AdapterPair } from '../../adapter/adapter-pair.js';
 import { ImageProcessor } from './image-processor.js';
-import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
-import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
+import { ImageSourceAdapter } from '../../adapter/image-source-adapter.js';
+import { GenesysDestinationAdapter } from '../../genesys/genesys-destination-adapter.js';
 import {
   generateDocumentWithTable,
   generateNormalizedDocument,
-} from '../tests/utils/entity-generators.js';
-import { Image } from '../model/image.js';
+} from '../../tests/utils/entity-generators.js';
+import { Image } from '../../model/image.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { AttachmentDomainNotAllowedError } from './attachment-domain-not-allowed-error.js';
+import { AttachmentDomainNotAllowedError } from '../attachment-domain-validator/attachment-domain-not-allowed-error.js';
 
-jest.mock('../utils/web-client.js');
-jest.mock('../genesys/genesys-destination-adapter.js');
+jest.mock('../../utils/web-client.js');
+jest.mock('../../genesys/genesys-destination-adapter.js');
 
 describe('ImageProcessor', () => {
   let sourceAdapter: ImageSourceAdapter;

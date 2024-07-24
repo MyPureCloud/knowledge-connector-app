@@ -1,10 +1,10 @@
-import { Processor } from './processor.js';
-import { AdapterPair } from '../adapter/adapter-pair.js';
-import { Adapter } from '../adapter/adapter.js';
-import { ExternalContent } from '../model/external-content.js';
+import { Processor } from '../processor.js';
+import { AdapterPair } from '../../adapter/adapter-pair.js';
+import { Adapter } from '../../adapter/adapter.js';
+import { ExternalContent } from '../../model/external-content.js';
 import { PrefixExternalIdConfig } from './prefix-external-id-config.js';
-import { ExternalIdentifiable } from '../model/external-identifiable.js';
-import { ExternalLink } from '../model/external-link.js';
+import { ExternalIdentifiable } from '../../model/external-identifiable.js';
+import { ExternalLink } from '../../model/external-link.js';
 
 /**
  * Processor to extend every external ID with given prefix. Use EXTERNAL_ID_PREFIX in configuration.

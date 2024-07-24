@@ -9,8 +9,8 @@ import { Image } from '../model/image.js';
 import { ExportArticlesResponse } from './model/export-articles-response.js';
 import { fetchImage } from '../utils/web-client.js';
 import { getLogger } from '../utils/logger.js';
-import { AttachmentDomainValidator } from '../processor/attachment-domain-validator.js';
-import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-not-allowed-error.js';
+import { AttachmentDomainValidator } from '../processor/attachment-domain-validator/attachment-domain-validator.js';
+import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-validator/attachment-domain-not-allowed-error.js';
 
 /**
  * GenesysSourceAdapter implements {@Link SourceAdapter} to fetch data from Genesys Knowledge's API

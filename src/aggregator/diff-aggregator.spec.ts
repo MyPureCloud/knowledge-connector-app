@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { DiffAggregator } from './diff-aggregator.js';
 import { DestinationAdapter } from '../adapter/destination-adapter.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
@@ -16,7 +17,6 @@ import {
   SyncModel,
 } from '../model/sync-export-model.js';
 import { ImportableContent } from '../model/syncable-contents.js';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
 import { ExternalIdentifiable } from '../model/external-identifiable.js';
@@ -280,13 +280,13 @@ describe('DiffAggregator', () => {
                 generateNormalizedCategory('-not-2', null, 'category-name-2'),
                 generateNormalizedCategory('-3'),
               ],
-              labels: [],
-              documents: [],
+              labels: [generateNormalizedLabel('-1', 'label-id-1')],
+              documents: [generateNormalizedDocument('-1', 'document-id-1')],
             });
 
             verifyGroups(importableContents.categories, 2, 0, 1);
-            verifyGroups(importableContents.labels, 0, 0, 2);
-            verifyGroups(importableContents.documents, 0, 0, 2);
+            verifyGroups(importableContents.labels, 0, 0, 1);
+            verifyGroups(importableContents.documents, 0, 0, 1);
 
             expect(importableContents.categories.created[0].name).toBe(
               'category-name-2-suffix',
@@ -367,17 +367,17 @@ describe('DiffAggregator', () => {
 
           it('should alter entity name with suffix', async () => {
             const importableContents = await aggregator.run({
-              categories: [],
+              categories: [generateNormalizedCategory('-1')],
               labels: [
                 generateNormalizedLabel('-1'),
                 generateNormalizedLabel('-not-2', null, 'label-name-2'),
               ],
-              documents: [],
+              documents: [generateNormalizedDocument('-1', 'document-id-1')],
             });
 
-            verifyGroups(importableContents.categories, 0, 0, 2);
+            verifyGroups(importableContents.categories, 0, 0, 1);
             verifyGroups(importableContents.labels, 1, 0, 1);
-            verifyGroups(importableContents.documents, 0, 0, 2);
+            verifyGroups(importableContents.documents, 0, 0, 1);
 
             expect(importableContents.labels.created[0].name).toBe(
               'label-name-2-suffix',
@@ -736,6 +736,76 @@ describe('DiffAggregator', () => {
           verifyGroups(importableContents.categories, 1, 1, 1);
           verifyGroups(importableContents.labels, 1, 1, 1);
           verifyGroups(importableContents.documents, 1, 1, 1);
+        });
+      });
+    });
+
+    describe('when source list is empty', () => {
+      describe('when destination is not empty', () => {
+        beforeEach(() => {
+          mockExportAllEntities.mockResolvedValue({
+            version: 3,
+            importAction: {
+              knowledgeBase: {
+                id: '',
+              },
+              categories: [
+                generateNormalizedCategory('-1', 'category-id-1'),
+                generateNormalizedCategory('-2', 'category-id-2'),
+              ],
+              labels: [
+                generateNormalizedLabel('-1', 'label-id-1'),
+                generateNormalizedLabel('-2', 'label-id-2'),
+              ],
+              documents: [
+                generateNormalizedDocument('-1', 'document-id-1'),
+                generateNormalizedDocument('-4', 'document-id-4'),
+              ],
+            },
+          });
+        });
+
+        it('should throw error', async () => {
+          await expect(async () => {
+            await aggregator.run({
+              categories: [
+                generateNormalizedCategory('-1', 'category-id-1'),
+                generateNormalizedCategory('-2', 'category-id-2'),
+                generateNormalizedCategory('-3', 'category-id-3'),
+              ],
+              labels: [
+                generateNormalizedLabel('-1', 'label-id-1'),
+                generateNormalizedLabel('-2', 'label-id-2'),
+                generateNormalizedLabel('-3', 'label-id-3'),
+              ],
+              documents: [],
+            });
+          }).rejects.toThrow('Prune all entities are not allowed');
+        });
+
+        describe('when ALLOW_PRUNE_ALL_ENTITIES is on', () => {
+          it('should delete all entities', async () => {
+            await aggregator.initialize(
+              { allowPruneAllEntities: 'true' },
+              adapters,
+            );
+
+            const result = await aggregator.run({
+              categories: [
+                generateNormalizedCategory('-1', 'category-id-1'),
+                generateNormalizedCategory('-2', 'category-id-2'),
+                generateNormalizedCategory('-3', 'category-id-3'),
+              ],
+              labels: [
+                generateNormalizedLabel('-1', 'label-id-1'),
+                generateNormalizedLabel('-2', 'label-id-2'),
+                generateNormalizedLabel('-3', 'label-id-3'),
+              ],
+              documents: [],
+            });
+
+            expect(result.documents.deleted.length).toBe(2);
+          });
         });
       });
     });

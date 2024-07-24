@@ -2,10 +2,10 @@ import { Configurer } from '../pipe/configurer.js';
 import { Pipe } from '../pipe/pipe.js';
 import { ZendeskAdapter } from './zendesk-adapter.js';
 import { ZendeskLoader } from './zendesk-loader.js';
-import { HtmlTransformer } from '../processor/html-transformer.js';
-import { ImageProcessor } from '../processor/image-processor.js';
-import { PrefixExternalId } from '../processor/prefix-external-id.js';
-import { DocumentLinkProcessor } from '../processor/document-link-processor.js';
+import { HtmlTransformer } from '../processor/html-transformer/html-transformer.js';
+import { ImageProcessor } from '../processor/image/image-processor.js';
+import { PrefixExternalId } from '../processor/prefix-external-id/prefix-external-id.js';
+import { DocumentLinkProcessor } from '../processor/document-link/document-link-processor.js';
 import { DiffAggregator } from '../aggregator/diff-aggregator.js';
 import { DiffUploader } from '../uploader/diff-uploader.js';
 
