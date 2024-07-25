@@ -177,9 +177,9 @@ FETCH_LABELS=
 #### Update links
 
 ```
-# Update document links, so they point to their synced document counterpart in destination instead of source. 
+# Update document links, so they point to their synced document counterpart in destination instead of source. Values: 'true' or 'false'. Default 'false'.
 UPDATE_DOCUMENT_LINKS=
-# Generate and attach an external url field to the articles that will point to the article in the source system. Default false
+# Generate and attach an external url field to the articles that will point to the article in the source system. Values: 'true' or 'false'. Default 'false'.
 BUILD_EXTERNAL_URLS=
 ```
 
