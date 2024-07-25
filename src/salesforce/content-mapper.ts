@@ -25,7 +25,11 @@ export function contentMapper(
     .map((f) => f.trim())
     .filter((f) => f.length > 0);
   const baseUrl = config.salesforceLightningBaseUrl;
-  const language = config.salesforceLightningLanguageCode;
+  const lightningLanguageCode = config.salesforceLanguageCode
+    ? config.salesforceLanguageCode
+        .replace('-', '_')
+        .replace(/_([a-z]{2})$/, (_, p1) => `_${p1.toUpperCase()}`)
+    : undefined;
 
   return {
     labels: Array.from(labelsMapping, ([key, value]) => ({
@@ -44,7 +48,7 @@ export function contentMapper(
             fetchCategories,
             buildExternalUrls,
             baseUrl,
-            language,
+            lightningLanguageCode,
           ),
         )
       : [],

@@ -58,6 +58,8 @@ SALESFORCE_CLIENT_SECRET=
 SALESFORCE_LANGUAGE_CODE=
 # Names of article fields that contain parts of the content as comma separated values (eg. Question__c,Answer__c)
 SALESFORCE_ARTICLE_CONTENT_FIELDS=
+# Base url for Salesforce lightning. Used for optional external article self url generation
+SALESFORCE_LIGHTNING_BASE_URL=
 ```
 
 ###### Optional parameters
@@ -177,6 +179,8 @@ FETCH_LABELS=
 ```
 # Update document links, so they point to their synced document counterpart in destination instead of source. 
 UPDATE_DOCUMENT_LINKS=
+# Generate and attach an external url field to the articles that will point to the article in the source system. Default false
+BUILD_EXTERNAL_URLS=
 ```
 
 #### Attachment (image) download allow-list

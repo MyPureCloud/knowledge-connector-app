@@ -16,8 +16,7 @@ describe('contentMapper', () => {
       const result = contentMapper(
         [],
         [buildArticle()],
-        // ['layout item name 5'],
-        {},
+        { salesforceArticleContentFields: 'layout item name 5' },
         false,
         false,
       );
@@ -25,6 +24,23 @@ describe('contentMapper', () => {
       expect(result.documents[0].published?.title).toBe('the title');
       expect(result.documents[0].published?.variations[0].rawHtml).toBe(
         '<p><p>Paragraph</p></p>',
+      );
+    });
+
+    it('should include article external url if enabled', () => {
+      const result = contentMapper(
+        [],
+        [buildArticle()],
+        {
+          salesforceLightningBaseUrl: 'https://test.lightning.force.com',
+          salesforceLanguageCode: 'en-us',
+        },
+        false,
+        true,
+      );
+
+      expect(result.documents[0].published?.externalUrl).toBe(
+        'https://test.lightning.force.com/articles/en_US/Knowledge/testUrl',
       );
     });
   });
