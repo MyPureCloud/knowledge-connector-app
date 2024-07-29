@@ -64,6 +64,7 @@ export function generateNormalizedDocument(
       : {}),
     published: {
       title,
+      externalUrl: null,
       visible,
       alternatives,
       variations: [
@@ -107,6 +108,7 @@ export function generateNormalizedDocumentWithInternalDocumentLinks(
       : {}),
     published: {
       title,
+      externalUrl: null,
       visible,
       alternatives,
       variations: [
@@ -153,6 +155,7 @@ export function generateDocumentWithTable(suffix: string): Document {
     externalId: 'documents-' + suffix,
     published: {
       title: 'document-title' + suffix,
+      externalUrl: null,
       visible: true,
       alternatives: null,
       variations: [
@@ -256,6 +259,7 @@ export function generateDocumentWithLinkedDocuments(suffix: string): Document {
     externalId: 'documents-' + suffix,
     published: {
       title: 'document-title' + suffix,
+      externalUrl: null,
       visible: true,
       alternatives: null,
       variations: [
@@ -393,6 +397,7 @@ export function generateRawDocument(
     externalId: 'article-external-id',
     published: {
       title: 'article-title',
+      externalUrl: null,
       visible: true,
       alternatives: null,
       variations: [

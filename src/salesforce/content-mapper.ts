@@ -7,16 +7,40 @@ import { SalesforceArticleLayoutItem } from './model/salesforce-article-layout-i
 import { GeneratedValue } from '../utils/generated-value.js';
 import { LabelReference } from '../model/label-reference.js';
 import { ExternalLink } from '../model/external-link.js';
+import { SalesforceConfig } from './model/salesforce-config.js';
+import { LANGUAGE_MAPPING } from './salesforce-language-mapping.js';
+import { validateNonNull } from '../utils/validate-non-null';
 
 const EXCLUDED_FIELD_TYPES = ['DATE_TIME', 'LOOKUP', 'CHECKBOX'];
 
 export function contentMapper(
   categoryGroups: SalesforceCategoryGroup[],
   articles: SalesforceArticleDetails[],
-  salesforceArticleContentFields: string[],
+  config: SalesforceConfig,
   fetchCategories: boolean,
+  buildExternalUrls: boolean,
 ): ExternalContent {
   const labelsMapping = buildIdAndNameMapping(categoryGroups);
+  const contentFields = (
+    config.salesforceArticleContentFields?.split(',') || []
+  )
+    .map((f) => f.trim())
+    .filter((f) => f.length > 0);
+  const baseUrl = config.salesforceLightningBaseUrl;
+
+  validateNonNull(
+    config.salesforceLanguageCode,
+    'Missing SALESFORCE_LANGUAGE_CODE from config',
+  );
+
+  let sfLanguageCode = config.salesforceLanguageCode!;
+  if (sfLanguageCode.length > 2) {
+    sfLanguageCode = LANGUAGE_MAPPING[sfLanguageCode] ?? sfLanguageCode;
+  }
+
+  const lightningLanguageCode = sfLanguageCode
+    .replace('-', '_')
+    .replace(/_([a-z]{2})$/, (_, p1) => `_${p1.toUpperCase()}`);
 
   return {
     labels: Array.from(labelsMapping, ([key, value]) => ({
@@ -31,8 +55,11 @@ export function contentMapper(
           articleMapper(
             a,
             labelsMapping,
-            salesforceArticleContentFields,
+            contentFields,
             fetchCategories,
+            buildExternalUrls,
+            baseUrl,
+            lightningLanguageCode,
           ),
         )
       : [],
@@ -84,6 +111,9 @@ function articleMapper(
   labelIdAndNameMapping: Map<string, string>,
   salesforceArticleContentFields: string[],
   fetchCategories: boolean,
+  buildExternalUrls: boolean,
+  baseUrl?: string,
+  language?: string,
 ): Document {
   const { id, title, categoryGroups, layoutItems } = article;
 
@@ -101,6 +131,9 @@ function articleMapper(
     visible: true,
     alternatives: null,
     title,
+    externalUrl: buildExternalUrls
+      ? buildExternalUrl(baseUrl, language, article.urlName)
+      : null,
     variations: [
       {
         rawHtml: buildArticleBody(layoutItems, salesforceArticleContentFields),
@@ -151,4 +184,16 @@ function buildArticleLookupTable(articles: SalesforceArticleDetails[]) {
     }
   });
   return lookupTable;
+}
+
+function buildExternalUrl(
+  baseUrl?: string,
+  language?: string,
+  urlName?: string,
+): string | null {
+  if (!baseUrl || !language || !urlName) {
+    return null;
+  }
+
+  return `${baseUrl}/articles/${language}/Knowledge/${urlName}`;
 }

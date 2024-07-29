@@ -39,6 +39,7 @@ describe('SalesforceLoader', () => {
       salesforceApiVersion: 'v56.0',
       salesforceClientId: 'client-id',
       salesforceClientSecret: 'client-secret',
+      salesforceLanguageCode: 'en-US',
       salesforceUsername: 'username',
       salesforcePassword: 'password',
     };

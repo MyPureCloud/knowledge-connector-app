@@ -167,10 +167,18 @@ export class DiffAggregator implements Aggregator {
   private normalizeDocumentVersion(
     documentVersion: DocumentVersion,
   ): DocumentVersion {
-    const { title, alternatives, visible, category, labels, variations } =
-      documentVersion;
+    const {
+      title,
+      externalUrl,
+      alternatives,
+      visible,
+      category,
+      labels,
+      variations,
+    } = documentVersion;
     return {
       title: title ? title.trim() : title,
+      externalUrl,
       alternatives: alternatives ?? null,
       visible,
       category: category ? this.normalizeCategoryReference(category) : null,

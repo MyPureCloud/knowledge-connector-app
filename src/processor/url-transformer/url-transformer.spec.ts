@@ -133,6 +133,7 @@ describe('UrlTransformer', () => {
         title: 'document-title',
         visible: true,
         alternatives: null,
+        externalUrl: null,
         variations: [
           {
             body: {

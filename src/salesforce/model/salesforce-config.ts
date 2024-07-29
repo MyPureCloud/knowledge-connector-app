@@ -12,4 +12,5 @@ export interface SalesforceConfig extends Config {
   salesforceChannel?: string;
   salesforceCategories?: string;
   salesforceArticleContentFields?: string;
+  salesforceLightningBaseUrl?: string;
 }
