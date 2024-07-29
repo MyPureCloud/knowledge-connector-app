@@ -9,6 +9,7 @@ import { LabelReference } from '../model/label-reference.js';
 import { ExternalLink } from '../model/external-link.js';
 import { SalesforceConfig } from './model/salesforce-config.js';
 import { LANGUAGE_MAPPING } from './salesforce-language-mapping.js';
+import { validateNonNull } from '../utils/validate-non-null';
 
 const EXCLUDED_FIELD_TYPES = ['DATE_TIME', 'LOOKUP', 'CHECKBOX'];
 
@@ -26,6 +27,11 @@ export function contentMapper(
     .map((f) => f.trim())
     .filter((f) => f.length > 0);
   const baseUrl = config.salesforceLightningBaseUrl;
+
+  validateNonNull(
+    config.salesforceLanguageCode,
+    'Missing SALESFORCE_LANGUAGE_CODE from config',
+  );
 
   let sfLanguageCode = config.salesforceLanguageCode!;
   if (sfLanguageCode.length > 2) {

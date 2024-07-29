@@ -4,7 +4,13 @@ import { contentMapper } from './content-mapper.js';
 describe('contentMapper', () => {
   describe('article mapper', () => {
     it('should exclude none text fields', () => {
-      const result = contentMapper([], [buildArticle()], {}, false, false);
+      const result = contentMapper(
+        [],
+        [buildArticle()],
+        { salesforceLanguageCode: 'en-US' },
+        false,
+        false,
+      );
 
       expect(result.documents[0].published?.title).toBe('the title');
       expect(result.documents[0].published?.variations[0].rawHtml).toBe(
@@ -16,7 +22,10 @@ describe('contentMapper', () => {
       const result = contentMapper(
         [],
         [buildArticle()],
-        { salesforceArticleContentFields: 'layout item name 5' },
+        {
+          salesforceArticleContentFields: 'layout item name 5',
+          salesforceLanguageCode: 'en-US',
+        },
         false,
         false,
       );
