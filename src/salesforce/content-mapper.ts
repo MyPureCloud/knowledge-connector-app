@@ -7,7 +7,8 @@ import { SalesforceArticleLayoutItem } from './model/salesforce-article-layout-i
 import { GeneratedValue } from '../utils/generated-value.js';
 import { LabelReference } from '../model/label-reference.js';
 import { ExternalLink } from '../model/external-link.js';
-import { SalesforceConfig } from './model/salesforce-config';
+import { SalesforceConfig } from './model/salesforce-config.js';
+import { LANGUAGE_MAPPING } from './salesforce-language-mapping.js';
 
 const EXCLUDED_FIELD_TYPES = ['DATE_TIME', 'LOOKUP', 'CHECKBOX'];
 
@@ -25,11 +26,15 @@ export function contentMapper(
     .map((f) => f.trim())
     .filter((f) => f.length > 0);
   const baseUrl = config.salesforceLightningBaseUrl;
-  const lightningLanguageCode = config.salesforceLanguageCode
-    ? config.salesforceLanguageCode
-        .replace('-', '_')
-        .replace(/_([a-z]{2})$/, (_, p1) => `_${p1.toUpperCase()}`)
-    : undefined;
+
+  let sfLanguageCode = config.salesforceLanguageCode!;
+  if (sfLanguageCode.length > 2) {
+    sfLanguageCode = LANGUAGE_MAPPING[sfLanguageCode] ?? sfLanguageCode;
+  }
+
+  const lightningLanguageCode = sfLanguageCode
+    .replace('-', '_')
+    .replace(/_([a-z]{2})$/, (_, p1) => `_${p1.toUpperCase()}`);
 
   return {
     labels: Array.from(labelsMapping, ([key, value]) => ({
