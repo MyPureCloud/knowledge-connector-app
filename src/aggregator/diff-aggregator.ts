@@ -178,7 +178,7 @@ export class DiffAggregator implements Aggregator {
     } = documentVersion;
     return {
       title: title ? title.trim() : title,
-      externalUrl,
+      externalUrl: externalUrl ?? null,
       alternatives: alternatives ?? null,
       visible,
       category: category ? this.normalizeCategoryReference(category) : null,
@@ -248,9 +248,30 @@ export class DiffAggregator implements Aggregator {
   private isEqualCustomizer(c: any, s: any): boolean | undefined {
     if (_.isString(c) && c === GeneratedValue.COLOR) {
       return true; // always accept stored value if collected value is generated
-    } else if (_.isArray(c) && _.isArray(s) && c.length && _.isString(c[0])) {
+    }
+
+    if (_.isArray(c) && _.isArray(s) && c.length && _.isString(c[0])) {
       return _.isEqual(c.sort(), s.sort());
     }
+
+    if (_.isPlainObject(c) && _.isPlainObject(s)) {
+      const filteredC = this.filterUndefinedDeep(c);
+      const filteredS = this.filterUndefinedDeep(s);
+      return _.isEqual(filteredC, filteredS);
+    }
+  }
+
+  private filterUndefinedDeep(obj: any): any {
+    if (_.isArray(obj)) {
+      return obj.map(this.filterUndefinedDeep.bind(this));
+    } else if (_.isObject(obj) && !_.isDate(obj)) {
+      return _.transform(obj, (result, value, key) => {
+        if (!_.isUndefined(value)) {
+          result[key] = this.filterUndefinedDeep(value);
+        }
+      });
+    }
+    return obj;
   }
 
   private copyProtectedContent<T extends object>(
