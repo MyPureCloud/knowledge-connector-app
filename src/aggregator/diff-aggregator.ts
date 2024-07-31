@@ -117,9 +117,11 @@ export class DiffAggregator implements Aggregator {
 
         this.copyProtectedContent(normalizedStoredItem, collectedItem);
 
+        const filteredC = this.filterUndefinedDeep(collectedItem);
+        const filteredS = this.filterUndefinedDeep(normalizedStoredItem);
         if (
-          !_.isEqualWith(collectedItem, normalizedStoredItem, (c, s) =>
-            this.isEqualCustomizerFiltered(c, s),
+          !_.isEqualWith(filteredC, filteredS, (c, s) =>
+            this.isEqualCustomizer(c, s),
           )
         ) {
           result.updated.push(collectedItem);
@@ -242,12 +244,6 @@ export class DiffAggregator implements Aggregator {
       id: null,
       name,
     };
-  }
-
-  private isEqualCustomizerFiltered(c: any, s: any): boolean | undefined {
-    const filteredC = this.filterUndefinedDeep(c);
-    const filteredS = this.filterUndefinedDeep(s);
-    return this.isEqualCustomizer(filteredC, filteredS);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
