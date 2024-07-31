@@ -255,10 +255,9 @@ export class DiffAggregator implements Aggregator {
     if (_.isArray(c) && _.isArray(s) && c.length && _.isString(c[0])) {
       return _.isEqual(c.sort(), s.sort());
     }
-
-    return _.isEqual(c, s);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private filterUndefinedDeep(obj: any): any {
     if (_.isArray(obj)) {
       return obj.map(this.filterUndefinedDeep.bind(this));
