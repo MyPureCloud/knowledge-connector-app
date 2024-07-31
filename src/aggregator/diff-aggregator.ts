@@ -119,7 +119,7 @@ export class DiffAggregator implements Aggregator {
 
         if (
           !_.isEqualWith(collectedItem, normalizedStoredItem, (c, s) =>
-            this.isEqualCustomizer(c, s),
+            this.isEqualCustomizerFiltered(c, s),
           )
         ) {
           result.updated.push(collectedItem);
@@ -244,6 +244,12 @@ export class DiffAggregator implements Aggregator {
     };
   }
 
+  private isEqualCustomizerFiltered(c: any, s: any): boolean | undefined {
+    const filteredC = this.filterUndefinedDeep(c);
+    const filteredS = this.filterUndefinedDeep(s);
+    return this.isEqualCustomizer(filteredC, filteredS);
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private isEqualCustomizer(c: any, s: any): boolean | undefined {
     if (_.isString(c) && c === GeneratedValue.COLOR) {
@@ -254,11 +260,7 @@ export class DiffAggregator implements Aggregator {
       return _.isEqual(c.sort(), s.sort());
     }
 
-    if (_.isPlainObject(c) && _.isPlainObject(s)) {
-      const filteredC = this.filterUndefinedDeep(c);
-      const filteredS = this.filterUndefinedDeep(s);
-      return _.isEqual(filteredC, filteredS);
-    }
+    return _.isEqual(c, s);
   }
 
   private filterUndefinedDeep(obj: any): any {
