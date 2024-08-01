@@ -9,7 +9,7 @@ import { LabelReference } from '../model/label-reference.js';
 import { ExternalLink } from '../model/external-link.js';
 import { SalesforceConfig } from './model/salesforce-config.js';
 import { LANGUAGE_MAPPING } from './salesforce-language-mapping.js';
-import { validateNonNull } from '../utils/validate-non-null';
+import { validateNonNull } from '../utils/validate-non-null.js';
 
 const EXCLUDED_FIELD_TYPES = ['DATE_TIME', 'LOOKUP', 'CHECKBOX'];
 
@@ -20,14 +20,6 @@ export function contentMapper(
   fetchCategories: boolean,
   buildExternalUrls: boolean,
 ): ExternalContent {
-  const labelsMapping = buildIdAndNameMapping(categoryGroups);
-  const contentFields = (
-    config.salesforceArticleContentFields?.split(',') || []
-  )
-    .map((f) => f.trim())
-    .filter((f) => f.length > 0);
-  const baseUrl = config.salesforceLightningBaseUrl;
-
   validateNonNull(
     config.salesforceLanguageCode,
     'Missing SALESFORCE_LANGUAGE_CODE from config',
@@ -41,6 +33,14 @@ export function contentMapper(
   const lightningLanguageCode = sfLanguageCode
     .replace('-', '_')
     .replace(/_([a-z]{2})$/, (_, p1) => `_${p1.toUpperCase()}`);
+
+  const labelsMapping = buildIdAndNameMapping(categoryGroups);
+  const contentFields = (
+    config.salesforceArticleContentFields?.split(',') || []
+  )
+    .map((f) => f.trim())
+    .filter((f) => f.length > 0);
+  const baseUrl = config.salesforceLightningBaseUrl;
 
   return {
     labels: Array.from(labelsMapping, ([key, value]) => ({
