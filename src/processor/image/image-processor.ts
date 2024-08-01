@@ -49,6 +49,13 @@ export class ImageProcessor implements Processor {
   public async run(content: ExternalContent): Promise<ExternalContent> {
     validateNonNull(this.adapter, 'Missing source adapter');
     validateNonNull(this.genesysAdapter, 'Missing destination adapter');
+
+    if (this.config.disableImageUpload === 'true') {
+      getLogger().info(
+        `No images will be uploaded to destination. Image upload is disabled.`,
+      );
+    }
+
     this.uploadedImageCount = 0;
 
     for (const document of content.documents) {
@@ -74,8 +81,25 @@ export class ImageProcessor implements Processor {
 
     const imageBlocks = this.findAllImageBlocks(variation.body.blocks);
 
+    if (this.config.disableImageUpload === 'true') {
+      for (const imageBlock of imageBlocks) {
+        await this.processImageBlockWithoutUpload(imageBlock);
+      }
+      return;
+    }
+
     for (const imageBlock of imageBlocks) {
       await this.processImageBlock(document.externalId, imageBlock);
+    }
+  }
+
+  private async processImageBlockWithoutUpload(
+    imageBlock: DocumentBodyImageBlock,
+  ): Promise<void> {
+    const url = imageBlock.image.url;
+    if (url && this.isRelativeUrl(url) && this.config?.relativeImageBaseUrl) {
+      const resolvedURL = new URL(url, this.config.relativeImageBaseUrl);
+      imageBlock.image.url = resolvedURL.href;
     }
   }
 

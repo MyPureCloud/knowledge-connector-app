@@ -146,6 +146,9 @@ NAME_CONFLICT_SUFFIX=
 ```
 # Base url for relative image urls
 RELATIVE_IMAGE_BASE_URL=
+# Instead of uploading the images to genesys, the original image urls will be kept during sync. The RELATIVE_IMAGE_BASE_URL will be used to modify relative image urls.
+Values: 'true' or 'false'. Default 'false'. 
+DISABLE_IMAGE_UPLOAD=
 ```
 
 #### Allow image loading from local filesystem
