@@ -9,7 +9,7 @@ import { LabelReference } from '../model/label-reference.js';
 import { ExternalLink } from '../model/external-link.js';
 import { SalesforceConfig } from './model/salesforce-config.js';
 import { LANGUAGE_MAPPING } from './salesforce-language-mapping.js';
-import { validateNonNull } from '../utils/validate-non-null';
+import { validateNonNull } from '../utils/validate-non-null.js';
 
 const EXCLUDED_FIELD_TYPES = ['DATE_TIME', 'LOOKUP', 'CHECKBOX'];
 
