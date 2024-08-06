@@ -48,7 +48,7 @@ describe('contentMapper', () => {
         true,
       );
 
-      expect(result.documents[0].published?.externalUrl).toBe(
+      expect(result.documents[0].externalUrl).toBe(
         'https://test.lightning.force.com/articles/en_US/Knowledge/testUrl',
       );
     });

@@ -55,9 +55,6 @@ function articleMapper(
 
   const documentVersion: DocumentVersion = {
     visible: true,
-    externalUrl: buildExternalUrls
-      ? buildExternalUrl(baseUrl, article.number)
-      : null,
     alternatives: null,
     title,
     variations: [
@@ -73,6 +70,9 @@ function articleMapper(
   return {
     id: null,
     externalId: String(id),
+    externalUrl: buildExternalUrls
+      ? buildExternalUrl(baseUrl, article.number)
+      : null,
     published: state === 'published' ? documentVersion : null,
     draft: state !== 'published' ? documentVersion : null,
   };

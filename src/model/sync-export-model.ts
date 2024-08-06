@@ -36,13 +36,13 @@ export interface ExportModel {
 }
 
 export interface Document extends ExternalIdentifiable {
+  externalUrl: string | null;
   published: DocumentVersion | null;
   draft: DocumentVersion | null;
 }
 
 export interface DocumentVersion {
   title: string;
-  externalUrl: string | null;
   alternatives: DocumentAlternative[] | null;
   visible: boolean;
   category: CategoryReference | null;

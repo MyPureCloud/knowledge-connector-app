@@ -156,11 +156,12 @@ export class DiffAggregator implements Aggregator {
   }
 
   private normalizeDocument(document: Document): Document {
-    const { externalId, published, draft } = document;
+    const { externalId, externalUrl, published, draft } = document;
 
     return {
       id: null,
       externalId: externalId || null,
+      externalUrl: externalUrl || null,
       published: published ? this.normalizeDocumentVersion(published) : null,
       draft: draft ? this.normalizeDocumentVersion(draft) : null,
     };
@@ -169,18 +170,10 @@ export class DiffAggregator implements Aggregator {
   private normalizeDocumentVersion(
     documentVersion: DocumentVersion,
   ): DocumentVersion {
-    const {
-      title,
-      externalUrl,
-      alternatives,
-      visible,
-      category,
-      labels,
-      variations,
-    } = documentVersion;
+    const { title, alternatives, visible, category, labels, variations } =
+      documentVersion;
     return {
       title: title ? title.trim() : title,
-      externalUrl: externalUrl ?? null,
       alternatives: alternatives ?? null,
       visible,
       category: category ? this.normalizeCategoryReference(category) : null,
