@@ -8,7 +8,7 @@ describe('contentMapper', () => {
         servicenowBaseUrl: 'https://test.service-now.com',
       });
 
-      expect(result.documents[0].published?.externalUrl).toBe(
+      expect(result.documents[0].externalUrl).toBe(
         'https://test.service-now.com/kb_view.do?sysparm_article=KB0012437',
       );
     });

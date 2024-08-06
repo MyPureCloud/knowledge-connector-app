@@ -131,9 +131,6 @@ function articleMapper(
     visible: true,
     alternatives: null,
     title,
-    externalUrl: buildExternalUrls
-      ? buildExternalUrl(baseUrl, language, article.urlName)
-      : null,
     variations: [
       {
         rawHtml: buildArticleBody(layoutItems, salesforceArticleContentFields),
@@ -147,6 +144,9 @@ function articleMapper(
   return {
     id: null,
     externalId: String(id),
+    externalUrl: buildExternalUrls
+      ? buildExternalUrl(baseUrl, language, article.urlName)
+      : null,
     published: documentVersion,
     draft: null,
   };

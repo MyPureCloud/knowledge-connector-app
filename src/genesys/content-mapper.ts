@@ -40,11 +40,12 @@ function labelMapper(label: Label): Label {
 }
 
 function documentMapper(article: Document): Document {
-  const { id, published, draft } = article;
+  const { id, externalUrl, published, draft } = article;
 
   return {
     id: null,
     externalId: String(id),
+    externalUrl,
     published,
     draft,
   };

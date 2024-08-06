@@ -88,7 +88,6 @@ function articleMapper(
     visible: true,
     alternatives: null,
     title,
-    externalUrl: null,
     variations: [
       {
         rawHtml: body,
@@ -113,6 +112,7 @@ function articleMapper(
   return {
     id: null,
     externalId: String(id),
+    externalUrl: null,
     published: !draft ? documentVersion : null,
     draft: draft ? documentVersion : null,
   };

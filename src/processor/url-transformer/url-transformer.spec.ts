@@ -129,11 +129,11 @@ describe('UrlTransformer', () => {
     return {
       id: '',
       externalId: 'external-id',
+      externalUrl: null,
       published: {
         title: 'document-title',
         visible: true,
         alternatives: null,
-        externalUrl: null,
         variations: [
           {
             body: {
