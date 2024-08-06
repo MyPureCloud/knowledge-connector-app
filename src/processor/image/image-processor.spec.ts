@@ -9,6 +9,7 @@ import {
 import { Image } from '../../model/image.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { AttachmentDomainNotAllowedError } from '../attachment-domain-validator/attachment-domain-not-allowed-error.js';
+import { Document } from '../../model';
 
 jest.mock('../../utils/web-client.js');
 jest.mock('../../genesys/genesys-destination-adapter.js');
@@ -110,7 +111,7 @@ describe('ImageProcessor', () => {
         new Error('something unexpected happened'),
       );
 
-      expect(
+      await expect(
         imageProcessor.run({
           categories: [],
           labels: [],
@@ -163,6 +164,66 @@ describe('ImageProcessor', () => {
       expect(
         result.documents[0].published?.variations[0].body?.blocks[0].image?.url,
       ).toBe('relative-image.jpg');
+    });
+  });
+
+  describe('when disableImageUpload is true', () => {
+    let documents: Document[];
+    beforeEach(async () => {
+      documents = [generateNormalizedDocument('1')];
+      documents[0].published!.variations[0].body!.blocks[0].image!.url =
+        'relative-image.png';
+    });
+
+    describe('when relativeImageBaseUrl is empty', () => {
+      beforeEach(async () => {
+        await imageProcessor.initialize(
+          {
+            disableImageUpload: 'true',
+          },
+          adapters,
+        );
+      });
+
+      it('should do nothing', async () => {
+        const result = await imageProcessor.run({
+          categories: [],
+          labels: [],
+          documents,
+        });
+
+        expect(
+          result.documents[0].published?.variations[0].body?.blocks[0].image
+            ?.url,
+        ).toBe('relative-image.png');
+        expect(mockGetAttachment).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('when relativeImageBaseUrl is set', () => {
+      beforeEach(async () => {
+        await imageProcessor.initialize(
+          {
+            disableImageUpload: 'true',
+            relativeImageBaseUrl: 'https://api-cdn.usw2.pure.cloud',
+          },
+          adapters,
+        );
+      });
+
+      it('should extend relative image URLs', async () => {
+        const result = await imageProcessor.run({
+          categories: [],
+          labels: [],
+          documents,
+        });
+
+        expect(
+          result.documents[0].published?.variations[0].body?.blocks[0].image
+            ?.url,
+        ).toBe('https://api-cdn.usw2.pure.cloud/relative-image.png');
+        expect(mockGetAttachment).not.toHaveBeenCalled();
+      });
     });
   });
 });

@@ -82,8 +82,10 @@ export class ImageProcessor implements Processor {
     const imageBlocks = this.findAllImageBlocks(variation.body.blocks);
 
     if (this.config.disableImageUpload === 'true') {
-      for (const imageBlock of imageBlocks) {
-        await this.processImageBlockWithoutUpload(imageBlock);
+      if (this.config?.relativeImageBaseUrl) {
+        for (const imageBlock of imageBlocks) {
+          await this.processImageBlockWithoutUpload(imageBlock);
+        }
       }
       return;
     }
@@ -97,7 +99,7 @@ export class ImageProcessor implements Processor {
     imageBlock: DocumentBodyImageBlock,
   ): Promise<void> {
     const url = imageBlock.image.url;
-    if (url && this.isRelativeUrl(url) && this.config?.relativeImageBaseUrl) {
+    if (url && this.isRelativeUrl(url)) {
       const resolvedURL = new URL(url, this.config.relativeImageBaseUrl);
       imageBlock.image.url = resolvedURL.href;
     }
