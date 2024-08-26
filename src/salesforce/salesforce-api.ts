@@ -11,6 +11,7 @@ import { Image } from '../model';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import { SalesforceAccessTokenResponse } from './model/salesforce-access-token-response.js';
 import { LANGUAGE_MAPPING } from './salesforce-language-mapping.js';
+import { InvalidCredentialsError } from '../adapter/errors/InvalidCredentialsError';
 
 export class SalesforceApi {
   private config: SalesforceConfig = {};
@@ -140,7 +141,7 @@ export class SalesforceApi {
 
     if (!response.ok) {
       return Promise.reject(
-        new Error(
+        new InvalidCredentialsError(
           `Failed to get Salesforce bearer token. Response: ${await response.text()}`,
         ),
       );
