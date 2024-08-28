@@ -9,9 +9,6 @@ import { ErrorCodes } from './errors/ErrorCodes.js';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function validateNonNull(value: any, message: string): void {
   if (!value) {
-    throw new ValidationError(
-      ErrorCodes.INVALID_VALUE.toString().toLowerCase(),
-      message,
-    );
+    throw new ValidationError(ErrorCodes.INVALID_VALUE, message);
   }
 }

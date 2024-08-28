@@ -282,7 +282,7 @@ describe('ServiceNowApi', () => {
       await api.initialize(config);
       await expect(() => api.fetchAllArticles()).rejects.toThrowError(
         new ApiError(
-          ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR.toString().toLowerCase(),
+          ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR,
           'Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=50] failed with status [500] and message [null]',
         ),
       );

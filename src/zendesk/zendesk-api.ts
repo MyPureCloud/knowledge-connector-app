@@ -108,7 +108,7 @@ export class ZendeskApi {
     if (!response.ok) {
       const message = JSON.stringify(await response.json());
       throw new ApiError(
-        ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR.toString().toLowerCase(),
+        ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR,
         `Api request [${url}] failed with status [${response.status}] and message [${message}]`,
       );
     }

@@ -144,7 +144,7 @@ export class SalesforceApi {
     if (!response.ok) {
       return Promise.reject(
         new InvalidCredentialsError(
-          ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR.toString().toLowerCase(),
+          ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR,
           `Failed to get Salesforce bearer token. Response: ${await response.text()}`,
         ),
       );
@@ -231,7 +231,7 @@ export class SalesforceApi {
     if (!response.ok) {
       const message = JSON.stringify(await response.json());
       throw new ApiError(
-        ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR.toString().toLowerCase(),
+        ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR,
         `Api request [${url}] failed with status [${response.status}] and message [${message}]`,
       );
     }

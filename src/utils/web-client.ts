@@ -23,7 +23,7 @@ export async function fetchImage(
   if (!response.ok) {
     return Promise.reject(
       new DownloadError(
-        ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR.toString().toLowerCase(),
+        ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR,
         `Image ${url} cannot be downloaded`,
       ),
     );

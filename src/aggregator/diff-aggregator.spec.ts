@@ -334,7 +334,7 @@ describe('DiffAggregator', () => {
                 });
               }).rejects.toThrowError(
                 new ConfigurerError(
-                  ErrorCodes.CONFIGURER_ERROR.toString().toLowerCase(),
+                  ErrorCodes.CONFIGURER_ERROR,
                   'Name conflict found with suffix "category-name-2-suffix". Try to use different "NAME_CONFLICT_SUFFIX" variable',
                 ),
               );
@@ -354,7 +354,7 @@ describe('DiffAggregator', () => {
               });
             }).rejects.toThrowError(
               new ConfigurerError(
-                ErrorCodes.CONFIGURER_ERROR.toString().toLowerCase(),
+                ErrorCodes.CONFIGURER_ERROR,
                 'Name conflict found "category-name-2". Try to use "NAME_CONFLICT_SUFFIX" variable',
               ),
             );
@@ -427,7 +427,7 @@ describe('DiffAggregator', () => {
                 });
               }).rejects.toThrowError(
                 new ConfigurerError(
-                  ErrorCodes.CONFIGURER_ERROR.toString().toLowerCase(),
+                  ErrorCodes.CONFIGURER_ERROR,
                   'Name conflict found with suffix "label-name-2-suffix". Try to use different "NAME_CONFLICT_SUFFIX" variable',
                 ),
               );
@@ -447,7 +447,7 @@ describe('DiffAggregator', () => {
               });
             }).rejects.toThrowError(
               new ConfigurerError(
-                ErrorCodes.CONFIGURER_ERROR.toString().toLowerCase(),
+                ErrorCodes.CONFIGURER_ERROR,
                 'Name conflict found "category-name-2". Try to use "NAME_CONFLICT_SUFFIX" variable',
               ),
             );
@@ -796,7 +796,7 @@ describe('DiffAggregator', () => {
             });
           }).rejects.toThrowError(
             new ConfigurerError(
-              ErrorCodes.CONFIGURER_ERROR.toString().toLowerCase(),
+              ErrorCodes.CONFIGURER_ERROR,
               'Prune all entities are not allowed',
             ),
           );

@@ -93,7 +93,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
 
     if (!job.downloadURL) {
       throw new DownloadError(
-        ErrorCodes.BAD_REQUEST.toString().toLowerCase(),
+        ErrorCodes.BAD_REQUEST,
         'Missing downloadURL from export job ' + JSON.stringify(job),
       );
     }
