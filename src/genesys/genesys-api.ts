@@ -7,6 +7,8 @@ import { JobStatusResponse } from './model/job-status-response.js';
 import { getLogger } from '../utils/logger.js';
 import { JobStatus } from './model/job-status.js';
 import { fetch, RequestInit, Response } from '../utils/web-client.js';
+import { ApiError } from '../adapter/errors/ApiError.js';
+import { ErrorCodes } from '../utils/errors/ErrorCodes.js';
 
 export abstract class GenesysApi {
   protected token?: TokenResponse;
@@ -124,7 +126,8 @@ export abstract class GenesysApi {
   ): Promise<void> {
     if (!response.ok) {
       const message = JSON.stringify(await response.json());
-      throw new Error(
+      throw new ApiError(
+        ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR.toString().toLowerCase(),
         `Api request [${url}] failed with status [${response.status}] and message [${message}]`,
       );
     }

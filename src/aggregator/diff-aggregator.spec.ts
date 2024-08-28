@@ -20,6 +20,8 @@ import { ImportableContent } from '../model/syncable-contents.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
 import { ExternalIdentifiable } from '../model/external-identifiable.js';
+import { ConfigurerError } from './errors/ConfigurerError.js';
+import { ErrorCodes } from '../utils/errors/ErrorCodes.js';
 
 jest.mock('../genesys/genesys-destination-adapter.js');
 
@@ -315,7 +317,7 @@ describe('DiffAggregator', () => {
               });
             });
 
-            it('should throw error', async () => {
+            it('should throw configuration error', async () => {
               await expect(async () => {
                 await aggregator.run({
                   categories: [
@@ -330,15 +332,18 @@ describe('DiffAggregator', () => {
                   labels: [],
                   documents: [],
                 });
-              }).rejects.toThrow(
-                'Name conflict found with suffix "category-name-2-suffix". Try to use different "NAME_CONFLICT_SUFFIX" variable',
+              }).rejects.toThrowError(
+                new ConfigurerError(
+                  ErrorCodes.CONFIGURER_ERROR.toString().toLowerCase(),
+                  'Name conflict found with suffix "category-name-2-suffix". Try to use different "NAME_CONFLICT_SUFFIX" variable',
+                ),
               );
             });
           });
         });
 
         describe('when no suffix is configured', () => {
-          it('should throw error', async () => {
+          it('should throw configuration error', async () => {
             await expect(async () => {
               await aggregator.run({
                 categories: [
@@ -347,8 +352,11 @@ describe('DiffAggregator', () => {
                 labels: [],
                 documents: [],
               });
-            }).rejects.toThrow(
-              'Name conflict found "category-name-2". Try to use "NAME_CONFLICT_SUFFIX" variable',
+            }).rejects.toThrowError(
+              new ConfigurerError(
+                ErrorCodes.CONFIGURER_ERROR.toString().toLowerCase(),
+                'Name conflict found "category-name-2". Try to use "NAME_CONFLICT_SUFFIX" variable',
+              ),
             );
           });
         });
@@ -406,7 +414,7 @@ describe('DiffAggregator', () => {
               });
             });
 
-            it('should throw error', async () => {
+            it('should throw configuration error', async () => {
               await expect(async () => {
                 await aggregator.run({
                   categories: [],
@@ -417,15 +425,18 @@ describe('DiffAggregator', () => {
                   ],
                   documents: [],
                 });
-              }).rejects.toThrow(
-                'Name conflict found with suffix "label-name-2-suffix". Try to use different "NAME_CONFLICT_SUFFIX" variable',
+              }).rejects.toThrowError(
+                new ConfigurerError(
+                  ErrorCodes.CONFIGURER_ERROR.toString().toLowerCase(),
+                  'Name conflict found with suffix "label-name-2-suffix". Try to use different "NAME_CONFLICT_SUFFIX" variable',
+                ),
               );
             });
           });
         });
 
         describe('when no suffix is configured', () => {
-          it('should throw error', async () => {
+          it('should throw configuration error', async () => {
             await expect(async () => {
               await aggregator.run({
                 categories: [
@@ -434,8 +445,11 @@ describe('DiffAggregator', () => {
                 labels: [],
                 documents: [],
               });
-            }).rejects.toThrow(
-              'Name conflict found "category-name-2". Try to use "NAME_CONFLICT_SUFFIX" variable',
+            }).rejects.toThrowError(
+              new ConfigurerError(
+                ErrorCodes.CONFIGURER_ERROR.toString().toLowerCase(),
+                'Name conflict found "category-name-2". Try to use "NAME_CONFLICT_SUFFIX" variable',
+              ),
             );
           });
         });
@@ -765,7 +779,7 @@ describe('DiffAggregator', () => {
           });
         });
 
-        it('should throw error', async () => {
+        it('should throw prune error', async () => {
           await expect(async () => {
             await aggregator.run({
               categories: [
@@ -780,7 +794,12 @@ describe('DiffAggregator', () => {
               ],
               documents: [],
             });
-          }).rejects.toThrow('Prune all entities are not allowed');
+          }).rejects.toThrowError(
+            new ConfigurerError(
+              ErrorCodes.CONFIGURER_ERROR.toString().toLowerCase(),
+              'Prune all entities are not allowed',
+            ),
+          );
         });
 
         describe('when ALLOW_PRUNE_ALL_ENTITIES is on', () => {

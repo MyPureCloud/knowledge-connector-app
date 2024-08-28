@@ -1,9 +1,12 @@
+import { ApiError } from '../adapter/errors/ApiError.js';
+
 jest.mock('../utils/web-client.js');
 import { ServiceNowApi } from './servicenow-api.js';
 import { ServiceNowArticle } from './model/servicenow-article.js';
 import { ServiceNowConfig } from './model/servicenow-config.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fetch, Response } from '../utils/web-client.js';
+import { ErrorCodes } from '../utils/errors/ErrorCodes.js';
 
 describe('ServiceNowApi', () => {
   const CATEGORY_ID_1 = '324989582398764';
@@ -275,10 +278,13 @@ describe('ServiceNowApi', () => {
       } as Response);
     });
 
-    it('should throw error', async () => {
+    it('should throw api error', async () => {
       await api.initialize(config);
-      await expect(() => api.fetchAllArticles()).rejects.toThrow(
-        'Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=50] failed with status [500] and message [null]',
+      await expect(() => api.fetchAllArticles()).rejects.toThrowError(
+        new ApiError(
+          ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR.toString().toLowerCase(),
+          'Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=50] failed with status [500] and message [null]',
+        ),
       );
     });
   });

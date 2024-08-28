@@ -5,6 +5,8 @@ import {
   RequestInit,
   Response,
 } from 'undici';
+import { DownloadError } from './errors/DownloadError.js';
+import { ErrorCodes } from './errors/ErrorCodes.js';
 
 export { Response, RequestInit, HeadersInit } from 'undici';
 
@@ -19,7 +21,12 @@ export async function fetchImage(
   const requestHeaders = headers ? { headers } : {};
   const response = await innerFetch(url, requestHeaders);
   if (!response.ok) {
-    return Promise.reject(new Error(`Image ${url} cannot be downloaded`));
+    return Promise.reject(
+      new DownloadError(
+        ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR.toString().toLowerCase(),
+        `Image ${url} cannot be downloaded`,
+      ),
+    );
   }
 
   const content = await response.blob();

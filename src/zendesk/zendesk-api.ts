@@ -6,6 +6,8 @@ import { ZendeskSection } from './model/zendesk-section.js';
 import { ZendeskArticle } from './model/zendesk-article.js';
 import { ZendeskLabel } from './model/zendesk-label.js';
 import { fetch, HeadersInit, Response } from '../utils/web-client.js';
+import { ApiError } from '../adapter/errors/ApiError.js';
+import { ErrorCodes } from '../utils/errors/ErrorCodes.js';
 
 export class ZendeskApi {
   private config: ZendeskConfig = {};
@@ -105,7 +107,8 @@ export class ZendeskApi {
   private async verifyResponse(response: Response, url: string): Promise<void> {
     if (!response.ok) {
       const message = JSON.stringify(await response.json());
-      throw new Error(
+      throw new ApiError(
+        ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR.toString().toLowerCase(),
         `Api request [${url}] failed with status [${response.status}] and message [${message}]`,
       );
     }

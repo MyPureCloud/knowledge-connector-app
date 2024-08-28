@@ -127,7 +127,9 @@ export class ImageProcessor implements Processor {
     if (!result) {
       try {
         result = await this.genesysAdapter!.uploadImage(hash, image);
-        this.uploadedImageCount++;
+        if (result) {
+          this.uploadedImageCount++;
+        }
       } catch (error) {
         getLogger().error(`Cannot upload image ${image.url}`);
       }

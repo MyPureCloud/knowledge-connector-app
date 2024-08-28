@@ -24,6 +24,8 @@ import { NamedEntity } from '../model/named-entity.js';
 import { DiffAggregatorConfig } from './diff-aggregator-config.js';
 import { extractLinkBlocksFromVariation } from '../utils/link-object-extractor.js';
 import { getLogger } from '../utils/logger.js';
+import { ConfigurerError } from './errors/ConfigurerError.js';
+import { ErrorCodes } from '../utils/errors/ErrorCodes.js';
 
 /**
  * The DiffAggregator transforms the ExternalContent into ImportableContents,
@@ -149,7 +151,10 @@ export class DiffAggregator implements Aggregator {
       getLogger().error(
         'Prune all entities are not allowed. This protection can be disabled with ALLOW_PRUNE_ALL_ENTITIES=true in the configuration.',
       );
-      throw new Error('Prune all entities are not allowed');
+      throw new ConfigurerError(
+        ErrorCodes.CONFIGURER_ERROR.toString().toLowerCase(),
+        'Prune all entities are not allowed',
+      );
     }
 
     return result;
@@ -317,7 +322,8 @@ export class DiffAggregator implements Aggregator {
     collectedItem.name += this.config.nameConflictSuffix!;
 
     if (this.hasNameConflict(collectedItem, storedItems)) {
-      throw Error(
+      throw new ConfigurerError(
+        ErrorCodes.CONFIGURER_ERROR.toString().toLowerCase(),
         `Name conflict found with suffix "${collectedItem.name}". Try to use different "NAME_CONFLICT_SUFFIX" variable`,
       );
     }
