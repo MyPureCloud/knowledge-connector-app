@@ -11,9 +11,8 @@ import { Image } from '../model';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import { SalesforceAccessTokenResponse } from './model/salesforce-access-token-response.js';
 import { LANGUAGE_MAPPING } from './salesforce-language-mapping.js';
-import { InvalidCredentialsError } from '../adapter/errors/InvalidCredentialsError';
-import { ApiError } from '../adapter/errors/ApiError.js';
-import { ErrorCodes } from '../utils/errors/ErrorCodes.js';
+import { InvalidCredentialsError } from '../adapter/errors/invalid-credentials-error.js';
+import { ApiError } from '../adapter/errors/api-error.js';
 
 export class SalesforceApi {
   private config: SalesforceConfig = {};
@@ -144,7 +143,6 @@ export class SalesforceApi {
     if (!response.ok) {
       return Promise.reject(
         new InvalidCredentialsError(
-          ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR,
           `Failed to get Salesforce bearer token. Response: ${await response.text()}`,
         ),
       );
@@ -231,7 +229,6 @@ export class SalesforceApi {
     if (!response.ok) {
       const message = JSON.stringify(await response.json());
       throw new ApiError(
-        ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR,
         `Api request [${url}] failed with status [${response.status}] and message [${message}]`,
       );
     }

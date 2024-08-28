@@ -20,8 +20,7 @@ import { ImportableContent } from '../model/syncable-contents.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
 import { ExternalIdentifiable } from '../model/external-identifiable.js';
-import { ConfigurerError } from './errors/ConfigurerError.js';
-import { ErrorCodes } from '../utils/errors/ErrorCodes.js';
+import { ConfigurerError } from './errors/configurer-error.js';
 
 jest.mock('../genesys/genesys-destination-adapter.js');
 
@@ -334,7 +333,6 @@ describe('DiffAggregator', () => {
                 });
               }).rejects.toThrowError(
                 new ConfigurerError(
-                  ErrorCodes.CONFIGURER_ERROR,
                   'Name conflict found with suffix "category-name-2-suffix". Try to use different "NAME_CONFLICT_SUFFIX" variable',
                 ),
               );
@@ -354,7 +352,6 @@ describe('DiffAggregator', () => {
               });
             }).rejects.toThrowError(
               new ConfigurerError(
-                ErrorCodes.CONFIGURER_ERROR,
                 'Name conflict found "category-name-2". Try to use "NAME_CONFLICT_SUFFIX" variable',
               ),
             );
@@ -427,7 +424,6 @@ describe('DiffAggregator', () => {
                 });
               }).rejects.toThrowError(
                 new ConfigurerError(
-                  ErrorCodes.CONFIGURER_ERROR,
                   'Name conflict found with suffix "label-name-2-suffix". Try to use different "NAME_CONFLICT_SUFFIX" variable',
                 ),
               );
@@ -447,7 +443,6 @@ describe('DiffAggregator', () => {
               });
             }).rejects.toThrowError(
               new ConfigurerError(
-                ErrorCodes.CONFIGURER_ERROR,
                 'Name conflict found "category-name-2". Try to use "NAME_CONFLICT_SUFFIX" variable',
               ),
             );
@@ -795,10 +790,7 @@ describe('DiffAggregator', () => {
               documents: [],
             });
           }).rejects.toThrowError(
-            new ConfigurerError(
-              ErrorCodes.CONFIGURER_ERROR,
-              'Prune all entities are not allowed',
-            ),
+            new ConfigurerError('Prune all entities are not allowed'),
           );
         });
 

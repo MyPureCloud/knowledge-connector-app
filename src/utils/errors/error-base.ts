@@ -1,7 +1,7 @@
 export abstract class ErrorBase extends Error {
   protected code: string;
 
-  constructor(code: string, message: string) {
+  protected constructor(code: string, message: string) {
     super(message);
 
     this.code = code;

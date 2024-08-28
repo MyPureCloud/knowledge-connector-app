@@ -14,9 +14,8 @@ import { GenesysDestinationApi } from './genesys-destination-api.js';
 import { DestinationAdapter } from '../adapter/destination-adapter.js';
 import { getLogger } from '../utils/logger.js';
 import { fileTypeFromBuffer } from 'file-type';
-import { FileTypeNotSupportedError } from './file-type-not-supported-error.js';
-import { DownloadError } from '../utils/errors/DownloadError.js';
-import { ErrorCodes } from '../utils/errors/ErrorCodes.js';
+import { FileTypeNotSupportedError } from './errors/file-type-not-supported-error.js';
+import { InvalidExportJobError } from './errors/invalid-export-job-error.js';
 
 const SUPPORTED_FORMATS = ['jpeg', 'jpg', 'png', 'gif'];
 
@@ -92,9 +91,9 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
     );
 
     if (!job.downloadURL) {
-      throw new DownloadError(
-        ErrorCodes.BAD_REQUEST,
-        'Missing downloadURL from export job ' + JSON.stringify(job),
+      throw new InvalidExportJobError(
+        'Missing downloadURL from destination export job ' +
+          JSON.stringify(job),
       );
     }
 

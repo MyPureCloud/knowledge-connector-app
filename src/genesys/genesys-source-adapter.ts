@@ -11,8 +11,7 @@ import { fetchImage } from '../utils/web-client.js';
 import { getLogger } from '../utils/logger.js';
 import { AttachmentDomainValidator } from '../processor/attachment-domain-validator/attachment-domain-validator.js';
 import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-validator/attachment-domain-not-allowed-error.js';
-import { DownloadError } from '../utils/errors/DownloadError.js';
-import { ErrorCodes } from '../utils/errors/ErrorCodes.js';
+import { InvalidExportJobError } from './errors/invalid-export-job-error.js';
 
 /**
  * GenesysSourceAdapter implements {@Link SourceAdapter} to fetch data from Genesys Knowledge's API
@@ -76,9 +75,8 @@ export class GenesysSourceAdapter
     );
 
     if (!job.downloadURL) {
-      throw new DownloadError(
-        ErrorCodes.BAD_REQUEST,
-        'Missing downloadURL from export job ' + JSON.stringify(job),
+      throw new InvalidExportJobError(
+        'Missing downloadURL from source export job ' + JSON.stringify(job),
       );
     }
 

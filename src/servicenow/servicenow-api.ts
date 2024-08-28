@@ -3,8 +3,7 @@ import { ServiceNowArticle } from './model/servicenow-article.js';
 import { fetch, Response } from '../utils/web-client.js';
 import { ServiceNowResponse } from './model/servicenow-response.js';
 import { ServiceNowArticleAttachment } from './model/servicenow-article-attachment.js';
-import { ApiError } from '../adapter/errors/ApiError.js';
-import { ErrorCodes } from '../utils/errors/ErrorCodes.js';
+import { ApiError } from '../adapter/errors/api-error.js';
 
 export class ServiceNowApi {
   private config: ServiceNowConfig = {};
@@ -116,7 +115,6 @@ export class ServiceNowApi {
     if (!response.ok) {
       const message = JSON.stringify(await response.json());
       throw new ApiError(
-        ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR,
         `Api request [${url}] failed with status [${response.status}] and message [${message}]`,
       );
     }

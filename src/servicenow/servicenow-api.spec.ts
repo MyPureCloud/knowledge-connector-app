@@ -1,4 +1,4 @@
-import { ApiError } from '../adapter/errors/ApiError.js';
+import { ApiError } from '../adapter/errors/api-error';
 
 jest.mock('../utils/web-client.js');
 import { ServiceNowApi } from './servicenow-api.js';
@@ -6,7 +6,6 @@ import { ServiceNowArticle } from './model/servicenow-article.js';
 import { ServiceNowConfig } from './model/servicenow-config.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fetch, Response } from '../utils/web-client.js';
-import { ErrorCodes } from '../utils/errors/ErrorCodes.js';
 
 describe('ServiceNowApi', () => {
   const CATEGORY_ID_1 = '324989582398764';
@@ -282,7 +281,6 @@ describe('ServiceNowApi', () => {
       await api.initialize(config);
       await expect(() => api.fetchAllArticles()).rejects.toThrowError(
         new ApiError(
-          ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR,
           'Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=50] failed with status [500] and message [null]',
         ),
       );

@@ -3,7 +3,7 @@ import { GenesysDestinationAdapter } from './genesys-destination-adapter.js';
 import { Image } from '../model';
 import { UploadAssetRequest, UploadAssetResponse } from './model';
 import { FileTypeResult } from 'file-type';
-import { FileTypeNotSupportedError } from './file-type-not-supported-error.js';
+import { FileTypeNotSupportedError } from './errors/file-type-not-supported-error.js';
 
 const mockUploadImageUrl =
   jest.fn<(params: UploadAssetRequest) => Promise<UploadAssetResponse>>();
