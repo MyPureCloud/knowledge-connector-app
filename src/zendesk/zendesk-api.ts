@@ -6,7 +6,7 @@ import { ZendeskSection } from './model/zendesk-section.js';
 import { ZendeskArticle } from './model/zendesk-article.js';
 import { ZendeskLabel } from './model/zendesk-label.js';
 import { fetch, HeadersInit, Response } from '../utils/web-client.js';
-import { ApiError } from '../adapter/errors/api-error';
+import { ApiError } from '../adapter/errors/api-error.js';
 
 export class ZendeskApi {
   private config: ZendeskConfig = {};

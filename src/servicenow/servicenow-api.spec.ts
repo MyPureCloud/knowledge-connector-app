@@ -1,4 +1,4 @@
-import { ApiError } from '../adapter/errors/api-error';
+import { ApiError } from '../adapter/errors/api-error.js';
 
 jest.mock('../utils/web-client.js');
 import { ServiceNowApi } from './servicenow-api.js';
