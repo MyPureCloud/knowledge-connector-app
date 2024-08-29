@@ -143,7 +143,6 @@ export class GenesysDestinationApi extends GenesysApi {
     const body: SyncDataRequest = {
       uploadKey,
       sourceId: this.config?.genesysSourceId,
-      readonlyContent: this.config?.genesysReadonlyContent === 'true',
     };
     return this.fetch<SyncDataResponse>(
       `/api/v2/knowledge/knowledgeBases/${kbId}/synchronize/jobs`,

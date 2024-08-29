@@ -72,7 +72,6 @@ describe('GenesysDestinationApi', () => {
       await genesysDestinationApi.initialize({
         ...getConfig(),
         genesysSourceId: 'source-id',
-        genesysReadonlyContent: 'true',
       });
     });
 
@@ -91,7 +90,7 @@ describe('GenesysDestinationApi', () => {
       expect(mockFetch).toHaveBeenCalledWith(
         `https://base-url/api/v2/knowledge/knowledgeBases/${KB_ID}/synchronize/jobs`,
         {
-          body: '{"uploadKey":"upload-key","sourceId":"source-id","readonlyContent":true}',
+          body: '{"uploadKey":"upload-key","sourceId":"source-id"}',
           headers: {
             Authorization: 'Bearer access-token',
             'Content-Type': 'application/json',
