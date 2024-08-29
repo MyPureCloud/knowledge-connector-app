@@ -3,6 +3,7 @@ import { ServiceNowArticle } from './model/servicenow-article.js';
 import { fetch, Response } from '../utils/web-client.js';
 import { ServiceNowResponse } from './model/servicenow-response.js';
 import { ServiceNowArticleAttachment } from './model/servicenow-article-attachment.js';
+import { ApiError } from '../adapter/errors/api-error.js';
 
 export class ServiceNowApi {
   private config: ServiceNowConfig = {};
@@ -86,9 +87,10 @@ export class ServiceNowApi {
     }
 
     if (this.config.servicenowLanguage) {
-      const language = this.config.servicenowLanguage.length > 2
-        ? this.config.servicenowLanguage.substring(0, 2)
-        : this.config.servicenowLanguage;
+      const language =
+        this.config.servicenowLanguage.length > 2
+          ? this.config.servicenowLanguage.substring(0, 2)
+          : this.config.servicenowLanguage;
 
       params.push(`language=${esc(language)}`);
     }
@@ -112,7 +114,7 @@ export class ServiceNowApi {
   private async verifyResponse(response: Response, url: string): Promise<void> {
     if (!response.ok) {
       const message = JSON.stringify(await response.json());
-      throw new Error(
+      throw new ApiError(
         `Api request [${url}] failed with status [${response.status}] and message [${message}]`,
       );
     }

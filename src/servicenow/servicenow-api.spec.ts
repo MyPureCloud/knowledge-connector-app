@@ -1,3 +1,5 @@
+import { ApiError } from '../adapter/errors/api-error.js';
+
 jest.mock('../utils/web-client.js');
 import { ServiceNowApi } from './servicenow-api.js';
 import { ServiceNowArticle } from './model/servicenow-article.js';
@@ -275,10 +277,12 @@ describe('ServiceNowApi', () => {
       } as Response);
     });
 
-    it('should throw error', async () => {
+    it('should throw api error', async () => {
       await api.initialize(config);
-      await expect(() => api.fetchAllArticles()).rejects.toThrow(
-        'Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=50] failed with status [500] and message [null]',
+      await expect(() => api.fetchAllArticles()).rejects.toThrowError(
+        new ApiError(
+          'Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=50] failed with status [500] and message [null]',
+        ),
       );
     });
   });
