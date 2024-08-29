@@ -11,6 +11,7 @@ export { InvalidCredentialsError } from './adapter/errors/invalid-credentials-er
 export { ConfigurerError } from './aggregator/errors/configurer-error.js';
 export { DownloadError } from './utils/errors/download-error.js';
 export { ErrorBase } from './utils/errors/error-base.js';
+export { ErrorBasePublic } from './utils/errors/error-base-public.js';
 export { ErrorCodes } from './utils/errors/error-codes.js';
 export { ValidationError } from './utils/errors/validation-error.js';
 export { InvalidExportJobError } from './genesys/errors/invalid-export-job-error.js';
