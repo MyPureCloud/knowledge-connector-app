@@ -74,7 +74,12 @@ describe('SalesforceLoader', () => {
         documents: [DOCUMENT],
         categories: [],
         articleLookupTable: new Map<string, ExternalLink>([
-          ['testUrlName', { externalDocumentId: 'article-external-id' }],
+          [
+            'testUrlName',
+            {
+              externalDocumentId: 'article-external-id',
+            },
+          ],
         ]),
       });
     });

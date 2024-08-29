@@ -12,12 +12,24 @@ describe('contentMapper', () => {
         'https://test.service-now.com/kb_view.do?sysparm_article=KB0012437',
       );
     });
+
+    it('should set the article 2 times into articleLookupTable', function () {
+      const result = contentMapper([buildArticle()], false, true, {
+        servicenowBaseUrl: 'https://test.service-now.com',
+      });
+
+      expect(result.articleLookupTable?.size).toEqual(2);
+      expect(result.articleLookupTable?.get('KB0012437'))
+          .toEqual({externalDocumentId: 'kb_knowledge:0d7094289f011200550bf7b6077fcffc'});
+      expect(result.articleLookupTable?.get('0d7094289f011200550bf7b6077fcffc'))
+          .toEqual({externalDocumentId: 'kb_knowledge:0d7094289f011200550bf7b6077fcffc'});
+    });
   });
 
   function buildArticle() {
     return {
       link: 'test-link',
-      id: '111',
+      id: 'kb_knowledge:0d7094289f011200550bf7b6077fcffc',
       title: 'Test title',
       snippet: 'snippet',
       number: 'KB0012437',
