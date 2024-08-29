@@ -774,7 +774,7 @@ describe('DiffAggregator', () => {
           });
         });
 
-        it('should throw prune error', async () => {
+        it('should throw configurer error', async () => {
           await expect(async () => {
             await aggregator.run({
               categories: [
