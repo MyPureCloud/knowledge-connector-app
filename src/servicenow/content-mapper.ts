@@ -150,6 +150,7 @@ function buildArticleLookupTable(articles: ServiceNowArticle[]) {
   articles.forEach((article) => {
     if (article.number) {
       lookupTable.set(article.number, { externalDocumentId: article.id });
+      lookupTable.set(article.id.split(':')[1], { externalDocumentId: article.id });
     }
   });
   return lookupTable;

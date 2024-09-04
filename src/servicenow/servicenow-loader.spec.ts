@@ -34,10 +34,15 @@ describe('ServiceNowLoader', () => {
     'topic-display-value',
     'topic-value',
   );
-  const DOCUMENT = generateRawDocument('<p>article body</p>', {
-    id: null,
-    name: 'category-display-value',
-  });
+  const DOCUMENT = generateRawDocument(
+    '<p>article body</p>',
+    {
+      id: null,
+      name: 'category-display-value',
+    },
+    null,
+    'kb_knowledge:0d7094289f011200550bf7b6077fcffc',
+  );
 
   let config: ServiceNowConfig;
   let adapter: ServiceNowAdapter;
@@ -79,7 +84,20 @@ describe('ServiceNowLoader', () => {
         documents: [DOCUMENT],
         categories: [CATEGORY, TOPIC],
         articleLookupTable: new Map<string, ExternalLink>([
-          ['article-number', { externalDocumentId: 'article-external-id' }],
+          [
+            'article-number',
+            {
+              externalDocumentId:
+                'kb_knowledge:0d7094289f011200550bf7b6077fcffc',
+            },
+          ],
+          [
+            '0d7094289f011200550bf7b6077fcffc',
+            {
+              externalDocumentId:
+                'kb_knowledge:0d7094289f011200550bf7b6077fcffc',
+            },
+          ],
         ]),
       });
     });
@@ -100,10 +118,30 @@ describe('ServiceNowLoader', () => {
 
         expect(result).toEqual({
           labels: [],
-          documents: [generateRawDocument('<p>article body</p>')],
+          documents: [
+            generateRawDocument(
+              '<p>article body</p>',
+              null,
+              null,
+              'kb_knowledge:0d7094289f011200550bf7b6077fcffc',
+            ),
+          ],
           categories: [],
           articleLookupTable: new Map<string, ExternalLink>([
-            ['article-number', { externalDocumentId: 'article-external-id' }],
+            [
+              'article-number',
+              {
+                externalDocumentId:
+                  'kb_knowledge:0d7094289f011200550bf7b6077fcffc',
+              },
+            ],
+            [
+              '0d7094289f011200550bf7b6077fcffc',
+              {
+                externalDocumentId:
+                  'kb_knowledge:0d7094289f011200550bf7b6077fcffc',
+              },
+            ],
           ]),
         });
       });
@@ -152,7 +190,7 @@ jest.mock('./servicenow-adapter.js', () => {
 function generateArticle(): ServiceNowArticle {
   return {
     link: 'article-link',
-    id: 'article-external-id',
+    id: 'kb_knowledge:0d7094289f011200550bf7b6077fcffc',
     title: 'article-title',
     snippet: 'article-snippet',
     number: 'article-number',

@@ -391,10 +391,11 @@ export function generateRawDocument(
   rawHtml: string = '',
   category: CategoryReference | null = null,
   labels: LabelReference[] | null = null,
+  externalId: string = 'article-external-id',
 ): Document {
   return {
     id: null,
-    externalId: 'article-external-id',
+    externalId,
     externalUrl: null,
     published: {
       title: 'article-title',

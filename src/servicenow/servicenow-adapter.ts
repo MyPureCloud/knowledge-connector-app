@@ -14,7 +14,7 @@ export class ServiceNowAdapter
     SourceAdapter<unknown, unknown, ServiceNowArticle>,
     ImageSourceAdapter
 {
-  private static ARTICLE_NUMBER_REGEX = /sysparm_article=([A-Za-z0-9]+)/;
+  private static ARTICLE_NUMBER_REGEX = /(?:sysparm_article|sys_kb_id)(?:&#61;|=)([A-Za-z0-9]+)/;
 
   private config: ServiceNowConfig = {};
   private api: ServiceNowApi;
