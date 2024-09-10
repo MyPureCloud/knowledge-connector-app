@@ -13,6 +13,7 @@ import { SalesforceAccessTokenResponse } from './model/salesforce-access-token-r
 import { LANGUAGE_MAPPING } from './salesforce-language-mapping.js';
 import { InvalidCredentialsError } from '../adapter/errors/invalid-credentials-error.js';
 import { ApiError } from '../adapter/errors/api-error.js';
+import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 
 export class SalesforceApi {
   private config: SalesforceConfig = {};
@@ -124,6 +125,7 @@ export class SalesforceApi {
 
     const loginUrl =
       this.config.salesforceLoginUrl || this.config.salesforceBaseUrl;
+    const processedLoginUrl = removeTrailingSlash(loginUrl || '');
 
     const bodyParams = new URLSearchParams();
     bodyParams.append('grant_type', 'password');
@@ -132,7 +134,7 @@ export class SalesforceApi {
     bodyParams.append('username', this.config.salesforceUsername!);
     bodyParams.append('password', this.config.salesforcePassword!);
 
-    const response = await fetch(`${loginUrl}/services/oauth2/token`, {
+    const response = await fetch(`${processedLoginUrl}/services/oauth2/token`, {
       method: 'POST',
       body: bodyParams,
       headers: {

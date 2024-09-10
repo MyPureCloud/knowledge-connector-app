@@ -4,14 +4,17 @@ import { fetch, Response } from '../utils/web-client.js';
 import { ServiceNowResponse } from './model/servicenow-response.js';
 import { ServiceNowArticleAttachment } from './model/servicenow-article-attachment.js';
 import { ApiError } from '../adapter/errors/api-error.js';
+import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 
 export class ServiceNowApi {
   private config: ServiceNowConfig = {};
   private limit: number = 0;
+  private baseUrl: string = '';
 
   public async initialize(config: ServiceNowConfig): Promise<void> {
     this.config = config;
     this.limit = this.config.limit ? parseInt(this.config.limit, 10) : 50;
+    this.baseUrl = removeTrailingSlash(this.config.servicenowBaseUrl || '');
   }
 
   public async fetchAllArticles(): Promise<ServiceNowArticle[]> {
@@ -21,7 +24,7 @@ export class ServiceNowApi {
   }
 
   private async getPage<T>(endpoint: string): Promise<ServiceNowArticle[]> {
-    const url = this.buildUrl(`${this.config.servicenowBaseUrl}${endpoint}`);
+    const url = this.buildUrl(`${this.baseUrl}${endpoint}`);
     const response = await fetch(url, {
       headers: this.buildHeaders(),
     });
@@ -43,7 +46,7 @@ export class ServiceNowApi {
   public async fetchAttachmentInfo(
     attachmentId: string,
   ): Promise<ServiceNowArticleAttachment> {
-    const url = `${this.config.servicenowBaseUrl}/api/now/attachment/${attachmentId}`;
+    const url = `${this.baseUrl}/api/now/attachment/${attachmentId}`;
     const response = await fetch(url, {
       headers: this.buildHeaders(),
     });

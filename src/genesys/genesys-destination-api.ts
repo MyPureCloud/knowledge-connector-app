@@ -14,6 +14,7 @@ import { BulkDeleteResponse } from '../model/bulk-delete-response.js';
 import { GenesysApi } from './genesys-api.js';
 import { GenesysDestinationConfig } from './model/genesys-destination-config.js';
 import { fetch } from '../utils/web-client.js';
+import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 
 export class GenesysDestinationApi extends GenesysApi {
   protected config: GenesysDestinationConfig = {};
@@ -28,7 +29,7 @@ export class GenesysDestinationApi extends GenesysApi {
       this.config.genesysLoginUrl,
       'Missing GENESYS_LOGIN_URL from config',
     );
-    return this.config.genesysLoginUrl!;
+    return removeTrailingSlash(this.config.genesysLoginUrl!);
   }
 
   protected getBaseUrl(): string {
@@ -36,7 +37,7 @@ export class GenesysDestinationApi extends GenesysApi {
       this.config.genesysBaseUrl,
       'Missing GENESYS_BASE_URL from config',
     );
-    return this.config.genesysBaseUrl!;
+    return removeTrailingSlash(this.config.genesysBaseUrl!);
   }
 
   protected getClientId(): string {

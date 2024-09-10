@@ -25,6 +25,7 @@ import { DestinationAdapter } from '../../adapter/destination-adapter.js';
 import { AttachmentDomainValidator } from '../attachment-domain-validator/attachment-domain-validator.js';
 import { getLogger } from '../../utils/logger.js';
 import { AttachmentDomainNotAllowedError } from '../attachment-domain-validator/attachment-domain-not-allowed-error.js';
+import { removeTrailingSlash } from '../../utils/remove-trailing-slash.js';
 
 export class ImageProcessor implements Processor {
   private config: ImageConfig = {};
@@ -33,6 +34,7 @@ export class ImageProcessor implements Processor {
   private attachmentDomainValidator?: AttachmentDomainValidator;
   private uploadedImageCount: number = 0;
   private allowImageFromFilesystem: boolean = false;
+  private relativeImageBaseUrl: string = '';
 
   public async initialize(
     config: ImageConfig,
@@ -44,6 +46,11 @@ export class ImageProcessor implements Processor {
     this.attachmentDomainValidator = new AttachmentDomainValidator(config);
     this.allowImageFromFilesystem =
       this.config.allowImageFromFilesystem === 'true';
+    if (this.config?.relativeImageBaseUrl) {
+      this.relativeImageBaseUrl = removeTrailingSlash(
+        config.relativeImageBaseUrl || '',
+      );
+    }
   }
 
   public async run(content: ExternalContent): Promise<ExternalContent> {
@@ -100,7 +107,7 @@ export class ImageProcessor implements Processor {
   ): Promise<void> {
     const url = imageBlock.image.url;
     if (url && this.isRelativeUrl(url)) {
-      const resolvedURL = new URL(url, this.config.relativeImageBaseUrl);
+      const resolvedURL = new URL(url, this.relativeImageBaseUrl);
       imageBlock.image.url = resolvedURL.href;
     }
   }
@@ -227,7 +234,7 @@ export class ImageProcessor implements Processor {
           );
           return null;
         }
-        const resolvedURL = new URL(url, this.config.relativeImageBaseUrl);
+        const resolvedURL = new URL(url, this.relativeImageBaseUrl);
         url = resolvedURL.href;
       }
 
