@@ -7,12 +7,15 @@ import { ZendeskArticle } from './model/zendesk-article.js';
 import { ZendeskLabel } from './model/zendesk-label.js';
 import { fetch, HeadersInit, Response } from '../utils/web-client.js';
 import { ApiError } from '../adapter/errors/api-error.js';
+import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 
 export class ZendeskApi {
   private config: ZendeskConfig = {};
+  private baseUrl: string = '';
 
   public initialize(config: ZendeskConfig): Promise<void> {
     this.config = config;
+    this.baseUrl = removeTrailingSlash(config.zendeskBaseUrl || '');
     return Promise.resolve(undefined);
   }
 
@@ -71,7 +74,7 @@ export class ZendeskApi {
   }
 
   private get<T>(endpoint: string, property: ZendeskEntityTypes): Promise<T[]> {
-    return this.getPage(`${this.config.zendeskBaseUrl}${endpoint}`, property);
+    return this.getPage(`${this.baseUrl}${endpoint}`, property);
   }
 
   private async getPage<T>(

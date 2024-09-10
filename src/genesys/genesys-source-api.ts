@@ -1,6 +1,7 @@
 import { validateNonNull } from '../utils/validate-non-null.js';
 import { GenesysApi } from './genesys-api.js';
 import { GenesysSourceConfig } from './model/genesys-source-config.js';
+import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 
 export class GenesysSourceApi extends GenesysApi {
   private config: GenesysSourceConfig = {};
@@ -15,7 +16,7 @@ export class GenesysSourceApi extends GenesysApi {
       this.config.genesysSourceLoginUrl,
       'Missing GENESYS_SOURCE_LOGIN_URL from config',
     );
-    return this.config.genesysSourceLoginUrl!;
+    return removeTrailingSlash(this.config.genesysSourceLoginUrl!);
   }
 
   protected getBaseUrl(): string {
@@ -23,7 +24,7 @@ export class GenesysSourceApi extends GenesysApi {
       this.config.genesysSourceBaseUrl,
       'Missing GENESYS_SOURCE_BASE_URL from config',
     );
-    return this.config.genesysSourceBaseUrl!;
+    return removeTrailingSlash(this.config.genesysSourceBaseUrl!);
   }
 
   protected getClientId(): string {
