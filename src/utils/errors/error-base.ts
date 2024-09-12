@@ -5,12 +5,12 @@ export abstract class ErrorBase extends Error {
   public constructor(
     code: string,
     message: string,
-    details: { [key: string]: any },
+    details?: { [key: string]: any },
   ) {
     super(message);
 
     this.code = code;
-    this.details = details;
+    this.details = typeof details !== 'undefined' ? details : {};
   }
 
   public getCode(): string {
