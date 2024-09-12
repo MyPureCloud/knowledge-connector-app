@@ -150,7 +150,9 @@ export class DiffAggregator implements Aggregator {
       getLogger().error(
         'Prune all entities are not allowed. This protection can be disabled with ALLOW_PRUNE_ALL_ENTITIES=true in the configuration.',
       );
-      throw new ConfigurerError('Prune all entities are not allowed');
+      throw new ConfigurerError('Prune all entities are not allowed', {
+        cause: 'prune.all.entities',
+      });
     }
 
     return result;
@@ -320,6 +322,7 @@ export class DiffAggregator implements Aggregator {
     if (this.hasNameConflict(collectedItem, storedItems)) {
       throw new ConfigurerError(
         `Name conflict found with suffix "${collectedItem.name}". Try to use different "NAME_CONFLICT_SUFFIX" variable`,
+        { cause: 'name.conflict', item: collectedItem.name },
       );
     }
   }

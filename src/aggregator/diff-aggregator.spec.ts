@@ -334,6 +334,7 @@ describe('DiffAggregator', () => {
               }).rejects.toThrowError(
                 new ConfigurerError(
                   'Name conflict found with suffix "category-name-2-suffix". Try to use different "NAME_CONFLICT_SUFFIX" variable',
+                  { cause: 'name.conflict', item: 'category-name-2-suffix' },
                 ),
               );
             });
@@ -353,6 +354,7 @@ describe('DiffAggregator', () => {
             }).rejects.toThrowError(
               new ConfigurerError(
                 'Name conflict found "category-name-2". Try to use "NAME_CONFLICT_SUFFIX" variable',
+                { cause: 'name.conflict', item: 'category-name-2' },
               ),
             );
           });
@@ -425,6 +427,7 @@ describe('DiffAggregator', () => {
               }).rejects.toThrowError(
                 new ConfigurerError(
                   'Name conflict found with suffix "label-name-2-suffix". Try to use different "NAME_CONFLICT_SUFFIX" variable',
+                  { cause: 'name.conflict', item: 'label-name-2-suffix' },
                 ),
               );
             });
@@ -444,6 +447,7 @@ describe('DiffAggregator', () => {
             }).rejects.toThrowError(
               new ConfigurerError(
                 'Name conflict found "category-name-2". Try to use "NAME_CONFLICT_SUFFIX" variable',
+                { cause: 'name.conflict', item: 'category-name-2' },
               ),
             );
           });
@@ -790,7 +794,9 @@ describe('DiffAggregator', () => {
               documents: [],
             });
           }).rejects.toThrowError(
-            new ConfigurerError('Prune all entities are not allowed'),
+            new ConfigurerError('Prune all entities are not allowed', {
+              cause: 'prune.all.entities',
+            }),
           );
         });
 

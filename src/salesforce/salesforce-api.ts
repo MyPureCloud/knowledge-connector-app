@@ -143,9 +143,11 @@ export class SalesforceApi {
     });
 
     if (!response.ok) {
+      const message = JSON.stringify(await response.json());
       return Promise.reject(
         new InvalidCredentialsError(
-          `Failed to get Salesforce bearer token. Response: ${await response.text()}`,
+          `Failed to get Salesforce bearer token. Response: ${message}`,
+          { status: response.status, response: message },
         ),
       );
     }
@@ -232,6 +234,7 @@ export class SalesforceApi {
       const message = JSON.stringify(await response.json());
       throw new ApiError(
         `Api request [${url}] failed with status [${response.status}] and message [${message}]`,
+        { url, status: response.status, message },
       );
     }
   }

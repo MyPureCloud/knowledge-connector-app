@@ -6,6 +6,7 @@ export class AttachmentDomainNotAllowedError extends ErrorBasePublic {
     super(
       ErrorCodes.ATTACHMENT_DOMAIN_NOT_ALLOWED,
       'Skipped downloading attachment, domain not allowed: ' + url,
+      { url },
     );
   }
 }

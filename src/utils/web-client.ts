@@ -21,7 +21,7 @@ export async function fetchImage(
   const response = await innerFetch(url, requestHeaders);
   if (!response.ok) {
     return Promise.reject(
-      new DownloadError(`Image ${url} cannot be downloaded`),
+      new DownloadError(`Image ${url} cannot be downloaded`, { url }),
     );
   }
 

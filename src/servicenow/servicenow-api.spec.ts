@@ -282,6 +282,10 @@ describe('ServiceNowApi', () => {
       await expect(() => api.fetchAllArticles()).rejects.toThrowError(
         new ApiError(
           'Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=50] failed with status [500] and message [null]',
+          {
+            url: 'https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=50',
+            status: 500,
+          },
         ),
       );
     });

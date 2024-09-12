@@ -6,6 +6,10 @@ export class FileTypeNotSupportedError extends ErrorBasePublic {
     super(
       ErrorCodes.FILE_TYPE_NOT_SUPPORTED,
       `The file type ${fileType} is not supported (only ${supportedList.join(', ')})`,
+      {
+        fileType,
+        supportedFileType: supportedList,
+      },
     );
   }
 }
