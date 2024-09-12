@@ -8,6 +8,6 @@ import { ValidationError } from './errors/validation-error.js';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function validateNonNull(value: any, message: string): void {
   if (!value) {
-    throw new ValidationError(message);
+    throw new ValidationError(message, {});
   }
 }

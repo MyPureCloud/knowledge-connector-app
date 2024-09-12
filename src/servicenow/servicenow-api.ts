@@ -119,6 +119,7 @@ export class ServiceNowApi {
       const message = JSON.stringify(await response.json());
       throw new ApiError(
         `Api request [${url}] failed with status [${response.status}] and message [${message}]`,
+        { url, status: response.status, message },
       );
     }
   }
