@@ -76,8 +76,8 @@ export class GenesysSourceAdapter
 
     if (!job.downloadURL) {
       throw new InvalidExportJobError(
-        'Missing downloadURL from source export job ' + JSON.stringify(job),
-        { id: job.id },
+        `Missing downloadURL from source export job ${job.id}`,
+        { job },
       );
     }
 

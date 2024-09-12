@@ -3,6 +3,6 @@ import { ErrorBasePublic } from './error-base-public.js';
 
 export class ValidationError extends ErrorBasePublic {
   constructor(message: string, details: { [key: string]: any }) {
-    super(ErrorCodes.VALIDATION_ERROR, details, message);
+    super(ErrorCodes.VALIDATION_ERROR, message, details);
   }
 }

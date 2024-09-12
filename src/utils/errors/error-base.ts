@@ -4,8 +4,8 @@ export abstract class ErrorBase extends Error {
 
   public constructor(
     code: string,
-    details: { [key: string]: any },
     message: string,
+    details: { [key: string]: any },
   ) {
     super(message);
 

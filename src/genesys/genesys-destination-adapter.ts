@@ -92,9 +92,8 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
 
     if (!job.downloadURL) {
       throw new InvalidExportJobError(
-        'Missing downloadURL from destination export job ' +
-          JSON.stringify(job),
-        { id: job.id },
+        `Missing downloadURL from destination export job ${job.id}`,
+        { job },
       );
     }
 
