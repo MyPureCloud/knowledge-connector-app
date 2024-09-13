@@ -1,11 +1,11 @@
 export abstract class ErrorBase extends Error {
   protected code: string;
-  protected details: { [key: string]: any };
+  protected details: { [key: string]: unknown };
 
   public constructor(
     code: string,
     message: string,
-    details?: { [key: string]: any },
+    details?: { [key: string]: unknown },
   ) {
     super(message);
 
@@ -17,7 +17,7 @@ export abstract class ErrorBase extends Error {
     return this.code;
   }
 
-  public getDetails(): { [key: string]: any } {
+  public getDetails(): { [key: string]: unknown } {
     return this.details;
   }
 }
