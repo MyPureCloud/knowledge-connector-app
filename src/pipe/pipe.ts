@@ -13,6 +13,7 @@ import { Task } from './task.js';
 import { TimerConfig } from './timer-config.js';
 import { Configurer } from './configurer.js';
 import { getLogger } from '../utils/logger.js';
+import { HookCallback, HookEvent } from './hook-callback.js';
 
 /**
  * Pipe is the collection of tasks and adapters which can be executed to do the sync from source to destination.
@@ -30,6 +31,7 @@ export class Pipe {
   private processorList: Processor[] = [];
   private aggregatorList: Aggregator[] = [];
   private uploaderList: Uploader[] = [];
+  private hookMap: Map<HookEvent, HookCallback[]> = new Map();
 
   /**
    * Define source and destination adapters
@@ -104,8 +106,31 @@ export class Pipe {
     return this;
   }
 
+  /**
+   * Apply configuration
+   * @param {Configurer} configurer
+   */
   public configurer(configurer: Configurer): Pipe {
     configurer(this);
+    return this;
+  }
+
+  /**
+   * Register hook callbacks
+   * @param {HookEvent} eventName
+   * @param {Function} callback
+   */
+  public hooks(eventName: HookEvent, callback: () => Promise<void>): Pipe {
+    let callbacks = this.hookMap.get(eventName);
+    if (!callbacks) {
+      callbacks = [];
+      this.hookMap.set(eventName, callbacks);
+    }
+
+    callbacks.push({
+      eventName,
+      callback,
+    });
     return this;
   }
 
@@ -158,12 +183,28 @@ export class Pipe {
       return null;
     }
     const lifetimeInSeconds = parseInt(config?.killAfterLongRunningSeconds, 10);
-    return setTimeout(() => {
-      getLogger().error(
-        `Connector app did not finish in [${lifetimeInSeconds}] seconds. Killing process`,
-      );
-      process.exit(1);
-    }, lifetimeInSeconds * 1000);
+    return setTimeout(
+      () => this.onTimeout(lifetimeInSeconds),
+      lifetimeInSeconds * 1000,
+    );
+  }
+
+  private async onTimeout(lifetimeInSeconds: number): Promise<void> {
+    const hookCallbacks = this.hookMap.get(HookEvent.ON_TIMEOUT);
+    if (hookCallbacks?.length) {
+      for (const hook of hookCallbacks) {
+        try {
+          await hook.callback();
+        } catch (error) {
+          getLogger().error(`Error running ON_TIMEOUT callback`, error);
+        }
+      }
+    }
+
+    getLogger().error(
+      `Connector app did not finish in [${lifetimeInSeconds}] seconds. Killing process`,
+    );
+    process.exit(1);
   }
 
   private async executeLoaders(
