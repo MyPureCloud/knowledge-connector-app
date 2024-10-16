@@ -8,6 +8,7 @@ import { DiffAggregator } from '../aggregator/diff-aggregator.js';
 import { DiffUploader } from '../uploader/diff-uploader.js';
 import { ServiceNowAdapter } from './servicenow-adapter.js';
 import { ServiceNowLoader } from './servicenow-loader.js';
+import { UrlTransformer } from '../processor/url-transformer/url-transformer.js';
 
 export const configurer: Configurer = (pipe: Pipe): void => {
   pipe
@@ -16,6 +17,7 @@ export const configurer: Configurer = (pipe: Pipe): void => {
     .processors(
       new HtmlTransformer(),
       new ImageProcessor(),
+      new UrlTransformer(),
       new PrefixExternalId(),
       new DocumentLinkProcessor(),
     )

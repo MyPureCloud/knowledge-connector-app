@@ -52,45 +52,47 @@ export class DiffAggregator implements Aggregator {
     validateNonNull(this.adapter, 'Missing destination adapter');
 
     const exportResult = await this.adapter!.exportAllEntities();
-    const storedItems = this.normalize(exportResult.importAction);
-    const collectedItems = this.normalize(externalContent);
+    const {
+      categories: storedCategories = [],
+      labels: storedLabels = [],
+      documents: storedDocuments = [],
+    } = this.removeGeneratedContent(exportResult.importAction);
+    const {
+      categories: collectedCategories = [],
+      labels: collectedLabels = [],
+      documents: collectedDocuments = [],
+    } = externalContent;
 
-    this.resolveNameConflicts(
-      collectedItems.categories,
-      storedItems.categories,
+    this.resolveNameConflicts(collectedCategories, storedCategories);
+    this.resolveNameConflicts(collectedLabels, storedLabels);
+
+    const categories = this.collectModifiedItems(
+      collectedCategories,
+      storedCategories,
+      this.normalizeCategory.bind(this),
     );
-    this.resolveNameConflicts(collectedItems.labels, storedItems.labels);
-    this.removeGeneratedContent(storedItems);
 
-    const importAction = exportResult.importAction;
-    return {
-      categories: this.collectModifiedItems(
-        collectedItems.categories,
-        importAction.categories || [],
-        this.normalizeCategory.bind(this),
-      ),
-      labels: this.collectModifiedItems(
-        collectedItems.labels,
-        importAction.labels || [],
-        this.normalizeLabel.bind(this),
-      ),
-      documents: this.collectModifiedItems(
-        collectedItems.documents,
-        importAction.documents || [],
-        this.normalizeDocument.bind(this),
-      ),
-    };
-  }
+    const labels = this.collectModifiedItems(
+      collectedLabels,
+      storedLabels,
+      this.normalizeLabel.bind(this),
+    );
 
-  private normalize(content: ExternalContent): ExternalContent {
+    const documents = this.collectModifiedItems(
+      collectedDocuments,
+      storedDocuments,
+      (doc) =>
+        this.normalizeDocument(
+          doc,
+          [...collectedCategories, ...storedCategories],
+          [...collectedLabels, ...storedLabels],
+        ),
+    );
+
     return {
-      categories: (content.categories || []).map(
-        this.normalizeCategory.bind(this),
-      ),
-      labels: (content.labels || []).map(this.normalizeLabel.bind(this)),
-      documents: (content.documents || []).map(
-        this.normalizeDocument.bind(this),
-      ),
+      categories,
+      labels,
+      documents,
     };
   }
 
@@ -108,27 +110,32 @@ export class DiffAggregator implements Aggregator {
     };
 
     collectedItems.forEach((collectedItem: T): void => {
+      const normalizedCollectedItem = normalizer(collectedItem);
       const index = unprocessedStoredItems.findIndex(
         (currentItem) =>
-          currentItem && currentItem.externalId === collectedItem.externalId,
+          currentItem &&
+          currentItem.externalId === normalizedCollectedItem.externalId,
       );
       if (index > -1) {
         const [storedItem] = unprocessedStoredItems.splice(index, 1);
         const normalizedStoredItem = normalizer(storedItem);
 
-        this.copyProtectedContent(normalizedStoredItem, collectedItem);
+        this.copyProtectedContent(
+          normalizedStoredItem,
+          normalizedCollectedItem,
+        );
 
-        const filteredC = this.filterUndefinedDeep(collectedItem);
-        const filteredS = this.filterUndefinedDeep(normalizedStoredItem);
         if (
-          !_.isEqualWith(filteredC, filteredS, (c, s) =>
-            this.isEqualCustomizer(c, s),
+          !_.isEqualWith(
+            normalizedCollectedItem,
+            normalizedStoredItem,
+            (c, s) => this.isEqualCustomizer(c, s),
           )
         ) {
-          result.updated.push(collectedItem);
+          result.updated.push(normalizedCollectedItem);
         }
       } else {
-        result.created.push(collectedItem);
+        result.created.push(normalizedCollectedItem);
       }
     });
 
@@ -158,20 +165,30 @@ export class DiffAggregator implements Aggregator {
     return result;
   }
 
-  private normalizeDocument(document: Document): Document {
+  private normalizeDocument(
+    document: Document,
+    allCategories: Category[],
+    allLabels: Label[],
+  ): Document {
     const { externalId, externalUrl, published, draft } = document;
 
     return {
       id: null,
       externalId: externalId || null,
       externalUrl: externalUrl || null,
-      published: published ? this.normalizeDocumentVersion(published) : null,
-      draft: draft ? this.normalizeDocumentVersion(draft) : null,
+      published: published
+        ? this.normalizeDocumentVersion(published, allCategories, allLabels)
+        : null,
+      draft: draft
+        ? this.normalizeDocumentVersion(draft, allCategories, allLabels)
+        : null,
     };
   }
 
   private normalizeDocumentVersion(
     documentVersion: DocumentVersion,
+    allCategories: Category[],
+    allLabels: Label[],
   ): DocumentVersion {
     const { title, alternatives, visible, category, labels, variations } =
       documentVersion;
@@ -179,10 +196,12 @@ export class DiffAggregator implements Aggregator {
       title: title ? title.trim() : title,
       alternatives: alternatives ?? null,
       visible,
-      category: category ? this.normalizeCategoryReference(category) : null,
+      category: category
+        ? this.normalizeCategoryReference(category, allCategories)
+        : null,
       labels:
         labels && labels.length
-          ? labels.map(this.normalizeLabelReference)
+          ? labels.map((l) => this.normalizeLabelReference(l, allLabels))
           : null,
       variations: variations.map(this.normalizeVariation),
     };
@@ -205,20 +224,32 @@ export class DiffAggregator implements Aggregator {
       id: null,
       externalId: externalId || null,
       name,
-      parentCategory: this.normalizeCategoryReference(parentCategory),
+      parentCategory: this.normalizeCategoryReference(parentCategory, []),
     };
   }
 
   private normalizeCategoryReference(
     categoryReference: CategoryReference | null,
+    allCategories: Category[],
   ): CategoryReference | null {
     if (!categoryReference) {
       return null;
     }
 
+    const category = allCategories
+      .filter((c) => c.externalId === categoryReference.id)
+      .shift();
+
+    if (!category) {
+      return {
+        id: null,
+        name: categoryReference.name,
+      };
+    }
+
     return {
       id: null,
-      name: categoryReference.name,
+      name: category.name,
     };
   }
 
@@ -233,12 +264,24 @@ export class DiffAggregator implements Aggregator {
     };
   }
 
-  private normalizeLabelReference(label: LabelReference): LabelReference {
-    const { name } = label;
+  private normalizeLabelReference(
+    labelReference: LabelReference,
+    allLabels: Label[],
+  ): LabelReference {
+    const label = allLabels
+      .filter((c) => c.externalId === labelReference.id)
+      .shift();
+
+    if (!label) {
+      return {
+        id: null,
+        name: labelReference.name,
+      };
+    }
 
     return {
       id: null,
-      name,
+      name: label.name,
     };
   }
 
@@ -251,20 +294,6 @@ export class DiffAggregator implements Aggregator {
     if (_.isArray(c) && _.isArray(s) && c.length && _.isString(c[0])) {
       return _.isEqual(c.sort(), s.sort());
     }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private filterUndefinedDeep(obj: any): any {
-    if (_.isArray(obj)) {
-      return obj.map(this.filterUndefinedDeep.bind(this));
-    } else if (_.isObject(obj) && !_.isDate(obj)) {
-      return _.transform(obj, (result, value, key) => {
-        if (!_.isUndefined(value)) {
-          result[key] = this.filterUndefinedDeep(value);
-        }
-      });
-    }
-    return obj;
   }
 
   private copyProtectedContent<T extends object>(
@@ -282,35 +311,39 @@ export class DiffAggregator implements Aggregator {
     });
   }
 
-  private removeGeneratedContent(content: ExternalContent): void {
-    content.documents.forEach((document) => {
+  private removeGeneratedContent(content: ExternalContent): ExternalContent {
+    content.documents?.forEach((document) => {
       [
         ...(document.published?.variations ?? []),
         ...(document.draft?.variations ?? []),
       ].forEach((variation) =>
         extractLinkBlocksFromVariation(variation).forEach((block) => {
           if (block.externalDocumentId) {
-            block.hyperlink = undefined;
+            delete block.hyperlink;
           }
         }),
       );
     });
+
+    return content;
   }
 
   private resolveNameConflicts<T extends NamedEntity>(
     collectedItems: T[],
     storedItems: T[],
   ): void {
+    const processedItems = [...storedItems];
     collectedItems.forEach((collectedItem: T): void => {
-      if (this.hasNameConflict(collectedItem, storedItems)) {
-        this.resolveNameConflict(collectedItem, storedItems);
+      if (this.hasNameConflict(collectedItem, processedItems)) {
+        this.resolveNameConflict(collectedItem, processedItems);
       }
+      processedItems.push(collectedItem);
     });
   }
 
   private resolveNameConflict<T extends NamedEntity>(
     collectedItem: T,
-    storedItems: T[],
+    processedItems: T[],
   ): void {
     validateNonNull(
       this.config.nameConflictSuffix,
@@ -319,11 +352,8 @@ export class DiffAggregator implements Aggregator {
 
     collectedItem.name += this.config.nameConflictSuffix!;
 
-    if (this.hasNameConflict(collectedItem, storedItems)) {
-      throw new ConfigurerError(
-        `Name conflict found with suffix "${collectedItem.name}". Try to use different "NAME_CONFLICT_SUFFIX" variable`,
-        { cause: 'name.conflict', item: collectedItem.name },
-      );
+    if (this.hasNameConflict(collectedItem, processedItems)) {
+      this.resolveNameConflict(collectedItem, processedItems);
     }
   }
 
@@ -334,7 +364,7 @@ export class DiffAggregator implements Aggregator {
     return !!storedItems.find(
       (currentItem) =>
         currentItem &&
-        currentItem.name === collectedItem.name &&
+        currentItem.name?.toLowerCase() === collectedItem.name?.toLowerCase() &&
         currentItem.externalId !== collectedItem.externalId,
     );
   }

@@ -49,15 +49,15 @@ export class UrlTransformer implements Processor {
     for (const block of traversal) {
       if (block.type === 'Image') {
         const image = block as DocumentBodyImageBlock;
-        if (this.fixNonHttpsImages) {
+        if (this.fixNonHttpsImages && image.image.url) {
           image.image.url = this.fixLink('url', image.image)!;
         }
-        if (this.fixNonHttpsLinks) {
+        if (this.fixNonHttpsLinks && image.image.hyperlink) {
           image.image.hyperlink = this.fixLink('hyperlink', image.image);
         }
       } else if (block.type === 'Text') {
         const text = block as DocumentTextBlock;
-        if (this.fixNonHttpsLinks) {
+        if (this.fixNonHttpsLinks && text.text.hyperlink) {
           text.text.hyperlink = this.fixLink('hyperlink', text.text);
         }
       }

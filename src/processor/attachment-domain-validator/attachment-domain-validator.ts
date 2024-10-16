@@ -1,4 +1,5 @@
 import { AttachmentDomainValidatorConfig } from './attachment-domain-validator-config.js';
+import { getLogger } from '../../utils/logger.js';
 
 export class AttachmentDomainValidator {
   private attachmentDomainAllowList: string[];
@@ -24,6 +25,7 @@ export class AttachmentDomainValidator {
           urlObject.host === domain || urlObject.host.endsWith('.' + domain),
       );
     } catch (error) {
+      getLogger().debug(`Error parsing URL ${url} - ${error}`);
       return false;
     }
   }
