@@ -1,6 +1,4 @@
 export { Config } from './config.js';
-export { Pipe } from './pipe/pipe.js';
-export { Configurer } from './pipe/configurer.js';
 export { Adapter } from './adapter/adapter.js';
 export { loadConfigurer } from './utils/configurer-loader.js';
 export { parseConfig } from './utils/config-parser.js';
@@ -20,3 +18,4 @@ export * from './model/index.js';
 export * from './processor/index.js';
 export * from './aggregator/index.js';
 export * from './uploader/index.js';
+export * from './pipe/index.js';
