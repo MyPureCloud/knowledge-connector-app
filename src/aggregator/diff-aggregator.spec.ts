@@ -21,6 +21,7 @@ import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
 import { ExternalIdentifiable } from '../model/external-identifiable.js';
 import { ConfigurerError } from './errors/configurer-error.js';
+import { NamedEntity } from '../model/named-entity.js';
 
 jest.mock('../genesys/genesys-destination-adapter.js');
 
@@ -278,23 +279,27 @@ describe('DiffAggregator', () => {
             const importableContents = await aggregator.run({
               categories: [
                 generateNormalizedCategory('-1'),
-                generateNormalizedCategory('-not-2', null, 'category-name-2'),
+                generateNormalizedCategory('-2', 'category-id-2'),
+                generateNormalizedCategory(
+                  '-not-2',
+                  'category-id-not-2',
+                  'category-name-2',
+                ),
                 generateNormalizedCategory('-3'),
               ],
               labels: [generateNormalizedLabel('-1', 'label-id-1')],
               documents: [generateNormalizedDocument('-1', 'document-id-1')],
             });
 
-            verifyGroups(importableContents.categories, 2, 0, 1);
+            verifyGroups(importableContents.categories, 2, 0, 0);
             verifyGroups(importableContents.labels, 0, 0, 1);
             verifyGroups(importableContents.documents, 0, 0, 1);
 
-            expect(importableContents.categories.created[0].name).toBe(
-              'category-name-2-suffix',
-            );
-            expect(importableContents.categories.created[0].externalId).toBe(
-              'category-external-id-not-2',
-            );
+            expectExternalEntity(importableContents.categories.created[0], {
+              id: null,
+              name: 'category-name-2-suffix',
+              externalId: 'category-external-id-not-2',
+            });
           });
 
           describe('when still conflicting with the suffix', () => {
@@ -306,9 +311,13 @@ describe('DiffAggregator', () => {
                     id: '',
                   },
                   categories: [
-                    generateNormalizedCategory('-1'),
-                    generateNormalizedCategory('-2'),
-                    generateNormalizedCategory('-2-suffix'),
+                    generateNormalizedCategory('-1', 'category-id-1'),
+                    generateNormalizedCategory('-2', 'category-id-2'),
+                    generateNormalizedCategory(
+                      '-not-2-the-first',
+                      'category-id-not-2-the-first',
+                      'category-name-2-suffix-suffix',
+                    ),
                   ],
                   labels: [],
                   documents: [],
@@ -316,27 +325,72 @@ describe('DiffAggregator', () => {
               });
             });
 
-            it('should throw configuration error', async () => {
-              await expect(async () => {
-                await aggregator.run({
-                  categories: [
-                    generateNormalizedCategory('-1'),
-                    generateNormalizedCategory(
-                      '-not-2',
-                      null,
-                      'category-name-2',
-                    ),
-                    generateNormalizedCategory('-3'),
-                  ],
-                  labels: [],
-                  documents: [],
-                });
-              }).rejects.toThrowError(
-                new ConfigurerError(
-                  'Name conflict found with suffix "category-name-2-suffix". Try to use different "NAME_CONFLICT_SUFFIX" variable',
-                  { cause: 'name.conflict', item: 'category-name-2-suffix' },
-                ),
+            it('should alter entity name twice', async () => {
+              const importableContents = await aggregator.run({
+                categories: [
+                  generateNormalizedCategory('-1'),
+                  generateNormalizedCategory('-2'),
+                  generateNormalizedCategory('-3'),
+                  generateNormalizedCategory(
+                    '-not-2-the-second',
+                    null,
+                    'category-name-2',
+                  ),
+                  generateNormalizedCategory(
+                    '-not-2-the-third',
+                    null,
+                    'category-name-2',
+                  ),
+                ],
+                labels: [],
+                documents: [],
+              });
+
+              verifyGroups(importableContents.categories, 3, 0, 1);
+              verifyGroups(importableContents.labels, 0, 0, 0);
+              verifyGroups(importableContents.documents, 0, 0, 0);
+
+              expectExternalEntity(importableContents.categories.created[1], {
+                id: null,
+                name: 'category-name-2-suffix',
+                externalId: 'category-external-id-not-2-the-second',
+              });
+              expectExternalEntity(importableContents.categories.created[2], {
+                id: null,
+                name: 'category-name-2-suffix-suffix-suffix',
+                externalId: 'category-external-id-not-2-the-third',
+              });
+            });
+          });
+
+          describe('when conflicting category is referred in document', () => {
+            it('should use the resolved name', async () => {
+              const document = generateNormalizedDocument(
+                '-1',
+                'document-id-1',
               );
+              document.published!.category = {
+                id: 'category-external-id-not-1',
+                name: 'category-name-1',
+              };
+              const importableContents = await aggregator.run({
+                categories: [
+                  generateNormalizedCategory('-1', 'category-id-1'),
+                  generateNormalizedCategory('-2', 'category-id-2'),
+                  generateNormalizedCategory('-not-1', null, 'category-name-1'),
+                ],
+                labels: [generateNormalizedLabel('-1')],
+                documents: [document],
+              });
+
+              verifyGroups(importableContents.categories, 1, 0, 0);
+              verifyGroups(importableContents.labels, 0, 0, 1);
+              verifyGroups(importableContents.documents, 0, 1, 1);
+
+              expect(
+                importableContents.documents.updated[0].published!.category!
+                  .name,
+              ).toBe('category-name-1-suffix');
             });
           });
         });
@@ -386,12 +440,11 @@ describe('DiffAggregator', () => {
             verifyGroups(importableContents.labels, 1, 0, 1);
             verifyGroups(importableContents.documents, 0, 0, 1);
 
-            expect(importableContents.labels.created[0].name).toBe(
-              'label-name-2-suffix',
-            );
-            expect(importableContents.labels.created[0].externalId).toBe(
-              'label-external-id-not-2',
-            );
+            expectExternalEntity(importableContents.labels.created[0], {
+              id: null,
+              name: 'label-name-2-suffix',
+              externalId: 'label-external-id-not-2',
+            });
           });
 
           describe('when still conflicting with the suffix', () => {
@@ -406,30 +459,42 @@ describe('DiffAggregator', () => {
                   labels: [
                     generateNormalizedLabel('-1'),
                     generateNormalizedLabel('-2'),
-                    generateNormalizedLabel('-2-suffix'),
+                    generateNormalizedLabel(
+                      '-2-suffix',
+                      'category-to-be-deleted-id',
+                    ),
                   ],
                   documents: [],
                 },
               });
             });
 
-            it('should throw configuration error', async () => {
-              await expect(async () => {
-                await aggregator.run({
-                  categories: [],
-                  labels: [
-                    generateNormalizedLabel('-1'),
-                    generateNormalizedLabel('-not-2', null, 'label-name-2'),
-                    generateNormalizedLabel('-3'),
-                  ],
-                  documents: [],
-                });
-              }).rejects.toThrowError(
-                new ConfigurerError(
-                  'Name conflict found with suffix "label-name-2-suffix". Try to use different "NAME_CONFLICT_SUFFIX" variable',
-                  { cause: 'name.conflict', item: 'label-name-2-suffix' },
-                ),
-              );
+            it('should alter entity name twice', async () => {
+              const importableContents = await aggregator.run({
+                categories: [],
+                labels: [
+                  generateNormalizedLabel('-1'),
+                  generateNormalizedLabel('-2'),
+                  generateNormalizedLabel('-not-2', null, 'label-name-2'),
+                  generateNormalizedLabel('-3'),
+                ],
+                documents: [],
+              });
+
+              verifyGroups(importableContents.categories, 0, 0, 0);
+              verifyGroups(importableContents.labels, 2, 0, 1);
+              verifyGroups(importableContents.documents, 0, 0, 0);
+
+              expectExternalEntity(importableContents.labels.created[0], {
+                id: null,
+                name: 'label-name-2-suffix-suffix',
+                externalId: 'label-external-id-not-2',
+              });
+              expectExternalEntity(importableContents.labels.created[1], {
+                id: null,
+                name: 'label-name-3',
+                externalId: 'label-external-id-3',
+              });
             });
           });
         });
@@ -838,6 +903,18 @@ describe('DiffAggregator', () => {
       expect(importableContent.deleted.length).toBe(deletedCount);
 
       importableContent.deleted.forEach((d) => expect(d.id).not.toBeNull());
+    }
+
+    function expectExternalEntity(
+      actual: NamedEntity | null,
+      expected: NamedEntity,
+    ): void {
+      const { externalId, name } = actual!;
+      expect({
+        id: null,
+        name,
+        externalId,
+      }).toStrictEqual(expected);
     }
   });
 });
