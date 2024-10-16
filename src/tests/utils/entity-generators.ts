@@ -118,7 +118,7 @@ export function generateNormalizedDocumentWithInternalDocumentLinks(
               {
                 image: {
                   url: 'https://document-image.url',
-                  hyperlink: hyperlink,
+                  ...(hyperlink ? { hyperlink } : {}),
                   externalDocumentId: 'external-doc-id',
                 },
                 type: 'Image',
@@ -130,7 +130,7 @@ export function generateNormalizedDocumentWithInternalDocumentLinks(
                       type: 'Text',
                       text: {
                         text: 'some text',
-                        hyperlink: hyperlink,
+                        ...(hyperlink ? { hyperlink } : {}),
                         externalDocumentId: 'external-doc-id',
                       },
                     },
