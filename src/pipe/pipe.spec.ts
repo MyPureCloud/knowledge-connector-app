@@ -20,6 +20,7 @@ import {
   jest,
 } from '@jest/globals';
 import { Configurer } from './configurer.js';
+import { HookEvent } from './hook-callback.js';
 
 jest.mock('../genesys/genesys-destination-adapter.js');
 
@@ -130,6 +131,32 @@ describe('Pipe', () => {
       });
 
       expect(mockExit).toHaveBeenCalledWith(1);
+    });
+
+    describe('when ON_TIMEOUT hook callback is registered', () => {
+      it('should call hook callback before killing process', async () => {
+        expect.assertions(2);
+
+        const loaderMock = createLongRunningLoaderMock();
+        const hook = async () => {
+          return new Promise<void>((resolve) => {
+            setTimeout(() => {
+              expect(true).toBe(true);
+              resolve();
+            }, 100);
+          });
+        };
+
+        await new Pipe()
+          .adapters(adapterPair)
+          .loaders(loaderMock)
+          .hooks(HookEvent.ON_TIMEOUT, hook)
+          .start({
+            killAfterLongRunningSeconds: '2',
+          });
+
+        expect(mockExit).toHaveBeenCalledWith(1);
+      });
     });
   });
 
