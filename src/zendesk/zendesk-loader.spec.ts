@@ -22,11 +22,16 @@ const mockGetAllLabels = jest.fn<() => Promise<ZendeskLabel[]>>();
 
 describe('ZendeskLoader', () => {
   const LABEL = generateNormalizedLabel('', null, 'label-name');
-  const CATEGORY = generateNormalizedCategory('', null, 'category-name');
+  const CATEGORY = generateNormalizedCategory(
+    '',
+    null,
+    'category-name',
+    'category-external-id',
+  );
   const DOCUMENT = generateRawDocument(
     'article-body',
     {
-      id: null,
+      id: 'category-external-id',
       name: 'category-name',
     },
     [
@@ -129,7 +134,7 @@ describe('ZendeskLoader', () => {
             generateRawDocument(
               'article-body',
               {
-                id: null,
+                id: 'category-external-id',
                 name: 'category-name',
               },
               null,

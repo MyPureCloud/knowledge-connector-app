@@ -196,7 +196,7 @@ export class Pipe {
         try {
           await hook.callback();
         } catch (error) {
-          getLogger().error(`Error running ON_TIMEOUT callback`, error);
+          getLogger().error(`Error running ON_TIMEOUT callback - ${error}`);
         }
       }
     }

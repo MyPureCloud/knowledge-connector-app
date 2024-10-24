@@ -43,10 +43,9 @@ function categoryMapper(
 ): Category {
   const { id, name, category_id, parent_section_id } = category;
 
-  const parentName =
-    parent_section_id || category_id
-      ? idAndNameMapping.get((parent_section_id || category_id)!)
-      : null;
+  const parentId = String(parent_section_id || category_id);
+
+  const parentName = parentId ? idAndNameMapping.get(parentId) : null;
 
   return {
     id: null,
@@ -80,9 +79,15 @@ function articleMapper(
 ): Document {
   const { id, title, body, draft, section_id, label_names } = article;
 
-  const sectionName = section_id
-    ? sectionIdAndNameMapping.get(section_id)
-    : null;
+  const categoryId = String(section_id);
+
+  const category =
+    fetchCategories && section_id
+      ? {
+          id: categoryId,
+          name: sectionIdAndNameMapping.get(categoryId) || categoryId,
+        }
+      : null;
 
   const documentVersion: DocumentVersion = {
     visible: true,
@@ -94,13 +99,7 @@ function articleMapper(
         body: null,
       },
     ],
-    category:
-      fetchCategories && sectionName
-        ? {
-            id: null,
-            name: sectionName,
-          }
-        : null,
+    category,
     labels: fetchLabels
       ? label_names?.map((label) => ({
           id: null,
@@ -124,7 +123,7 @@ function buildIdAndNameMapping(items: ZendeskCategory[]): Map<string, string> {
   if (items) {
     items.forEach((item) => {
       if (item.id && item.name) {
-        mapping.set(item.id, item.name);
+        mapping.set(String(item.id), item.name);
       }
     });
   }

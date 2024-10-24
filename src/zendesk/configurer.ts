@@ -8,6 +8,7 @@ import { PrefixExternalId } from '../processor/prefix-external-id/prefix-externa
 import { DocumentLinkProcessor } from '../processor/document-link/document-link-processor.js';
 import { DiffAggregator } from '../aggregator/diff-aggregator.js';
 import { DiffUploader } from '../uploader/diff-uploader.js';
+import { UrlTransformer } from '../processor/url-transformer/url-transformer.js';
 
 export const configurer: Configurer = (pipe: Pipe) => {
   pipe
@@ -16,6 +17,7 @@ export const configurer: Configurer = (pipe: Pipe) => {
     .processors(
       new HtmlTransformer(),
       new ImageProcessor(),
+      new UrlTransformer(),
       new PrefixExternalId(),
       new DocumentLinkProcessor(),
     )

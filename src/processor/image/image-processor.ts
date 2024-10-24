@@ -138,7 +138,7 @@ export class ImageProcessor implements Processor {
           this.uploadedImageCount++;
         }
       } catch (error) {
-        getLogger().error(`Cannot upload image ${image.url}`);
+        getLogger().error(`Cannot upload image ${image.url} - ${error}`);
       }
     }
 
@@ -196,6 +196,7 @@ export class ImageProcessor implements Processor {
       const urlObject = new URL(src);
       return urlObject.protocol === null;
     } catch (error) {
+      getLogger().debug(`Error parsing URL ${src} - ${error}`);
       // Invalid URL, treat it as relative if it doesn't start with //
       return !src.startsWith('//');
     }
@@ -248,7 +249,7 @@ export class ImageProcessor implements Processor {
       try {
         image = await this.downloadImage(url);
       } catch (error) {
-        getLogger().warn(`Unable to fetch image [${url}] directly`);
+        getLogger().warn(`Unable to fetch image [${url}] directly - ${error}`);
         return null;
       }
     }

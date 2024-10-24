@@ -55,7 +55,7 @@ export class DocumentLinkProcessor implements Processor {
           );
 
           if (externalLink) {
-            block.hyperlink = undefined;
+            delete block.hyperlink;
             block.externalDocumentId = externalLink.externalDocumentId;
             block.externalVariationName = externalLink.externalVariationName;
           }
