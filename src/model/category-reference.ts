@@ -1,4 +1,5 @@
-export interface CategoryReference {
-  id: string | null;
+import { Identifiable } from './identifiable.js';
+
+export interface CategoryReference extends Identifiable {
   name: string | null;
 }

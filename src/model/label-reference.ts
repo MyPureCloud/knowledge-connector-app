@@ -1,4 +1,5 @@
-export interface LabelReference {
-  id: string | null;
+import { Identifiable } from './identifiable.js';
+
+export interface LabelReference extends Identifiable {
   name: string | null;
 }

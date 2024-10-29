@@ -151,6 +151,14 @@ Values: 'true' or 'false'. Default 'false'.
 DISABLE_IMAGE_UPLOAD=
 ```
 
+#### Relative link handling
+
+```
+# Base url for relative link
+# All relative links are amended with the given base URL
+RELATIVE_LINK_BASE_URL=
+```
+
 #### Allow image loading from local filesystem
 
 ```

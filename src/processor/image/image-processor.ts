@@ -26,6 +26,7 @@ import { AttachmentDomainValidator } from '../attachment-domain-validator/attach
 import { getLogger } from '../../utils/logger.js';
 import { AttachmentDomainNotAllowedError } from '../attachment-domain-validator/attachment-domain-not-allowed-error.js';
 import { removeTrailingSlash } from '../../utils/remove-trailing-slash.js';
+import { isRelativeUrl } from '../../utils/links.js';
 
 export class ImageProcessor implements Processor {
   private config: ImageConfig = {};
@@ -106,7 +107,7 @@ export class ImageProcessor implements Processor {
     imageBlock: DocumentBodyImageBlock,
   ): Promise<void> {
     const url = imageBlock.image.url;
-    if (url && this.isRelativeUrl(url)) {
+    if (url && isRelativeUrl(url)) {
       const resolvedURL = new URL(url, this.relativeImageBaseUrl);
       imageBlock.image.url = resolvedURL.href;
     }
@@ -191,17 +192,6 @@ export class ImageProcessor implements Processor {
     });
   }
 
-  private isRelativeUrl(src: string) {
-    try {
-      const urlObject = new URL(src);
-      return urlObject.protocol === null;
-    } catch (error) {
-      getLogger().debug(`Error parsing URL ${src} - ${error}`);
-      // Invalid URL, treat it as relative if it doesn't start with //
-      return !src.startsWith('//');
-    }
-  }
-
   private async fetchImage(
     articleId: string | null,
     url: string,
@@ -228,7 +218,7 @@ export class ImageProcessor implements Processor {
     if (!image) {
       getLogger().debug(`Trying to fetch image [${url}] directly`);
 
-      if (this.isRelativeUrl(url)) {
+      if (isRelativeUrl(url)) {
         if (!this.config?.relativeImageBaseUrl) {
           getLogger().debug(
             `Relative image url [${url}] found but missing RELATIVE_IMAGE_BASE_URL from config`,

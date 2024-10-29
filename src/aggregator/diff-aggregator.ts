@@ -25,6 +25,7 @@ import { DiffAggregatorConfig } from './diff-aggregator-config.js';
 import { extractLinkBlocksFromVariation } from '../utils/link-object-extractor.js';
 import { getLogger } from '../utils/logger.js';
 import { ConfigurerError } from './errors/configurer-error.js';
+import { Identifiable } from '../model/identifiable.js';
 
 /**
  * The DiffAggregator transforms the ExternalContent into ImportableContents,
@@ -237,7 +238,9 @@ export class DiffAggregator implements Aggregator {
     }
 
     const category = allCategories
-      .filter((c) => c.externalId === categoryReference.id)
+      .filter(
+        (c) => c.externalId === this.getPrefixedExternalId(categoryReference),
+      )
       .shift();
 
     if (!category) {
@@ -269,7 +272,9 @@ export class DiffAggregator implements Aggregator {
     allLabels: Label[],
   ): LabelReference {
     const label = allLabels
-      .filter((c) => c.externalId === labelReference.id)
+      .filter(
+        (c) => c.externalId === this.getPrefixedExternalId(labelReference),
+      )
       .shift();
 
     if (!label) {
@@ -405,5 +410,9 @@ export class DiffAggregator implements Aggregator {
 
   private getSourceId(): string | null {
     return this.config.genesysSourceId || null;
+  }
+
+  private getPrefixedExternalId(item: Identifiable) {
+    return (this.config.externalIdPrefix || '') + item.id;
   }
 }
