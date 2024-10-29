@@ -76,20 +76,16 @@ export class ServiceNowApi {
   }
 
   private buildUrl(baseUrl: string): string {
-    const params: string[] = [];
     const esc = encodeURIComponent;
-
-    params.push(`filter=${esc('workflow_state=published')}`);
+    const params: string[] = [];
 
     if (this.config.servicenowKnowledgeBases) {
       params.push(`kb=${esc(this.config.servicenowKnowledgeBases)}`);
     }
 
-    if (this.config.servicenowCategories) {
-      params.push(
-        `filter=${esc(this.buildCategoriesFilter(this.config.servicenowCategories))}`,
-      );
-    }
+    params.push(
+      `filter=${esc(this.buildFilters(this.config.servicenowCategories))}`,
+    );
 
     if (this.config.servicenowLanguage) {
       const language =
@@ -105,6 +101,16 @@ export class ServiceNowApi {
     }
 
     return baseUrl;
+  }
+
+  private buildFilters(categories?: string): string {
+    const filters: string[] = [];
+    filters.push('workflow_state=published');
+
+    if (categories) {
+      filters.push(this.buildCategoriesFilter(categories));
+    }
+    return filters.join('^');
   }
 
   private buildCategoriesFilter(value: string): string {

@@ -36,6 +36,10 @@ describe('UrlTransformer', () => {
     'documents.2.published.variations.0.body.blocks.2.paragraph.blocks.0.image.url',
     'documents.2.published.variations.0.body.blocks.3.table.rows.0.cells.1.blocks.0.image.url',
   ];
+  const RELATIVE_URLS = [
+    'documents.0.published.variations.0.body.blocks.0.paragraph.blocks.1.text.hyperlink',
+    'documents.0.published.variations.0.body.blocks.1.list.blocks.1.blocks.1.image.hyperlink',
+  ];
 
   let transformer: UrlTransformer;
   let content: ExternalContent;
@@ -89,6 +93,26 @@ describe('UrlTransformer', () => {
 
       verifyUrl(result, HYPERLINKS, true);
       verifyUrl(result, IMAGE_URLS, false);
+    });
+  });
+
+  describe('when relativeLinkBaseUrl defined', () => {
+    beforeEach(async () => {
+      await transformer.initialize(
+        {
+          relativeLinkBaseUrl: 'https://the.dom.ain',
+        },
+        {} as AdapterPair<
+          SourceAdapter<unknown, unknown, unknown>,
+          DestinationAdapter
+        >,
+      );
+    });
+
+    it('should resolve hyperlink urls', async () => {
+      const result = await transformer.run(content);
+
+      verifyUrl(result, RELATIVE_URLS, true);
     });
   });
 
@@ -149,6 +173,13 @@ describe('UrlTransformer', () => {
                           hyperlink: 'http://genesys.com/article=1',
                         },
                       },
+                      {
+                        type: 'Text',
+                        text: {
+                          text: 'RelativeLink 1',
+                          hyperlink: '/article=1',
+                        },
+                      },
                     ],
                   },
                 },
@@ -176,6 +207,13 @@ describe('UrlTransformer', () => {
                             image: {
                               url: 'http://genesys.com/3.png',
                               hyperlink: 'http://genesys.com/article=3',
+                            },
+                          },
+                          {
+                            type: 'Image',
+                            image: {
+                              url: 'http://genesys.com/3.png',
+                              hyperlink: '/article=3',
                             },
                           },
                         ],

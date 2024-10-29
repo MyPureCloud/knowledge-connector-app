@@ -106,7 +106,7 @@ describe('ServiceNowApi', () => {
         ...config,
         servicenowCategories: CATEGORY_ID_1,
       };
-      const expectedUrl = `${baseUrl}&limit=50${filters}&filter=kb_category%3D${CATEGORY_ID_1}`;
+      const expectedUrl = `${baseUrl}&limit=50${filters}%5Ekb_category%3D${CATEGORY_ID_1}`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();
@@ -121,7 +121,7 @@ describe('ServiceNowApi', () => {
         ...config,
         servicenowCategories: `${CATEGORY_ID_1}   ,   ${CATEGORY_ID_2}  `,
       };
-      const expectedUrl = `${baseUrl}&limit=50${filters}&filter=kb_category%3D${CATEGORY_ID_1}%5EORkb_category%3D${CATEGORY_ID_2}`;
+      const expectedUrl = `${baseUrl}&limit=50${filters}%5Ekb_category%3D${CATEGORY_ID_1}%5EORkb_category%3D${CATEGORY_ID_2}`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();
@@ -166,7 +166,7 @@ describe('ServiceNowApi', () => {
         ...config,
         servicenowKnowledgeBases: 'kb-id',
       };
-      const expectedUrl = `${baseUrl}&limit=50${filters}&kb=${config.servicenowKnowledgeBases}`;
+      const expectedUrl = `${baseUrl}&limit=50&kb=${config.servicenowKnowledgeBases}${filters}`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();
@@ -181,7 +181,7 @@ describe('ServiceNowApi', () => {
         ...config,
         servicenowKnowledgeBases: 'kb-id1,kb-id2',
       };
-      const expectedUrl = `${baseUrl}&limit=50${filters}&kb=kb-id1%2Ckb-id2`;
+      const expectedUrl = `${baseUrl}&limit=50&kb=kb-id1%2Ckb-id2${filters}`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();
@@ -199,7 +199,7 @@ describe('ServiceNowApi', () => {
         servicenowLanguage: 'de',
         servicenowCategories: `${CATEGORY_ID_2},${CATEGORY_ID_1}`,
       };
-      const expectedUrl = `${baseUrl}&limit=2${filters}&kb=kb-id1%2Ckb-id2&filter=kb_category%3D${CATEGORY_ID_2}%5EORkb_category%3D${CATEGORY_ID_1}&language=de`;
+      const expectedUrl = `${baseUrl}&limit=2&kb=kb-id1%2Ckb-id2${filters}%5Ekb_category%3D${CATEGORY_ID_2}%5EORkb_category%3D${CATEGORY_ID_1}&language=de`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();
