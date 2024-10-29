@@ -79,6 +79,8 @@ export class ServiceNowApi {
     const params: string[] = [];
     const esc = encodeURIComponent;
 
+    params.push(`filter=${esc('workflow_state=published')}`);
+
     if (this.config.servicenowKnowledgeBases) {
       params.push(`kb=${esc(this.config.servicenowKnowledgeBases)}`);
     }
