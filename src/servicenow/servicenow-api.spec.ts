@@ -13,6 +13,7 @@ describe('ServiceNowApi', () => {
 
   const baseUrl: string =
     'https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category';
+  const filters = '&filter=workflow_state%3Dpublished';
   const headers = {
     headers: {
       Authorization: 'Basic dXNlcjpwYXNzd29yZA==',
@@ -75,7 +76,7 @@ describe('ServiceNowApi', () => {
     });
 
     it('should fetch articles with limit 50 by default', async () => {
-      const expectedUrl = `${baseUrl}&limit=50`;
+      const expectedUrl = `${baseUrl}&limit=50${filters}`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();
@@ -90,7 +91,7 @@ describe('ServiceNowApi', () => {
         ...config,
         limit: '2',
       };
-      const expectedUrl = `${baseUrl}&limit=2`;
+      const expectedUrl = `${baseUrl}&limit=2${filters}`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();
@@ -105,7 +106,7 @@ describe('ServiceNowApi', () => {
         ...config,
         servicenowCategories: CATEGORY_ID_1,
       };
-      const expectedUrl = `${baseUrl}&limit=50&filter=kb_category%3D${CATEGORY_ID_1}`;
+      const expectedUrl = `${baseUrl}&limit=50${filters}%5Ekb_category%3D${CATEGORY_ID_1}`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();
@@ -120,7 +121,7 @@ describe('ServiceNowApi', () => {
         ...config,
         servicenowCategories: `${CATEGORY_ID_1}   ,   ${CATEGORY_ID_2}  `,
       };
-      const expectedUrl = `${baseUrl}&limit=50&filter=kb_category%3D${CATEGORY_ID_1}%5EORkb_category%3D${CATEGORY_ID_2}`;
+      const expectedUrl = `${baseUrl}&limit=50${filters}%5Ekb_category%3D${CATEGORY_ID_1}%5EORkb_category%3D${CATEGORY_ID_2}`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();
@@ -135,7 +136,7 @@ describe('ServiceNowApi', () => {
         ...config,
         servicenowLanguage: 'de',
       };
-      const expectedUrl = `${baseUrl}&limit=50&language=de`;
+      const expectedUrl = `${baseUrl}&limit=50${filters}&language=de`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();
@@ -150,7 +151,7 @@ describe('ServiceNowApi', () => {
         ...config,
         servicenowLanguage: 'en-US',
       };
-      const expectedUrl = `${baseUrl}&limit=50&language=en`;
+      const expectedUrl = `${baseUrl}&limit=50${filters}&language=en`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();
@@ -165,7 +166,7 @@ describe('ServiceNowApi', () => {
         ...config,
         servicenowKnowledgeBases: 'kb-id',
       };
-      const expectedUrl = `${baseUrl}&limit=50&kb=${config.servicenowKnowledgeBases}`;
+      const expectedUrl = `${baseUrl}&limit=50&kb=${config.servicenowKnowledgeBases}${filters}`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();
@@ -180,7 +181,7 @@ describe('ServiceNowApi', () => {
         ...config,
         servicenowKnowledgeBases: 'kb-id1,kb-id2',
       };
-      const expectedUrl = `${baseUrl}&limit=50&kb=kb-id1%2Ckb-id2`;
+      const expectedUrl = `${baseUrl}&limit=50&kb=kb-id1%2Ckb-id2${filters}`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();
@@ -198,7 +199,7 @@ describe('ServiceNowApi', () => {
         servicenowLanguage: 'de',
         servicenowCategories: `${CATEGORY_ID_2},${CATEGORY_ID_1}`,
       };
-      const expectedUrl = `${baseUrl}&limit=2&kb=kb-id1%2Ckb-id2&filter=kb_category%3D${CATEGORY_ID_2}%5EORkb_category%3D${CATEGORY_ID_1}&language=de`;
+      const expectedUrl = `${baseUrl}&limit=2&kb=kb-id1%2Ckb-id2${filters}%5Ekb_category%3D${CATEGORY_ID_2}%5EORkb_category%3D${CATEGORY_ID_1}&language=de`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();
@@ -249,8 +250,8 @@ describe('ServiceNowApi', () => {
         ...config,
         limit: '2',
       };
-      const firstExpectedUrl = `${baseUrl}&limit=2`;
-      const secondExpectedUrl = `${baseUrl}&limit=2&offset=2`;
+      const firstExpectedUrl = `${baseUrl}&limit=2${filters}`;
+      const secondExpectedUrl = `${baseUrl}&limit=2&offset=2${filters}`;
 
       await api.initialize(config);
       const response = await api.fetchAllArticles();
@@ -281,7 +282,7 @@ describe('ServiceNowApi', () => {
       await api.initialize(config);
       await expect(() => api.fetchAllArticles()).rejects.toThrowError(
         new ApiError(
-          'Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=50] failed with status [500] and message [null]',
+          `Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=50${filters}] failed with status [500] and message [null]`,
           {
             url: 'https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=50',
             status: 500,
