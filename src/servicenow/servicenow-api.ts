@@ -1,9 +1,12 @@
 import { ServiceNowConfig } from './model/servicenow-config.js';
 import { ServiceNowArticle } from './model/servicenow-article.js';
-import { fetch, Response } from '../utils/web-client.js';
+import {
+  fetch,
+  readResponse,
+  verifyResponseStatus,
+} from '../utils/web-client.js';
 import { ServiceNowResponse } from './model/servicenow-response.js';
 import { ServiceNowArticleAttachment } from './model/servicenow-article-attachment.js';
-import { ApiError } from '../adapter/errors/api-error.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 
 export class ServiceNowApi {
@@ -28,9 +31,8 @@ export class ServiceNowApi {
     const response = await fetch(url, {
       headers: this.buildHeaders(),
     });
-    await this.verifyResponse(response, url);
 
-    const json = (await response.json()) as ServiceNowResponse;
+    const json = await readResponse<ServiceNowResponse>(url, response);
     const end = json.result.meta.end;
     let list = json.result.articles;
 
@@ -50,16 +52,15 @@ export class ServiceNowApi {
     const response = await fetch(url, {
       headers: this.buildHeaders(),
     });
-    await this.verifyResponse(response, url);
 
-    return (await response.json()) as ServiceNowArticleAttachment;
+    return readResponse<ServiceNowArticleAttachment>(url, response);
   }
 
   public async downloadAttachment(url: string): Promise<Blob> {
     const response = await fetch(url, {
       headers: this.buildHeaders(),
     });
-    await this.verifyResponse(response, url);
+    await verifyResponseStatus(url, response);
 
     return await response.blob();
   }
@@ -120,15 +121,5 @@ export class ServiceNowApi {
       .map((f) => f.trim())
       .map((f) => `kb_category=${f}`)
       .join('^OR');
-  }
-
-  private async verifyResponse(response: Response, url: string): Promise<void> {
-    if (!response.ok) {
-      const message = JSON.stringify(await response.json());
-      throw new ApiError(
-        `Api request [${url}] failed with status [${response.status}] and message [${message}]`,
-        { url, status: response.status, message },
-      );
-    }
   }
 }

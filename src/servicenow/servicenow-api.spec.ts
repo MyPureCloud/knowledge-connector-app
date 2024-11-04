@@ -1,11 +1,12 @@
+import { isString } from 'lodash';
 import { ApiError } from '../adapter/errors/api-error.js';
-
-jest.mock('../utils/web-client.js');
 import { ServiceNowApi } from './servicenow-api.js';
 import { ServiceNowArticle } from './model/servicenow-article.js';
 import { ServiceNowConfig } from './model/servicenow-config.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fetch, Response } from '../utils/web-client.js';
+
+jest.mock('../utils/web-client.js');
 
 describe('ServiceNowApi', () => {
   const CATEGORY_ID_1 = '324989582398764';
@@ -43,7 +44,7 @@ describe('ServiceNowApi', () => {
       },
     },
   };
-  const response = Promise.resolve({
+  const response = {
     result: {
       meta: {
         count: 1,
@@ -51,7 +52,7 @@ describe('ServiceNowApi', () => {
       },
       articles: [testArticle],
     },
-  });
+  };
   let mockFetch: jest.Mock<typeof fetch>;
   let api: ServiceNowApi;
   let config: ServiceNowConfig;
@@ -68,11 +69,7 @@ describe('ServiceNowApi', () => {
 
   describe('fetchAllArticles with status ok and one article', () => {
     beforeEach(() => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: () => response,
-      } as Response);
+      mockApiResponse(200, response);
     });
 
     it('should fetch articles with limit 50 by default', async () => {
@@ -212,7 +209,7 @@ describe('ServiceNowApi', () => {
 
   describe('fetchAllArticles with status ok and pagination', () => {
     beforeEach(() => {
-      const response = Promise.resolve({
+      const response = {
         result: {
           meta: {
             count: 4,
@@ -220,9 +217,9 @@ describe('ServiceNowApi', () => {
           },
           articles: [testArticle, testArticle],
         },
-      });
+      };
 
-      const response2 = Promise.resolve({
+      const response2 = {
         result: {
           meta: {
             count: 2,
@@ -230,19 +227,10 @@ describe('ServiceNowApi', () => {
           },
           articles: [testArticle, testArticle],
         },
-      });
+      };
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: () => response,
-      } as Response);
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: () => response2,
-      } as Response);
+      mockApiResponse(200, response);
+      mockApiResponse(200, response2);
     });
 
     it('should fetch all articles', async () => {
@@ -270,19 +258,17 @@ describe('ServiceNowApi', () => {
   });
 
   describe('fetchAllArticles with status error', () => {
+    const ERROR_BODY = '<some><xml></xml></some>';
+
     beforeEach(() => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: () => Promise.resolve(null),
-      } as Response);
+      mockApiResponse(500, ERROR_BODY);
     });
 
     it('should throw api error', async () => {
       await api.initialize(config);
       await expect(() => api.fetchAllArticles()).rejects.toThrowError(
         new ApiError(
-          `Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=50${filters}] failed with status [500] and message [null]`,
+          `Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=50${filters}] failed with status [500] and message [${ERROR_BODY}]`,
           {
             url: 'https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=50',
             status: 500,
@@ -294,5 +280,15 @@ describe('ServiceNowApi', () => {
 
   function checkFetchUrl(expectedUrl: string) {
     expect(fetch).toHaveBeenCalledWith(expectedUrl, headers);
+  }
+
+  function mockApiResponse(status: number, body: unknown): void {
+    const str = isString(body) ? body : JSON.stringify(body);
+
+    mockFetch.mockResolvedValueOnce({
+      ok: status === 200,
+      status,
+      text: () => Promise.resolve(str),
+    } as Response);
   }
 });
