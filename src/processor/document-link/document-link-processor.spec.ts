@@ -9,10 +9,14 @@ import { Document } from '../../model/document.js';
 import { Image } from '../../model/image.js';
 import { SyncDataResponse } from '../../model/sync-data-response.js';
 import { BulkDeleteResponse } from '../../model/bulk-delete-response.js';
-import { ExternalLink } from '../../model/external-link.js';
 import { generateDocumentWithLinkedDocuments } from '../../tests/utils/entity-generators.js';
+import { Category, Label } from '../../model';
+import { PipeContext } from '../../pipe/pipe-context.js';
 
 describe('DocumentLinkProcessor', function () {
+  const EXTERNAL_ID = 'some-external-id';
+  const EXTERNAL_ID_PREFIX = 'external-id-prefix-';
+
   let linkProcessor: DocumentLinkProcessor;
   let sourceAdapter: SourceAdapter<unknown, unknown, unknown>;
   let adapters: AdapterPair<
@@ -24,9 +28,9 @@ describe('DocumentLinkProcessor', function () {
   beforeEach(async () => {
     sourceAdapter = {
       initialize: jest.fn<() => Promise<void>>(),
-      getAllCategories: jest.fn<() => Promise<unknown[]>>(),
-      getAllLabels: jest.fn<() => Promise<unknown[]>>(),
-      getAllArticles: jest.fn<() => Promise<unknown[]>>(),
+      categoryIterator: jest.fn<() => AsyncGenerator<Category, void, void>>(),
+      labelIterator: jest.fn<() => AsyncGenerator<Label, void, void>>(),
+      articleIterator: jest.fn<() => AsyncGenerator<Document, void, void>>(),
       getDocumentLinkMatcherRegexp: jest.fn<() => RegExp | undefined>(),
       getResourceBaseUrl: jest.fn<() => string>(),
     };
@@ -68,34 +72,31 @@ describe('DocumentLinkProcessor', function () {
 
     linkProcessor = new DocumentLinkProcessor();
 
-    await linkProcessor.initialize({ updateDocumentLinks: 'true' }, adapters);
+    await linkProcessor.initialize({ updateDocumentLinks: 'true' }, adapters, {
+      articleLookupTable: {
+        KB0012439: { externalDocumentId: EXTERNAL_ID },
+      },
+    } as unknown as PipeContext);
   });
 
   it('should replace hyperlink field with externalDocumentId for linked doc text block', async function () {
-    const externalId = 'some-external-id';
-    const result = await linkProcessor.run({
-      categories: [],
-      labels: [],
-      documents: [generateDocumentWithLinkedDocuments('1')],
-      articleLookupTable: new Map<string, ExternalLink>([
-        ['KB0012439', { externalDocumentId: externalId }],
-      ]),
-    });
+    const result = await linkProcessor.runOnDocument(
+      generateDocumentWithLinkedDocuments('1'),
+    );
 
-    const blocks =
-      result.documents[0].published?.variations[0].body?.blocks ?? [];
+    const blocks = result.published?.variations[0].body?.blocks ?? [];
     expect(blocks.length).toBe(4);
     expect(blocks[0].paragraph?.blocks[0].text?.hyperlink).toBeUndefined();
     expect(blocks[0].paragraph?.blocks[0].text?.externalDocumentId).toBe(
-      externalId,
+      EXTERNAL_ID,
     );
     expect(blocks[1].list?.blocks[0].blocks[0].text?.hyperlink).toBeUndefined();
     expect(blocks[1].list?.blocks[0].blocks[0].text?.externalDocumentId).toBe(
-      externalId,
+      EXTERNAL_ID,
     );
     expect(blocks[2].paragraph?.blocks[0].image?.hyperlink).toBeUndefined();
     expect(blocks[2].paragraph?.blocks[0].image?.externalDocumentId).toBe(
-      externalId,
+      EXTERNAL_ID,
     );
     expect(
       blocks[3].table?.rows[0].cells[0].blocks[0].list?.blocks[0].blocks[0].text
@@ -104,12 +105,44 @@ describe('DocumentLinkProcessor', function () {
     expect(
       blocks[3].table?.rows[0].cells[0].blocks[0].list?.blocks[0].blocks[0].text
         ?.externalDocumentId,
-    ).toBe(externalId);
+    ).toBe(EXTERNAL_ID);
     expect(
       blocks[3].table?.rows[0].cells[1].blocks[0].image?.hyperlink,
     ).toBeUndefined();
     expect(
       blocks[3].table?.rows[0].cells[1].blocks[0].image?.externalDocumentId,
-    ).toBe(externalId);
+    ).toBe(EXTERNAL_ID);
+  });
+
+  describe('when externalIdPrefix defined', () => {
+    beforeEach(async () => {
+      await linkProcessor.initialize(
+        { updateDocumentLinks: 'true', externalIdPrefix: EXTERNAL_ID_PREFIX },
+        adapters,
+        {
+          articleLookupTable: {
+            KB0012439: { externalDocumentId: EXTERNAL_ID },
+          },
+        } as unknown as PipeContext,
+      );
+    });
+
+    it('should use the externalIdPrefix', async function () {
+      const result = await linkProcessor.runOnDocument(
+        generateDocumentWithLinkedDocuments('1'),
+      );
+
+      const blocks = result.published?.variations[0].body?.blocks ?? [];
+      expect(blocks.length).toBe(4);
+      expect(blocks[0].paragraph?.blocks[0].text?.externalDocumentId).toBe(
+        EXTERNAL_ID_PREFIX + EXTERNAL_ID,
+      );
+      expect(blocks[1].list?.blocks[0].blocks[0].text?.externalDocumentId).toBe(
+        EXTERNAL_ID_PREFIX + EXTERNAL_ID,
+      );
+      expect(blocks[2].paragraph?.blocks[0].image?.externalDocumentId).toBe(
+        EXTERNAL_ID_PREFIX + EXTERNAL_ID,
+      );
+    });
   });
 });

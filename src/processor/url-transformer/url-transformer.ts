@@ -1,16 +1,17 @@
-import { Processor } from '../processor.js';
 import { AdapterPair } from '../../adapter/adapter-pair.js';
-import { ExternalContent } from '../../model/external-content.js';
 import { SourceAdapter } from '../../adapter/source-adapter.js';
 import { DestinationAdapter } from '../../adapter/destination-adapter.js';
 import { UrlTransformerConfig } from './url-transformer-config.js';
-import { Document, Variation } from '../../model';
+import { Document, Variation } from '../../model/document.js';
 import {
   DocumentBodyImageBlock,
   DocumentTextBlock,
 } from 'knowledge-html-converter';
 import { traverseBlocks } from '../../utils/traverse-blocks.js';
 import { convertToAbsolute, isRelativeUrl } from '../../utils/links.js';
+import { Category, Label } from '../../model';
+import { Processor } from '../processor.js';
+import { PipeContext } from '../../pipe/pipe-context.js';
 
 export class UrlTransformer implements Processor {
   private config: UrlTransformerConfig = {};
@@ -24,6 +25,7 @@ export class UrlTransformer implements Processor {
       SourceAdapter<unknown, unknown, unknown>,
       DestinationAdapter
     >,
+    _context: PipeContext,
   ): Promise<void> {
     this.config = config;
 
@@ -32,22 +34,33 @@ export class UrlTransformer implements Processor {
     this.relativeLinkBaseUrl = adapters.sourceAdapter.getResourceBaseUrl() || null;
   }
 
-  public async run(content: ExternalContent): Promise<ExternalContent> {
+  public async runOnCategory(item: Category): Promise<Category> {
+    return item;
+  }
+
+  public async runOnLabel(item: Label): Promise<Label> {
+    return item;
+  }
+
+  public async runOnDocument(item: Document): Promise<Document> {
     if (
       !this.fixNonHttpsImages &&
       !this.fixNonHttpsLinks &&
       !this.relativeLinkBaseUrl
     ) {
-      return content;
+      return item;
     }
 
-    content.documents.forEach((document: Document) => {
-      [
-        ...(document.published?.variations || []),
-        ...(document.draft?.variations || []),
-      ].forEach((variation: Variation) => this.fixUrls(variation));
-    });
-    return content;
+    [
+      ...(item.published?.variations || []),
+      ...(item.draft?.variations || []),
+    ].forEach((variation: Variation) => this.fixUrls(variation));
+
+    return item;
+  }
+
+  public getPriority(): number {
+    return 60;
   }
 
   private fixUrls(variation: Variation): void {

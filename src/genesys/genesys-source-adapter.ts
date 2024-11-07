@@ -1,4 +1,3 @@
-import { SourceAdapter } from '../adapter/source-adapter.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
 import { Document } from '../model/document.js';
@@ -13,13 +12,16 @@ import { getLogger } from '../utils/logger.js';
 import { AttachmentDomainValidator } from '../processor/attachment-domain-validator/attachment-domain-validator.js';
 import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-validator/attachment-domain-not-allowed-error.js';
 import { InvalidExportJobError } from './errors/invalid-export-job-error.js';
+import { GenesysContext } from './model/genesys-context.js';
+import { AbstractSourceAdapter } from '../adapter/abstract-source-adapter.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 
 /**
- * GenesysSourceAdapter implements {@Link SourceAdapter} to fetch data from Genesys Knowledge's API
+ * GenesysSourceAdapter extends {@Link SourceAdapter}, implements {@Link ImageSourceAdapter} to fetch data from Genesys Knowledge's API
  */
 export class GenesysSourceAdapter
-  implements SourceAdapter<Category, Label, Document>, ImageSourceAdapter
+  extends AbstractSourceAdapter<Category, Label, Document>
+  implements ImageSourceAdapter
 {
   private static DOCUMENT_LINK_REGEXP =
     /grn:knowledge:::documentVariation\/[0-9a-fA-F-]+\/([0-9a-fA-F-]+)\/([0-9a-fA-F-]+)/;
@@ -30,10 +32,17 @@ export class GenesysSourceAdapter
   private attachmentDomainValidator?: AttachmentDomainValidator;
 
   constructor() {
+    super();
+
     this.api = new GenesysSourceApi();
   }
 
-  public async initialize(config: GenesysSourceConfig): Promise<void> {
+  public async initialize(
+    config: GenesysSourceConfig,
+    context: GenesysContext,
+  ): Promise<void> {
+    await super.initialize(config, context);
+
     this.config = config;
     await this.api.initialize(config);
 
@@ -41,16 +50,30 @@ export class GenesysSourceAdapter
     this.attachmentDomainValidator = new AttachmentDomainValidator(config);
   }
 
-  public async getAllArticles(): Promise<Document[]> {
-    return this.exportedKnowledgeData?.importAction?.documents || [];
+  public async *categoryIterator(): AsyncGenerator<Category, void, void> {
+    if (this.exportedKnowledgeData?.importAction?.categories) {
+      for (const category of this.exportedKnowledgeData.importAction
+        .categories) {
+        yield category;
+      }
+    }
   }
 
-  public async getAllCategories(): Promise<Category[]> {
-    return this.exportedKnowledgeData?.importAction?.categories || [];
+  public async *labelIterator(): AsyncGenerator<Label, void, void> {
+    if (this.exportedKnowledgeData?.importAction?.labels) {
+      for (const label of this.exportedKnowledgeData.importAction.labels) {
+        yield label;
+      }
+    }
   }
 
-  public async getAllLabels(): Promise<Label[]> {
-    return this.exportedKnowledgeData?.importAction?.labels || [];
+  public async *articleIterator(): AsyncGenerator<Document, void, void> {
+    if (this.exportedKnowledgeData?.importAction?.documents) {
+      for (const document of this.exportedKnowledgeData.importAction
+        .documents) {
+        yield document;
+      }
+    }
   }
 
   public getDocumentLinkMatcherRegexp(): RegExp | undefined {
@@ -67,46 +90,8 @@ export class GenesysSourceAdapter
     return fetchImage(url);
   }
 
-  public async *articleIterator(): AsyncGenerator<
-    Document,
-    void,
-    void
-  > {
-    if (this.exportedKnowledgeData?.importAction?.documents) {
-      for (const document of this.exportedKnowledgeData.importAction.documents) {
-        yield document;
-      }
-    }
-  }
-
-  public async *categoryIterator(): AsyncGenerator<
-    Category,
-    void,
-    void
-  > {
-    if (this.exportedKnowledgeData?.importAction?.categories) {
-      for (const category of this.exportedKnowledgeData.importAction.categories) {
-        yield category;
-      }
-    }
-  }
-
-  public async *labelIterator(): AsyncGenerator<
-    Label,
-    void,
-    void
-  > {
-    if (this.exportedKnowledgeData?.importAction?.labels) {
-      for (const label of this.exportedKnowledgeData.importAction.labels) {
-        yield label;
-      }
-    }
-  }
-
-  public getResourceBaseUrl(): string {
-    return removeTrailingSlash(
-      this.config.relativeLinkBaseUrl || this.api.getInstanceUrl() || '',
-    );
+  getResourceBaseUrl(): string {
+    return removeTrailingSlash(this.api.getInstanceUrl() || '');
   }
 
   private async exportAllEntities(): Promise<ExportModel> {

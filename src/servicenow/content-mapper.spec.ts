@@ -1,10 +1,10 @@
 import { describe, expect, it } from '@jest/globals';
-import { articleMapper } from './content-mapper';
+import { articleMapper } from './content-mapper.js';
 
 describe('contentMapper', () => {
   describe('article mapper', () => {
     it('should include article external url if enabled', () => {
-      const result = articleMapper(buildArticle(), {
+      const [result] = articleMapper(buildArticle(), {
         fetchCategories: false,
         buildExternalUrls: true,
         baseUrl: 'https://test.service-now.com',

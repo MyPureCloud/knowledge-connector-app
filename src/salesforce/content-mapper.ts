@@ -27,7 +27,7 @@ export function articleMapper(
   article: SalesforceArticleDetails,
   context: SalesforceContext,
   configuration: SalesforceMapperConfiguration,
-): Document {
+): Document[] {
   const { id, title, categoryGroups, layoutItems } = article;
 
   replaceImageUrls(layoutItems);
@@ -59,19 +59,21 @@ export function articleMapper(
     labels,
   };
 
-  return {
-    id: null,
-    externalId: String(id),
-    externalUrl: configuration.buildExternalUrls
-      ? buildExternalUrl(
-          configuration.baseUrl,
-          configuration.languageCode,
-          article.urlName,
-        )
-      : null,
-    published: documentVersion,
-    draft: null,
-  };
+  return [
+    {
+      id: null,
+      externalId: String(id),
+      externalUrl: configuration.buildExternalUrls
+        ? buildExternalUrl(
+            configuration.baseUrl,
+            configuration.languageCode,
+            article.urlName,
+          )
+        : null,
+      published: documentVersion,
+      draft: null,
+    },
+  ];
 }
 
 function categoryFlatter(
@@ -132,9 +134,9 @@ function buildExternalUrl(
 
 function getLabelByExternalId(
   externalId: string,
-  labels: Map<string, Label>,
+  labels: Record<string, Label>,
 ): Label | null {
-  return labels.get(externalId) || null;
+  return labels[externalId] || null;
 }
 
 function replaceImageUrls(layoutItems: SalesforceArticleLayoutItem[]): void {

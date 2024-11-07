@@ -1,6 +1,4 @@
-import { Processor } from '../processor.js';
 import { AdapterPair } from '../../adapter/adapter-pair.js';
-import { ExternalContent } from '../../model/external-content.js';
 import { SourceAdapter } from '../../adapter/source-adapter.js';
 import { DestinationAdapter } from '../../adapter/destination-adapter.js';
 import {
@@ -9,9 +7,16 @@ import {
 } from '../../utils/link-object-extractor.js';
 import { getLogger } from '../../utils/logger.js';
 import { DocumentLinkProcessorConfig } from './document-link-processor-config.js';
+import { Document } from '../../model/document.js';
+import { Category, Label } from '../../model';
+import { Processor } from '../processor.js';
+import { DocumentLinkError } from './document-link-error.js';
+import { PipeContext } from '../../pipe/pipe-context.js';
 
 export class DocumentLinkProcessor implements Processor {
   private config: DocumentLinkProcessorConfig = {};
+  private context?: PipeContext;
+  private externalIdPrefix: string = '';
   private regexp: RegExp | undefined;
 
   public async initialize(
@@ -20,48 +25,68 @@ export class DocumentLinkProcessor implements Processor {
       SourceAdapter<unknown, unknown, unknown>,
       DestinationAdapter
     >,
+    context: PipeContext,
   ): Promise<void> {
     this.config = config;
+    this.context = context;
+    this.externalIdPrefix = config.externalIdPrefix || '';
     this.regexp = adapters.sourceAdapter.getDocumentLinkMatcherRegexp();
   }
 
-  public async run(content: ExternalContent): Promise<ExternalContent> {
-    const articleLookupTable = content.articleLookupTable;
+  public async runOnCategory(item: Category): Promise<Category> {
+    return item;
+  }
+
+  public async runOnLabel(item: Label): Promise<Label> {
+    return item;
+  }
+
+  public async runOnDocument(item: Document): Promise<Document> {
     if (this.config.updateDocumentLinks !== 'true') {
-      return content;
+      return item;
     }
 
+    const { articleLookupTable } = this.context!;
     if (!articleLookupTable) {
       getLogger().warn(
         'Cannot update internal article links. Lookup table does not exist',
       );
-      return content;
+      return item;
     }
 
-    content.documents.forEach((document) => {
-      [
-        ...(document.published?.variations || []),
-        ...(document.draft?.variations || []),
-      ].forEach((variation) => {
-        extractLinkBlocksFromVariation(variation).forEach((block) => {
-          if (!block.hyperlink) {
-            return;
-          }
+    [
+      ...(item.published?.variations || []),
+      ...(item.draft?.variations || []),
+    ].forEach((variation) => {
+      extractLinkBlocksFromVariation(variation).forEach((block) => {
+        if (!block.hyperlink) {
+          return;
+        }
 
-          const externalLink = extractDocumentIdFromUrl(
-            articleLookupTable,
-            block.hyperlink,
-            this.regexp,
-          );
+        const externalLink = extractDocumentIdFromUrl(
+          articleLookupTable,
+          block.hyperlink,
+          this.regexp,
+        );
 
-          if (externalLink) {
-            delete block.hyperlink;
-            block.externalDocumentId = externalLink.externalDocumentId;
-            block.externalVariationName = externalLink.externalVariationName;
-          }
-        });
+        if (!externalLink) {
+          throw new DocumentLinkError('Cannot resolve link', {
+            link: block.hyperlink,
+            articleId: item.externalId,
+          });
+        }
+
+        delete block.hyperlink;
+        block.externalDocumentId =
+          this.externalIdPrefix + externalLink.externalDocumentId;
+        block.externalVariationName = externalLink.externalVariationName;
       });
     });
-    return content;
+
+    return item;
+  }
+
+  public getPriority(): number {
+    return 60;
   }
 }

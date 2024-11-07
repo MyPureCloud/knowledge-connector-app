@@ -6,6 +6,7 @@ import { ServiceNowConfig } from './model/servicenow-config.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fetch, Response } from '../utils/web-client.js';
 import { arraysFromAsync } from '../utils/arrays.js';
+import { ServiceNowContext } from './model/servicenow-context.js';
 
 jest.mock('../utils/web-client.js');
 
@@ -57,6 +58,7 @@ describe('ServiceNowApi', () => {
   let mockFetch: jest.Mock<typeof fetch>;
   let api: ServiceNowApi;
   let config: ServiceNowConfig;
+  let context: ServiceNowContext;
 
   beforeEach(async () => {
     mockFetch = fetch as jest.Mock<typeof fetch>;
@@ -66,6 +68,7 @@ describe('ServiceNowApi', () => {
       servicenowPassword: 'password',
       servicenowBaseUrl: 'https://test-url.com',
     };
+    context = buildContext();
   });
 
   describe('categoryIterator', () => {
@@ -81,7 +84,7 @@ describe('ServiceNowApi', () => {
       it('should fetch articles with limit 50 by default', async () => {
         const expectedUrl = `${baseUrl}${filters}&limit=50&offset=0`;
 
-        await api.initialize(config);
+        await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
@@ -96,7 +99,7 @@ describe('ServiceNowApi', () => {
         };
         const expectedUrl = `${baseUrl}${filters}&limit=2&offset=0`;
 
-        await api.initialize(config);
+        await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
@@ -111,7 +114,7 @@ describe('ServiceNowApi', () => {
         };
         const expectedUrl = `${baseUrl}${filters}%5Ekb_category%3D${CATEGORY_ID_1}&limit=50&offset=0`;
 
-        await api.initialize(config);
+        await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
@@ -126,7 +129,7 @@ describe('ServiceNowApi', () => {
         };
         const expectedUrl = `${baseUrl}${filters}%5Ekb_category%3D${CATEGORY_ID_1}%5EORkb_category%3D${CATEGORY_ID_2}&limit=50&offset=0`;
 
-        await api.initialize(config);
+        await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
@@ -141,7 +144,7 @@ describe('ServiceNowApi', () => {
         };
         const expectedUrl = `${baseUrl}${filters}&language=de&limit=50&offset=0`;
 
-        await api.initialize(config);
+        await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
@@ -156,7 +159,7 @@ describe('ServiceNowApi', () => {
         };
         const expectedUrl = `${baseUrl}${filters}&language=en&limit=50&offset=0`;
 
-        await api.initialize(config);
+        await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
@@ -171,7 +174,7 @@ describe('ServiceNowApi', () => {
         };
         const expectedUrl = `${baseUrl}&kb=${config.servicenowKnowledgeBases}${filters}&limit=50&offset=0`;
 
-        await api.initialize(config);
+        await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
@@ -186,7 +189,7 @@ describe('ServiceNowApi', () => {
         };
         const expectedUrl = `${baseUrl}&kb=kb-id1%2Ckb-id2${filters}&limit=50&offset=0`;
 
-        await api.initialize(config);
+        await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
@@ -204,7 +207,7 @@ describe('ServiceNowApi', () => {
         };
         const expectedUrl = `${baseUrl}&kb=kb-id1%2Ckb-id2${filters}%5Ekb_category%3D${CATEGORY_ID_2}%5EORkb_category%3D${CATEGORY_ID_1}&language=de&limit=2&offset=0`;
 
-        await api.initialize(config);
+        await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
@@ -247,7 +250,7 @@ describe('ServiceNowApi', () => {
         const firstExpectedUrl = `${baseUrl}${filters}&limit=2&offset=0`;
         const secondExpectedUrl = `${baseUrl}${filters}&limit=2&offset=2`;
 
-        await api.initialize(config);
+        await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(fetch).toHaveBeenCalledTimes(2);
@@ -271,7 +274,7 @@ describe('ServiceNowApi', () => {
       });
 
       it('should throw api error', async () => {
-        await api.initialize(config);
+        await api.initialize(config, context);
         await expect(() =>
           arraysFromAsync(api.articleIterator()),
         ).rejects.toThrowError(
@@ -299,5 +302,19 @@ describe('ServiceNowApi', () => {
       status,
       text: () => Promise.resolve(str),
     } as Response);
+  }
+
+  function buildContext(): ServiceNowContext {
+    return {
+      adapter: {
+        unprocessedItems: {
+          categories: [],
+          labels: [],
+          articles: [],
+        },
+      },
+      articleLookupTable: {},
+      categoryLookupTable: {},
+    };
   }
 });

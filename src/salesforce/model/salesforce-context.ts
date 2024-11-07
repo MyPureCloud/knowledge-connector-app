@@ -1,11 +1,28 @@
-import { Context } from '../../model/context.js';
 import { SalesforceCategoryGroup } from './salesforce-category-group.js';
 import { SalesforceArticleDetails } from './salesforce-article-details.js';
-import { ExternalLink } from '../../model/external-link.js';
 import { Label } from '../../model';
+import { AdapterContext } from '../../adapter/adapter-context.js';
+import { SalesforceArticle } from './salesforce-article.js';
+import { SalesforceEntityTypes } from './salesforce-entity-types.js';
 
 export interface SalesforceContext
-  extends Context<SalesforceCategoryGroup, unknown, SalesforceArticleDetails> {
-  articleLookupTable: Map<string, ExternalLink>;
-  labelLookupTable: Map<string, Label>;
+  extends AdapterContext<
+    SalesforceCategoryGroup,
+    unknown,
+    SalesforceArticleDetails
+  > {
+  labelLookupTable: Record<string, Label>;
+  api?: SalesforceApiContext;
+}
+
+export interface SalesforceApiContext {
+  [SalesforceEntityTypes.CATEGORY_GROUPS]: SalesforceSectionContext<SalesforceCategoryGroup>;
+  [SalesforceEntityTypes.ARTICLES]: SalesforceSectionContext<SalesforceArticle>;
+}
+
+export interface SalesforceSectionContext<T> {
+  done: boolean;
+  started: boolean;
+  nextUrl: string | null;
+  unprocessed: T[];
 }

@@ -10,7 +10,8 @@ import {
   generateRawDocument,
 } from '../tests/utils/entity-generators.js';
 import { ServiceNowCategory } from './model/servicenow-category.js';
-import { arraysFromAsync } from '../utils/arrays';
+import { ServiceNowContext } from './model/servicenow-context.js';
+import { arraysFromAsync } from '../utils/arrays.js';
 
 const mockGetAttachment =
   jest.fn<(articleId: string | null, url: string) => Promise<Image | null>>();
@@ -55,6 +56,7 @@ describe('ServiceNowLoader', () => {
   let config: ServiceNowConfig;
   let adapter: ServiceNowAdapter;
   let loader: ServiceNowLoader;
+  let context: ServiceNowContext;
 
   beforeEach(async () => {
     config = {
@@ -64,6 +66,7 @@ describe('ServiceNowLoader', () => {
     };
     adapter = new ServiceNowAdapter();
     loader = new ServiceNowLoader();
+    context = buildContext();
 
     mockArticleIterator.mockImplementation(articleIterator);
     mockCategoryIterator.mockImplementation(categoryIterator);
@@ -71,10 +74,14 @@ describe('ServiceNowLoader', () => {
 
   describe('run', () => {
     beforeEach(async () => {
-      await loader.initialize(config, {
-        sourceAdapter: adapter,
-        destinationAdapter: {} as Adapter,
-      });
+      await loader.initialize(
+        config,
+        {
+          sourceAdapter: adapter,
+          destinationAdapter: {} as Adapter,
+        },
+        context,
+      );
     });
 
     it('should map categories', async () => {
@@ -99,6 +106,7 @@ describe('ServiceNowLoader', () => {
             sourceAdapter: adapter,
             destinationAdapter: {} as Adapter,
           },
+          context,
         );
       });
 
@@ -117,6 +125,7 @@ describe('ServiceNowLoader', () => {
             sourceAdapter: adapter,
             destinationAdapter: {} as Adapter,
           },
+          context,
         );
       });
 
@@ -124,9 +133,42 @@ describe('ServiceNowLoader', () => {
         const result = await arraysFromAsync(loader.documentIterator());
 
         expect(result.length).toBe(0);
+
+        expect(Object.entries(context.articleLookupTable).length).toBe(0);
       });
     });
   });
+
+  function buildContext(): ServiceNowContext {
+    return {
+      adapter: {
+        unprocessedItems: {
+          categories: [] as ServiceNowCategory[],
+          labels: [] as unknown[],
+          articles: [] as ServiceNowArticle[],
+        },
+      },
+      syncableContents: {
+        categories: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+        labels: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+        documents: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+      },
+      articleLookupTable: {},
+      categoryLookupTable: {},
+    };
+  }
 });
 
 jest.mock('./servicenow-adapter.js', () => {

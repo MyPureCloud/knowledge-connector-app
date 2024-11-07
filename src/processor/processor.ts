@@ -1,17 +1,9 @@
-import { ExternalContent } from '../model/external-content.js';
-import { Config } from '../config.js';
-import { AdapterPair } from '../adapter/adapter-pair.js';
-import { Adapter } from '../adapter/adapter.js';
-import { Task } from '../pipe/task.js';
+import { Category, Document, Label } from '../model';
+import { Runnable } from '../pipe/runnable.js';
 
 /**
- * Processor is {@Link Task} that can perform any transformation before {@Link Aggregator} gets the {@Link ExternalContent}
+ * Processor can perform any transformation
  */
-export interface Processor extends Task<ExternalContent, ExternalContent> {
-  initialize(
-    config: Config,
-    adapters: AdapterPair<Adapter, Adapter>,
-  ): Promise<void>;
-
-  run(content: ExternalContent): Promise<ExternalContent>;
+export interface Processor extends Runnable<Category, Label, Document> {
+  getPriority(): number;
 }

@@ -1,13 +1,11 @@
 import { describe, expect, it } from '@jest/globals';
 import { articleMapper } from './content-mapper.js';
 import { SalesforceContext } from './model/salesforce-context.js';
-import { ExternalLink } from '../model/external-link.js';
-import { Label } from '../model';
 
 describe('contentMapper', () => {
   describe('articleMapper', () => {
     it('should exclude none text fields', () => {
-      const result = articleMapper(buildArticle(), buildContext(), {
+      const [result] = articleMapper(buildArticle(), buildContext(), {
         languageCode: 'en-US',
         buildExternalUrls: false,
         fetchLabels: false,
@@ -22,7 +20,7 @@ describe('contentMapper', () => {
     });
 
     it('should include only requested fields', () => {
-      const result = articleMapper(buildArticle(), buildContext(), {
+      const [result] = articleMapper(buildArticle(), buildContext(), {
         languageCode: 'en-US',
         buildExternalUrls: false,
         fetchLabels: false,
@@ -37,7 +35,7 @@ describe('contentMapper', () => {
     });
 
     it('should include article external url if enabled', () => {
-      const result = articleMapper(buildArticle(), buildContext(), {
+      const [result] = articleMapper(buildArticle(), buildContext(), {
         languageCode: 'en_US',
         buildExternalUrls: true,
         fetchLabels: false,
@@ -106,23 +104,32 @@ describe('contentMapper', () => {
 
   function buildContext(): SalesforceContext {
     return {
-      processedItems: {
-        categories: [],
-        labels: [],
-        documents: [],
+      adapter: {
+        unprocessedItems: {
+          categories: [],
+          labels: [],
+          articles: [],
+        },
       },
-      unprocessedItems: {
-        categories: [],
-        labels: [],
-        articles: [],
+      syncableContents: {
+        categories: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+        labels: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+        documents: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
       },
-      unprocessableItems: {
-        categories: [],
-        labels: [],
-        articles: [],
-      },
-      articleLookupTable: new Map<string, ExternalLink>(),
-      labelLookupTable: new Map<string, Label>(),
+      articleLookupTable: {},
+      labelLookupTable: {},
     };
   }
 });

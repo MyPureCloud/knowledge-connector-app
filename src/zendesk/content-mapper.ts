@@ -10,7 +10,7 @@ import { ZendeskContext } from './model/zendesk-context.js';
 export function categoryMapper(
   category: ZendeskSection,
   context: ZendeskContext,
-): Category | null {
+): Category[] {
   const { id, name, category_id, parent_section_id } = category;
 
   const parentId =
@@ -19,35 +19,39 @@ export function categoryMapper(
       : undefined;
 
   const parentCategory = parentId
-    ? context.categoryLookupTable.get(parentId)
+    ? context.categoryLookupTable[parentId]
     : null;
   if (parentCategory === undefined) {
     // Parent is not yet processed
-    return null;
+    return [];
   }
 
-  return {
-    id: null,
-    externalId: String(id),
-    name,
-    parentCategory: parentCategory
-      ? {
-          id: null,
-          name: parentCategory.name,
-        }
-      : null,
-  };
+  return [
+    {
+      id: null,
+      externalId: String(id),
+      name,
+      parentCategory: parentCategory
+        ? {
+            id: null,
+            name: parentCategory.name,
+          }
+        : null,
+    },
+  ];
 }
 
-export function labelMapper(label: ZendeskLabel): Label {
+export function labelMapper(label: ZendeskLabel): Label[] {
   const { id, name } = label;
 
-  return {
-    id: null,
-    externalId: String(id),
-    name,
-    color: GeneratedValue.COLOR,
-  };
+  return [
+    {
+      id: null,
+      externalId: String(id),
+      name,
+      color: GeneratedValue.COLOR,
+    },
+  ];
 }
 
 export function articleMapper(
@@ -55,7 +59,7 @@ export function articleMapper(
   context: ZendeskContext,
   fetchCategories: boolean,
   fetchLabels: boolean,
-): Document {
+): Document[] {
   const { id, title, body, draft, section_id, label_names } = article;
 
   const categoryId = String(section_id);
@@ -64,7 +68,7 @@ export function articleMapper(
     fetchCategories && section_id
       ? {
           id: categoryId,
-          name: context.categoryLookupTable.get(categoryId)?.name || categoryId,
+          name: context.categoryLookupTable[categoryId]?.name || categoryId,
         }
       : null;
 
@@ -87,11 +91,13 @@ export function articleMapper(
       : null,
   };
 
-  return {
-    id: null,
-    externalId: String(id),
-    externalUrl: null,
-    published: !draft ? documentVersion : null,
-    draft: draft ? documentVersion : null,
-  };
+  return [
+    {
+      id: null,
+      externalId: String(id),
+      externalUrl: null,
+      published: !draft ? documentVersion : null,
+      draft: draft ? documentVersion : null,
+    },
+  ];
 }

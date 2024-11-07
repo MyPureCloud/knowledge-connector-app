@@ -10,16 +10,39 @@ import { ServiceNowArticleAttachment } from './model/servicenow-article-attachme
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 import { ServiceNowCategory } from './model/servicenow-category.js';
 import { ServiceNowCategoryResponse } from './model/servicenow-category-response.js';
+import {
+  ServiceNowApiContext,
+  ServiceNowContext,
+} from './model/servicenow-context.js';
+import { setIfMissing } from '../utils/objects.js';
+import { getLogger } from '../utils/logger.js';
 
 export class ServiceNowApi {
   private config: ServiceNowConfig = {};
   private limit: number = 0;
   private baseUrl: string = '';
+  private apiContext: ServiceNowApiContext = {
+    categories: {
+      done: false,
+      nextOffset: 0,
+      unprocessed: [],
+    },
+    articles: {
+      done: false,
+      nextOffset: 0,
+      unprocessed: [],
+    },
+  };
 
-  public async initialize(config: ServiceNowConfig): Promise<void> {
+  public async initialize(
+    config: ServiceNowConfig,
+    context: ServiceNowContext,
+  ): Promise<void> {
     this.config = config;
     this.limit = this.config.limit ? parseInt(this.config.limit, 10) : 50;
     this.baseUrl = removeTrailingSlash(this.config.servicenowBaseUrl || '');
+
+    this.apiContext = setIfMissing(context, 'api', this.apiContext);
   }
 
   public async *categoryIterator(): AsyncGenerator<
@@ -27,9 +50,12 @@ export class ServiceNowApi {
     void,
     void
   > {
+    if (this.apiContext.categories.done) {
+      return;
+    }
+
     yield* this.getCategoryPage(
       `/api/now/table/kb_category?sysparm_fields=sys_id,full_category&active=true&sysparm_query=parent_id!%3Dundefined&sysparm_limit=${this.limit}`,
-      'sysparm_offset',
     );
   }
 
@@ -38,18 +64,36 @@ export class ServiceNowApi {
     void,
     void
   > {
+    if (this.apiContext.articles.done) {
+      return;
+    }
+
     yield* this.getArticlePage(
       `/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&${this.queryParams()}&limit=${this.limit}`,
-      'offset',
     );
   }
 
   private async *getArticlePage(
     endpoint: string,
-    offsetParam: string,
   ): AsyncGenerator<ServiceNowArticle, void, void> {
-    let url: string | null = `${this.baseUrl}${endpoint}&${offsetParam}=0`;
+    getLogger().debug(`getArticlePage`); // TODO
+    let offset: number | null = this.apiContext.articles.nextOffset;
+    let url: string | null =
+      offset !== null ? `${this.baseUrl}${endpoint}&offset=${offset}` : null;
 
+    if (this.apiContext.articles.unprocessed) {
+      getLogger().debug(
+        `Processing unprocessed item ${this.apiContext.articles.unprocessed.length}`,
+      ); // TODO
+      for await (const item of this.processList(
+        this.apiContext.articles.unprocessed,
+      )) {
+        yield item;
+      }
+      getLogger().debug(`Processing unprocessed item finished`); // TODO
+    }
+
+    getLogger().debug(`Fetching page ${offset}`); // TODO
     while (url) {
       const response = await fetch(url, {
         headers: this.buildHeaders(),
@@ -59,24 +103,44 @@ export class ServiceNowApi {
         await readResponse<ServiceNowArticleResponse>(url, response);
       const list = json.result.articles;
 
-      for (const item of list) {
+      offset =
+        json.result.meta.count > json.result.meta.end
+          ? json.result.meta.end
+          : null;
+      url =
+        offset !== null ? `${this.baseUrl}${endpoint}&offset=${offset}` : null;
+
+      this.apiContext.articles.unprocessed = list;
+      this.apiContext.articles.nextOffset = offset;
+
+      getLogger().debug(`Loaded articles ${list.length}`); // TODO
+      for await (const item of this.processList(
+        this.apiContext.articles.unprocessed,
+      )) {
         yield item;
       }
-
-      url =
-        json.result.meta.count > json.result.meta.end
-          ? `${this.baseUrl}${endpoint}&${offsetParam}=${json.result.meta.end}`
-          : null;
+      getLogger().debug(`Loaded articles finished`); // TODO
     }
+
+    this.apiContext.articles.done = true;
   }
 
   private async *getCategoryPage(
     endpoint: string,
-    offsetParam: string,
   ): AsyncGenerator<ServiceNowCategory, void, void> {
-    let offset: number | null = 0;
+    let offset: number | null = this.apiContext.categories.nextOffset;
     let url: string | null =
-      `${this.baseUrl}${endpoint}&${offsetParam}=${offset}`;
+      offset !== null
+        ? `${this.baseUrl}${endpoint}&sysparm_offset=${offset}`
+        : null;
+
+    if (this.apiContext.categories.unprocessed) {
+      for await (const item of this.processList(
+        this.apiContext.categories.unprocessed,
+      )) {
+        yield item;
+      }
+    }
 
     while (url && offset !== null) {
       const response = await fetch(url, {
@@ -87,15 +151,20 @@ export class ServiceNowApi {
         await readResponse<ServiceNowCategoryResponse>(url, response);
       const list = json.result;
 
-      for (const item of list) {
-        yield item;
-      }
-
       offset = list.length > 0 ? offset + list.length : null;
       url = offset
-        ? `${this.baseUrl}${endpoint}&${offsetParam}=${offset}`
+        ? `${this.baseUrl}${endpoint}&sysparm_offset=${offset}`
         : null;
+
+      this.apiContext.categories.unprocessed = list;
+      this.apiContext.categories.nextOffset = offset;
+
+      for await (const item of this.processList(list)) {
+        yield item;
+      }
     }
+
+    this.apiContext.categories.done = true;
   }
 
   public async fetchAttachmentInfo(
@@ -174,5 +243,17 @@ export class ServiceNowApi {
       .map((f) => f.trim())
       .map((f) => `kb_category=${f}`)
       .join('^OR');
+  }
+
+  private async *processList<T>(list: T[]): AsyncGenerator<T, void, void> {
+    while (list.length > 0) {
+      const item = list.shift();
+      const str = JSON.stringify(item);
+      getLogger().debug(
+        `yield (${list.length} left) ${str.substring(0, Math.min(150, str.length))}`,
+      ); // TODO
+      yield Promise.resolve(item!);
+    }
+    getLogger().debug('processList finished'); // TODO
   }
 }

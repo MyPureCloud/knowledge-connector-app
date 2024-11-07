@@ -9,7 +9,7 @@ import { ServiceNowMapperConfiguration } from './model/servicenow-mapper-configu
 export function categoryMapper(
   category: ServiceNowCategory,
   context: ServiceNowContext,
-): Category | null {
+): Category[] {
   const {
     sys_id: externalId,
     full_category: name,
@@ -17,28 +17,28 @@ export function categoryMapper(
   } = category;
 
   const parentCategory =
-    parent && parent.value
-      ? context.categoryLookupTable.get(parent.value)
-      : null;
+    parent && parent.value ? context.categoryLookupTable[parent.value] : null;
   if (parentCategory === undefined) {
     // Parent is not yet processed
-    return null;
+    return [];
   }
 
-  return {
-    id: null,
-    name,
-    externalId,
-    parentCategory: parentCategory
-      ? { id: null, name: parentCategory.full_category }
-      : null,
-  };
+  return [
+    {
+      id: null,
+      name,
+      externalId,
+      parentCategory: parentCategory
+        ? { id: null, name: parentCategory.full_category }
+        : null,
+    },
+  ];
 }
 
 export function articleMapper(
   article: ServiceNowArticle,
   configuration: ServiceNowMapperConfiguration,
-): Document {
+): Document[] {
   const {
     id,
     title,
@@ -64,15 +64,17 @@ export function articleMapper(
     labels: null,
   };
 
-  return {
-    id: null,
-    externalId: String(id),
-    externalUrl: configuration.buildExternalUrls
-      ? buildExternalUrl(configuration.baseUrl, article.number)
-      : null,
-    published: state === 'published' ? documentVersion : null,
-    draft: state !== 'published' ? documentVersion : null,
-  };
+  return [
+    {
+      id: null,
+      externalId: String(id),
+      externalUrl: configuration.buildExternalUrls
+        ? buildExternalUrl(configuration.baseUrl, article.number)
+        : null,
+      published: state === 'published' ? documentVersion : null,
+      draft: state !== 'published' ? documentVersion : null,
+    },
+  ];
 }
 
 function getCategoryReference(

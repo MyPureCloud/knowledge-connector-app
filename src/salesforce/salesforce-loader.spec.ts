@@ -7,7 +7,8 @@ import { SalesforceLoader } from './salesforce-loader.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
 import { generateRawDocument } from '../tests/utils/entity-generators.js';
 import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
-import { arraysFromAsync } from '../utils/arrays';
+import { SalesforceContext } from './model/salesforce-context.js';
+import { arraysFromAsync } from '../utils/arrays.js';
 
 const mockGetAttachment =
   jest.fn<(articleId: string | null, url: string) => Promise<Image | null>>();
@@ -34,6 +35,7 @@ describe('SalesforceLoader', () => {
   let config: SalesforceConfig;
   let adapter: SalesforceAdapter;
   let loader: SalesforceLoader;
+  let context: SalesforceContext;
 
   beforeEach(async () => {
     config = {
@@ -47,6 +49,7 @@ describe('SalesforceLoader', () => {
     };
     adapter = new SalesforceAdapter();
     loader = new SalesforceLoader();
+    context = buildContext();
 
     mockArticleIterator.mockImplementation(articleIterator);
     mockCategoryIterator.mockImplementation(categoryIterator);
@@ -57,10 +60,14 @@ describe('SalesforceLoader', () => {
 
   describe('run', () => {
     beforeEach(async () => {
-      await loader.initialize(config, {
-        sourceAdapter: adapter,
-        destinationAdapter: {} as Adapter,
-      });
+      await loader.initialize(
+        config,
+        {
+          sourceAdapter: adapter,
+          destinationAdapter: {} as Adapter,
+        },
+        context,
+      );
     });
 
     it('should map labels', async () => {
@@ -77,6 +84,14 @@ describe('SalesforceLoader', () => {
       expect(value).toEqual(DOCUMENT);
     });
 
+    it('should build articleLookupTable', async () => {
+      await loader.documentIterator().next();
+
+      expect(context.articleLookupTable['testUrlName']).toEqual({
+        externalDocumentId: 'article-external-id',
+      });
+    });
+
     describe('when labels excluded', () => {
       beforeEach(async () => {
         await loader.initialize(
@@ -85,6 +100,7 @@ describe('SalesforceLoader', () => {
             sourceAdapter: adapter,
             destinationAdapter: {} as Adapter,
           },
+          context,
         );
       });
 
@@ -103,6 +119,7 @@ describe('SalesforceLoader', () => {
             sourceAdapter: adapter,
             destinationAdapter: {} as Adapter,
           },
+          context,
         );
       });
 
@@ -110,9 +127,42 @@ describe('SalesforceLoader', () => {
         const result = await arraysFromAsync(loader.documentIterator());
 
         expect(result.length).toBe(0);
+
+        expect(Object.entries(context.articleLookupTable).length).toBe(0);
       });
     });
   });
+
+  function buildContext(): SalesforceContext {
+    return {
+      adapter: {
+        unprocessedItems: {
+          categories: [] as SalesforceCategoryGroup[],
+          labels: [] as unknown[],
+          articles: [] as SalesforceArticleDetails[],
+        },
+      },
+      syncableContents: {
+        categories: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+        labels: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+        documents: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+      },
+      articleLookupTable: {},
+      labelLookupTable: {},
+    };
+  }
 });
 
 jest.mock('./salesforce-adapter.js', () => {

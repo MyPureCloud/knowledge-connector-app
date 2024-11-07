@@ -1,5 +1,3 @@
-import { Processor } from '../processor.js';
-import { ExternalContent } from '../../model/external-content.js';
 import { createHash } from 'crypto';
 import { Image } from '../../model/image.js';
 import { AdapterPair } from '../../adapter/adapter-pair.js';
@@ -27,6 +25,9 @@ import { getLogger } from '../../utils/logger.js';
 import { AttachmentDomainNotAllowedError } from '../attachment-domain-validator/attachment-domain-not-allowed-error.js';
 import { removeTrailingSlash } from '../../utils/remove-trailing-slash.js';
 import { isRelativeUrl } from '../../utils/links.js';
+import { Category, Label } from '../../model';
+import { Processor } from '../processor.js';
+import { Context } from '../../context/context.js';
 
 export class ImageProcessor implements Processor {
   private config: ImageConfig = {};
@@ -40,6 +41,7 @@ export class ImageProcessor implements Processor {
   public async initialize(
     config: ImageConfig,
     adapters: AdapterPair<ImageSourceAdapter, DestinationAdapter>,
+    _context: Context,
   ): Promise<void> {
     this.config = config;
     this.adapter = adapters.sourceAdapter;
@@ -56,7 +58,15 @@ export class ImageProcessor implements Processor {
     }
   }
 
-  public async run(content: ExternalContent): Promise<ExternalContent> {
+  public async runOnCategory(item: Category): Promise<Category> {
+    return item;
+  }
+
+  public async runOnLabel(item: Label): Promise<Label> {
+    return item;
+  }
+
+  public async runOnDocument(item: Document): Promise<Document> {
     validateNonNull(this.adapter, 'Missing source adapter');
     validateNonNull(this.genesysAdapter, 'Missing destination adapter');
 
@@ -68,16 +78,19 @@ export class ImageProcessor implements Processor {
 
     this.uploadedImageCount = 0;
 
-    for (const document of content.documents) {
-      for (const variation of [
-        ...(document.published?.variations || []),
-        ...(document.draft?.variations || []),
-      ]) {
-        await this.processArticle(document, variation);
-      }
+    for (const variation of [
+      ...(item.published?.variations || []),
+      ...(item.draft?.variations || []),
+    ]) {
+      await this.processArticle(item, variation);
     }
+
     getLogger().info(`Images uploaded: ${this.uploadedImageCount}`);
-    return Promise.resolve(content);
+    return item;
+  }
+
+  public getPriority(): number {
+    return 0;
   }
 
   private async processArticle(

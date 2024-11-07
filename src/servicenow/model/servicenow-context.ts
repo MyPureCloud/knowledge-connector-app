@@ -1,10 +1,22 @@
-import { Context } from '../../model/context.js';
 import { ServiceNowCategory } from './servicenow-category.js';
 import { ServiceNowArticle } from './servicenow-article.js';
-import { ExternalLink } from '../../model/external-link';
+import { AdapterContext } from '../../adapter/adapter-context.js';
 
 export interface ServiceNowContext
-  extends Context<ServiceNowCategory, unknown, ServiceNowArticle> {
-  articleLookupTable: Map<string, ExternalLink>;
-  categoryLookupTable: Map<string, ServiceNowCategory>;
+  extends AdapterContext<ServiceNowCategory, unknown, ServiceNowArticle> {
+  categoryLookupTable: Record<string, ServiceNowCategory>;
+  api?: ServiceNowApiContext;
+}
+
+export interface ServiceNowApiContext {
+  categories: {
+    done: boolean;
+    nextOffset: number | null;
+    unprocessed: ServiceNowCategory[];
+  };
+  articles: {
+    done: boolean;
+    nextOffset: number | null;
+    unprocessed: ServiceNowArticle[];
+  };
 }

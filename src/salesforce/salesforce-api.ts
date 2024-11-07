@@ -14,16 +14,42 @@ import { LANGUAGE_MAPPING } from './salesforce-language-mapping.js';
 import { InvalidCredentialsError } from '../adapter/errors/invalid-credentials-error.js';
 import { ApiError } from '../adapter/errors/api-error.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
+import { getLogger } from '../utils/logger.js';
+import {
+  SalesforceApiContext,
+  SalesforceContext,
+  SalesforceSectionContext,
+} from './model/salesforce-context.js';
+import { setIfMissing } from '../utils/objects.js';
 
 export class SalesforceApi {
   private config: SalesforceConfig = {};
   private bearerToken: string = '';
   private instanceUrl: string = '';
+  private apiContext: SalesforceApiContext = {
+    [SalesforceEntityTypes.CATEGORY_GROUPS]: {
+      done: false,
+      started: false,
+      nextUrl: '',
+      unprocessed: [],
+    },
+    [SalesforceEntityTypes.ARTICLES]: {
+      done: false,
+      started: false,
+      nextUrl: '',
+      unprocessed: [],
+    },
+  };
 
-  public async initialize(config: SalesforceConfig): Promise<void> {
+  public async initialize(
+    config: SalesforceConfig,
+    context: SalesforceContext,
+  ): Promise<void> {
     this.config = config;
     this.instanceUrl = removeTrailingSlash(config.salesforceBaseUrl || '');
     this.bearerToken = await this.authenticate();
+
+    this.apiContext = setIfMissing(context, 'api', this.apiContext);
   }
 
   public async *articleIterator(): AsyncGenerator<
@@ -31,11 +57,16 @@ export class SalesforceApi {
     void,
     void
   > {
+    if (this.apiContext[SalesforceEntityTypes.ARTICLES].done) {
+      return;
+    }
+
     const filters = this.constructFilters();
 
     const articleInfos = this.getPage<SalesforceArticle>(
       `/services/data/${this.config.salesforceApiVersion}/support/knowledgeArticles?${filters}`,
       SalesforceEntityTypes.ARTICLES,
+      this.apiContext[SalesforceEntityTypes.ARTICLES],
     );
 
     // Article listing does not contain the body, so fetching them one by one is necessary
@@ -49,6 +80,10 @@ export class SalesforceApi {
     void,
     void
   > {
+    if (this.apiContext[SalesforceEntityTypes.CATEGORY_GROUPS].done) {
+      return;
+    }
+
     for await (const categoryGroup of this.fetchCategoryGroups()) {
       for (const topCategory of categoryGroup.topCategories) {
         await this.fillCategoryAncestry(categoryGroup.name, topCategory);
@@ -112,6 +147,7 @@ export class SalesforceApi {
     yield* this.getPage<SalesforceCategoryGroup>(
       `/services/data/${this.config.salesforceApiVersion}/support/dataCategoryGroups?sObjectName=KnowledgeArticleVersion`,
       SalesforceEntityTypes.CATEGORY_GROUPS,
+      this.apiContext[SalesforceEntityTypes.CATEGORY_GROUPS],
     );
   }
 
@@ -197,11 +233,27 @@ export class SalesforceApi {
   private async *getPage<T>(
     endpoint: string,
     property: SalesforceEntityTypes,
+    context: SalesforceSectionContext<T>,
   ): AsyncGenerator<T, void, void> {
+    if (context.unprocessed.length) {
+      getLogger().debug(
+        `Processing unprocessed item ${context.unprocessed.length}`,
+      ); // TODO
+      for await (const item of this.processList<T>(context.unprocessed)) {
+        yield item;
+      }
+      getLogger().debug(`Processing unprocessed item finished`); // TODO
+    }
+
     const headers = this.buildHeaders();
-    let url: string | null = `${this.instanceUrl}${endpoint}`;
+    let url: string | null = this.apiContext[property].nextUrl;
+    if (!context.started) {
+      url = `${this.instanceUrl}${endpoint}`;
+      context.started = true;
+    }
 
     while (url) {
+      getLogger().debug(`Fetching page ${url}`); // TODO
       const response = await fetch(url, {
         headers,
       });
@@ -212,12 +264,18 @@ export class SalesforceApi {
       );
       const list = json[property] as T[];
 
-      for (const item of list) {
+      url = json.nextPageUrl ? `${this.instanceUrl}${json.nextPageUrl}` : null;
+      context.unprocessed = list;
+      context.nextUrl = url;
+
+      getLogger().debug(`Loaded articles ${list.length}`); // TODO
+      for await (const item of this.processList(context.unprocessed)) {
         yield item;
       }
-
-      url = json.nextPageUrl ? `${this.instanceUrl}${json.nextPageUrl}` : null;
+      getLogger().debug(`Loaded articles finished`); // TODO
     }
+
+    context.done = true;
   }
 
   private buildHeaders() {
@@ -253,5 +311,17 @@ export class SalesforceApi {
     }
 
     return filters.join('&');
+  }
+
+  private async *processList<T>(list: T[]): AsyncGenerator<T, void, void> {
+    while (list.length > 0) {
+      const item = list.shift();
+      const str = JSON.stringify(item);
+      getLogger().debug(
+        `yield (${list.length} left) ${str.substring(0, Math.min(150, str.length))}`,
+      ); // TODO
+      yield Promise.resolve(item!);
+    }
+    getLogger().debug('processList finished'); // TODO
   }
 }

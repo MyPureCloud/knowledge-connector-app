@@ -1,51 +1,36 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { Category, Document, ExternalContent, Label } from '../../model';
+import { Category, Document, Label } from '../../model';
 import { UrlTransformer } from './url-transformer.js';
 import { AdapterPair } from '../../adapter/adapter-pair.js';
 import { SourceAdapter } from '../../adapter/source-adapter.js';
 import { DestinationAdapter } from '../../adapter/destination-adapter.js';
 import _ from 'lodash';
+import { PipeContext } from '../../pipe/pipe-context.js';
 import { GenesysDestinationAdapter } from '../../genesys/genesys-destination-adapter.js';
 
 jest.mock('../../genesys/genesys-destination-adapter.js');
 
+const mockGetResourceBaseUrl = jest.fn<() => string>();
+
 describe('UrlTransformer', () => {
   const HYPERLINKS = [
-    'documents.0.published.variations.0.body.blocks.0.paragraph.blocks.0.text.hyperlink',
-    'documents.0.published.variations.0.body.blocks.1.list.blocks.0.blocks.0.text.hyperlink',
-    'documents.0.published.variations.0.body.blocks.2.paragraph.blocks.0.image.hyperlink',
-    'documents.0.published.variations.0.body.blocks.3.table.rows.0.cells.0.blocks.0.list.blocks.0.blocks.0.text.hyperlink',
-    'documents.0.published.variations.0.body.blocks.3.table.rows.0.cells.1.blocks.0.image.hyperlink',
-
-    'documents.1.published.variations.0.body.blocks.0.paragraph.blocks.0.text.hyperlink',
-    'documents.1.published.variations.0.body.blocks.1.list.blocks.0.blocks.0.text.hyperlink',
-    'documents.1.published.variations.0.body.blocks.2.paragraph.blocks.0.image.hyperlink',
-    'documents.1.published.variations.0.body.blocks.3.table.rows.0.cells.0.blocks.0.list.blocks.0.blocks.0.text.hyperlink',
-    'documents.1.published.variations.0.body.blocks.3.table.rows.0.cells.1.blocks.0.image.hyperlink',
-
-    'documents.2.published.variations.0.body.blocks.0.paragraph.blocks.0.text.hyperlink',
-    'documents.2.published.variations.0.body.blocks.1.list.blocks.0.blocks.0.text.hyperlink',
-    'documents.2.published.variations.0.body.blocks.2.paragraph.blocks.0.image.hyperlink',
-    'documents.2.published.variations.0.body.blocks.3.table.rows.0.cells.0.blocks.0.list.blocks.0.blocks.0.text.hyperlink',
-    'documents.2.published.variations.0.body.blocks.3.table.rows.0.cells.1.blocks.0.image.hyperlink',
+    'published.variations.0.body.blocks.0.paragraph.blocks.0.text.hyperlink',
+    'published.variations.0.body.blocks.1.list.blocks.0.blocks.0.text.hyperlink',
+    'published.variations.0.body.blocks.2.paragraph.blocks.0.image.hyperlink',
+    'published.variations.0.body.blocks.3.table.rows.0.cells.0.blocks.0.list.blocks.0.blocks.0.text.hyperlink',
+    'published.variations.0.body.blocks.3.table.rows.0.cells.1.blocks.0.image.hyperlink',
   ];
   const IMAGE_URLS = [
-    'documents.0.published.variations.0.body.blocks.2.paragraph.blocks.0.image.url',
-    'documents.0.published.variations.0.body.blocks.3.table.rows.0.cells.1.blocks.0.image.url',
-
-    'documents.1.published.variations.0.body.blocks.2.paragraph.blocks.0.image.url',
-    'documents.1.published.variations.0.body.blocks.3.table.rows.0.cells.1.blocks.0.image.url',
-
-    'documents.2.published.variations.0.body.blocks.2.paragraph.blocks.0.image.url',
-    'documents.2.published.variations.0.body.blocks.3.table.rows.0.cells.1.blocks.0.image.url',
+    'published.variations.0.body.blocks.2.paragraph.blocks.0.image.url',
+    'published.variations.0.body.blocks.3.table.rows.0.cells.1.blocks.0.image.url',
   ];
   const RELATIVE_URLS = [
-    'documents.0.published.variations.0.body.blocks.0.paragraph.blocks.1.text.hyperlink',
-    'documents.0.published.variations.0.body.blocks.1.list.blocks.1.blocks.1.image.hyperlink',
+    'published.variations.0.body.blocks.0.paragraph.blocks.1.text.hyperlink',
+    'published.variations.0.body.blocks.1.list.blocks.1.blocks.1.image.hyperlink',
   ];
 
   let transformer: UrlTransformer;
-  let content: ExternalContent;
+  let document: Document;
   let adapters: AdapterPair<
     SourceAdapter<Category, Label, Document>,
     DestinationAdapter
@@ -56,11 +41,7 @@ describe('UrlTransformer', () => {
   beforeEach(() => {
     transformer = new UrlTransformer();
 
-    content = {
-      labels: [],
-      categories: [],
-      documents: [generateDocument(), generateDocument(), generateDocument()],
-    };
+    document = generateDocument();
 
     sourceAdapter = createSourceAdapter();
     destinationAdapter = new GenesysDestinationAdapter();
@@ -70,97 +51,104 @@ describe('UrlTransformer', () => {
     };
   });
 
-  describe('when fixNonHttpsImages enabled', () => {
-    beforeEach(async () => {
-      await transformer.initialize(
-        {
-          fixNonHttpsImages: 'true',
-        },
-        adapters as AdapterPair<
-          SourceAdapter<unknown, unknown, unknown>,
-          DestinationAdapter
-        >,
-      );
+  describe('runOnDocument', () => {
+    describe('when fixNonHttpsImages enabled', () => {
+      beforeEach(async () => {
+        await transformer.initialize(
+          {
+            fixNonHttpsImages: 'true',
+          },
+          adapters as AdapterPair<
+            SourceAdapter<unknown, unknown, unknown>,
+            DestinationAdapter
+          >,
+          {} as PipeContext,
+        );
+      });
+
+      it('should fix image urls', async () => {
+        const result = await transformer.runOnDocument(document);
+
+        verifyUrl(result, IMAGE_URLS, true);
+        verifyUrl(result, HYPERLINKS, false);
+      });
     });
 
-    it('should fix image urls', async () => {
-      const result = await transformer.run(content);
+    describe('when fixNonHttpsLinks enabled', () => {
+      beforeEach(async () => {
+        await transformer.initialize(
+          {
+            fixNonHttpsLinks: 'true',
+          },
+          adapters as AdapterPair<
+            SourceAdapter<unknown, unknown, unknown>,
+            DestinationAdapter
+          >,
+          {} as PipeContext,
+        );
+      });
 
-      verifyUrl(result, IMAGE_URLS, true);
-      verifyUrl(result, HYPERLINKS, false);
-    });
-  });
+      it('should fix hyperlink urls', async () => {
+        const result = await transformer.runOnDocument(document);
 
-  describe('when fixNonHttpsLinks enabled', () => {
-    beforeEach(async () => {
-      await transformer.initialize(
-        {
-          fixNonHttpsLinks: 'true',
-        },
-        adapters as AdapterPair<
-          SourceAdapter<unknown, unknown, unknown>,
-          DestinationAdapter
-        >,
-      );
-    });
-
-    it('should fix hyperlink urls', async () => {
-      const result = await transformer.run(content);
-
-      verifyUrl(result, HYPERLINKS, true);
-      verifyUrl(result, IMAGE_URLS, false);
-    });
-  });
-
-  describe('when relativeLinkBaseUrl defined', () => {
-    beforeEach(async () => {
-      adapters.sourceAdapter.getResourceBaseUrl = () => 'https://the.dom.ain';
-
-      await transformer.initialize(
-        {},
-        adapters as AdapterPair<
-          SourceAdapter<unknown, unknown, unknown>,
-          DestinationAdapter
-        >,
-      );
+        verifyUrl(result, HYPERLINKS, true);
+        verifyUrl(result, IMAGE_URLS, false);
+      });
     });
 
-    it('should resolve hyperlink urls', async () => {
-      const result = await transformer.run(content);
+    describe('when relativeLinkBaseUrl defined', () => {
+      beforeEach(async () => {
+        mockGetResourceBaseUrl.mockReturnValueOnce('https://the.dom.ain');
+        await transformer.initialize(
+          {
+            relativeLinkBaseUrl: 'https://the.dom.ain',
+          },
+          adapters as AdapterPair<
+            SourceAdapter<unknown, unknown, unknown>,
+            DestinationAdapter
+          >,
+          {} as PipeContext,
+        );
+      });
 
-      verifyUrl(result, RELATIVE_URLS, true);
+      it('should resolve hyperlink urls', async () => {
+        const result = await transformer.runOnDocument(document);
+
+        verifyUrl(result, RELATIVE_URLS, true);
+      });
     });
-  });
 
-  describe('when fixNonHttpsLinks & fixNonHttpsImages enabled', () => {
-    beforeEach(async () => {
-      await transformer.initialize(
-        {
-          fixNonHttpsLinks: 'true',
-          fixNonHttpsImages: 'true',
-        },
-        adapters as AdapterPair<
-          SourceAdapter<unknown, unknown, unknown>,
-          DestinationAdapter
-        >,
-      );
-    });
+    describe('when fixNonHttpsLinks & fixNonHttpsImages enabled', () => {
+      beforeEach(async () => {
+        await transformer.initialize(
+          {
+            fixNonHttpsLinks: 'true',
+            fixNonHttpsImages: 'true',
+          },
+          adapters as AdapterPair<
+            SourceAdapter<unknown, unknown, unknown>,
+            DestinationAdapter
+          >,
+          {} as PipeContext,
+        );
+      });
 
-    it('should fix hyperlink & image urls', async () => {
-      const result = await transformer.run(content);
+      it('should fix hyperlink & image urls', async () => {
+        const result = await transformer.runOnDocument(document);
 
-      verifyUrl(result, HYPERLINKS, true);
-      verifyUrl(result, IMAGE_URLS, true);
+        verifyUrl(result, HYPERLINKS, true);
+        verifyUrl(result, IMAGE_URLS, true);
+      });
     });
   });
 
   function verifyUrl(
-    content: ExternalContent,
+    document: Document,
     paths: string[],
     isSecure: boolean,
   ): void {
     paths.forEach((path) => {
-      const url = _.get(content, path);
+      const url = _.get(document, path);
       expect(url).toMatch(isSecure ? /^https:\/\// : /^http:\/\//);
     });
   }
@@ -314,15 +302,15 @@ describe('UrlTransformer', () => {
         .fn<() => Promise<void>>()
         .mockReturnValue(Promise.resolve()),
 
-      getAllCategories: jest.fn<() => Promise<Category[]>>(),
+      categoryIterator: jest.fn<() => AsyncGenerator<Category, void, void>>(),
 
-      getAllLabels: jest.fn<() => Promise<Label[]>>(),
+      labelIterator: jest.fn<() => AsyncGenerator<Label, void, void>>(),
 
-      getAllArticles: jest.fn<() => Promise<Document[]>>(),
+      articleIterator: jest.fn<() => AsyncGenerator<Document, void, void>>(),
 
       getDocumentLinkMatcherRegexp: jest.fn<() => RegExp | undefined>(),
 
-      getResourceBaseUrl: jest.fn<() => string>(),
+      getResourceBaseUrl: () => mockGetResourceBaseUrl(),
     };
   }
 });

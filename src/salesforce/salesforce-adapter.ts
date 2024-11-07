@@ -2,16 +2,19 @@ import { SalesforceConfig } from './model/salesforce-config.js';
 import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
 import { Image } from '../model/image.js';
 import { SalesforceApi } from './salesforce-api.js';
-import { SourceAdapter } from '../adapter/source-adapter.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
+import { SalesforceContext } from './model/salesforce-context.js';
+import { AbstractSourceAdapter } from '../adapter/abstract-source-adapter.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
-import { arraysFromAsync } from '../utils/arrays.js';
 
 export class SalesforceAdapter
-  implements
-    SourceAdapter<SalesforceCategoryGroup, unknown, SalesforceArticleDetails>,
-    ImageSourceAdapter
+  extends AbstractSourceAdapter<
+    SalesforceCategoryGroup,
+    unknown,
+    SalesforceArticleDetails
+  >
+  implements ImageSourceAdapter
 {
   private static URL_NAME_REGEX = /\/articles\/[^/]+\/Knowledge\/([^/]+)/;
   private static ATTACHMENT_RELATIVE_PATH_REGEX =
@@ -20,24 +23,19 @@ export class SalesforceAdapter
   private api: SalesforceApi;
 
   constructor() {
+    super();
+
     this.api = new SalesforceApi();
   }
 
-  public initialize(config: SalesforceConfig): Promise<void> {
+  public async initialize(
+    config: SalesforceConfig,
+    context: SalesforceContext,
+  ): Promise<void> {
+    await super.initialize(config, context);
+
     this.config = config;
-    return this.api.initialize(config);
-  }
-
-  public async getAllArticles(): Promise<SalesforceArticleDetails[]> {
-    return arraysFromAsync(this.articleIterator());
-  }
-
-  public async getAllCategories(): Promise<SalesforceCategoryGroup[]> {
-    return arraysFromAsync(this.categoryIterator());
-  }
-
-  public getAllLabels(): Promise<unknown[]> {
-    return Promise.reject();
+    return this.api.initialize(config, context);
   }
 
   public async *articleIterator(): AsyncGenerator<

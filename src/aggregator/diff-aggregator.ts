@@ -1,12 +1,7 @@
 import { Aggregator } from './aggregator.js';
-import { ExternalContent } from '../model/external-content.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Adapter } from '../adapter/adapter.js';
-import {
-  ImportableContent,
-  SyncableContents,
-} from '../model/syncable-contents.js';
-import { validateNonNull } from '../utils/validate-non-null.js';
+import { ImportableContent } from '../model/syncable-contents.js';
 import _ from 'lodash';
 import { ExternalIdentifiable } from '../model/external-identifiable.js';
 import { Document, DocumentVersion, Variation } from '../model/document.js';
@@ -16,12 +11,9 @@ import { CategoryReference } from '../model/category-reference.js';
 import { LabelReference } from '../model/label-reference.js';
 import { GeneratedValue } from '../utils/generated-value.js';
 import { DestinationAdapter } from '../adapter/destination-adapter.js';
-import { NamedEntity } from '../model/named-entity.js';
 import { DiffAggregatorConfig } from './diff-aggregator-config.js';
-import { extractLinkBlocksFromVariation } from '../utils/link-object-extractor.js';
-import { getLogger } from '../utils/logger.js';
-import { ConfigurerError } from './errors/configurer-error.js';
 import { Identifiable } from '../model/identifiable.js';
+import { PipeContext } from '../pipe/pipe-context.js';
 
 /**
  * The DiffAggregator transforms the ExternalContent into ImportableContents,
@@ -29,54 +21,59 @@ import { Identifiable } from '../model/identifiable.js';
  * It detects changes by fetching the current state of the destination system and compare the two based on 'externalId'.
  */
 export class DiffAggregator implements Aggregator {
-  private config: DiffAggregatorConfig = {};
   private adapter?: DestinationAdapter;
-  private allowPruneAllEntities: boolean = false;
+  private context?: PipeContext;
+  private protectedFields: string[] = [];
+  private externalIdPrefix: string = '';
 
   public async initialize(
     config: DiffAggregatorConfig,
     adapters: AdapterPair<Adapter, DestinationAdapter>,
+    context: PipeContext,
   ): Promise<void> {
-    this.config = config;
     this.adapter = adapters.destinationAdapter;
+    this.context = context;
 
-    this.allowPruneAllEntities = config.allowPruneAllEntities === 'true';
+    this.protectedFields = (config.protectedFields || '').split(',');
   }
 
-  public async run(
-    externalContent: ExternalContent,
-  ): Promise<SyncableContents> {
-    validateNonNull(this.adapter, 'Missing destination adapter');
+  public async runOnCategory(content: Category): Promise<void> {
+    const { categories: storedCategories = [] } =
+      this.context!.storedContent || {};
 
-    const exportResult = await this.adapter!.exportAllEntities();
+    this.collectModifiedItem(
+      content,
+      storedCategories,
+      this.normalizeCategory.bind(this),
+      this.context!.syncableContents.categories,
+    );
+  }
+
+  public async runOnLabel(content: Label): Promise<void> {
+    const { labels: storedLabels = [] } = this.context!.storedContent || {};
+
+    this.collectModifiedItem(
+      content,
+      storedLabels,
+      this.normalizeLabel.bind(this),
+      this.context!.syncableContents.labels,
+    );
+  }
+
+  public async runOnDocument(content: Document): Promise<void> {
     const {
       categories: storedCategories = [],
       labels: storedLabels = [],
       documents: storedDocuments = [],
-    } = this.removeGeneratedContent(exportResult.importAction);
+    } = this.context!.storedContent || {};
+
     const {
       categories: collectedCategories = [],
       labels: collectedLabels = [],
-      documents: collectedDocuments = [],
-    } = externalContent;
+    } = this.context!.pipe.processedItems || {};
 
-    this.resolveNameConflicts(collectedCategories, storedCategories);
-    this.resolveNameConflicts(collectedLabels, storedLabels);
-
-    const categories = this.collectModifiedItems(
-      collectedCategories,
-      storedCategories,
-      this.normalizeCategory.bind(this),
-    );
-
-    const labels = this.collectModifiedItems(
-      collectedLabels,
-      storedLabels,
-      this.normalizeLabel.bind(this),
-    );
-
-    const documents = this.collectModifiedItems(
-      collectedDocuments,
+    this.collectModifiedItem(
+      content,
       storedDocuments,
       (doc) =>
         this.normalizeDocument(
@@ -84,82 +81,43 @@ export class DiffAggregator implements Aggregator {
           [...collectedCategories, ...storedCategories],
           [...collectedLabels, ...storedLabels],
         ),
+      this.context!.syncableContents.documents,
     );
-
-    return {
-      categories,
-      labels,
-      documents,
-    };
   }
 
-  private collectModifiedItems<T extends ExternalIdentifiable>(
-    collectedItems: T[],
+  private collectModifiedItem<T extends ExternalIdentifiable>(
+    collectedItem: T,
     storedItems: T[],
     normalizer: (item: T) => T,
-  ): ImportableContent<T> {
+    result: ImportableContent<T>,
+  ): void {
     const unprocessedStoredItems = [...storedItems];
 
-    const result: ImportableContent<T> = {
-      created: [],
-      updated: [],
-      deleted: [],
-    };
+    const normalizedCollectedItem = normalizer(collectedItem);
+    const index = unprocessedStoredItems.findIndex(
+      (currentItem) =>
+        currentItem &&
+        currentItem.externalId === normalizedCollectedItem.externalId,
+    );
+    if (index > -1) {
+      const [storedItem] = unprocessedStoredItems.splice(index, 1);
+      const normalizedStoredItem = normalizer(storedItem);
 
-    collectedItems.forEach((collectedItem: T): void => {
-      const normalizedCollectedItem = normalizer(collectedItem);
-      const index = unprocessedStoredItems.findIndex(
-        (currentItem) =>
-          currentItem &&
-          currentItem.externalId === normalizedCollectedItem.externalId,
-      );
-      if (index > -1) {
-        const [storedItem] = unprocessedStoredItems.splice(index, 1);
-        const normalizedStoredItem = normalizer(storedItem);
+      this.copyProtectedContent(normalizedStoredItem, normalizedCollectedItem);
 
-        this.copyProtectedContent(
-          normalizedStoredItem,
-          normalizedCollectedItem,
-        );
-
-        if (
-          !_.isEqualWith(
-            normalizedCollectedItem,
-            normalizedStoredItem,
-            (c, s) => this.isEqualCustomizer(c, s),
-          )
-        ) {
-          result.updated.push(normalizedCollectedItem);
-        }
-      } else {
-        result.created.push(normalizedCollectedItem);
+      if (
+        !_.isEqualWith(normalizedCollectedItem, normalizedStoredItem, (c, s) =>
+          this.isEqualCustomizer(c, s),
+        )
+      ) {
+        result.updated.push(normalizedCollectedItem);
       }
-    });
-
-    const prefix = this.config.externalIdPrefix;
-    const sourceId = this.getSourceId();
-    result.deleted = unprocessedStoredItems.filter((item: T) =>
-      this.isFromSameSource(item, prefix, sourceId),
-    );
-
-    const storedItemsFromSameSource = storedItems.filter((item: T) =>
-      this.isFromSameSource(item, prefix, sourceId),
-    );
-    if (
-      result.deleted.length > 0 &&
-      result.deleted.length === storedItemsFromSameSource.length &&
-      result.created.length === 0 &&
-      !this.allowPruneAllEntities
-    ) {
-      getLogger().error(
-        'Prune all entities are not allowed. This protection can be disabled with ALLOW_PRUNE_ALL_ENTITIES=true in the configuration.',
+      result.deleted = result.deleted.filter(
+        (i: T) => i.externalId !== normalizedCollectedItem.externalId,
       );
-      throw new ConfigurerError('Prune all entities are not allowed', {
-        cause: 'prune.all.entities',
-      });
+    } else {
+      result.created.push(normalizedCollectedItem);
     }
-
-    return result;
   }
 
   private normalizeDocument(
@@ -301,114 +259,14 @@ export class DiffAggregator implements Aggregator {
     source: T,
     destination: T,
   ): void {
-    if (!this.config.protectedFields) {
-      return;
-    }
-    const fieldPaths = this.config.protectedFields.split(',');
-    fieldPaths.forEach((path) => {
+    this.protectedFields.forEach((path) => {
       if (_.has(source, path)) {
         _.set(destination, path, _.get(source, path));
       }
     });
   }
 
-  private removeGeneratedContent(content: ExternalContent): ExternalContent {
-    content.documents?.forEach((document) => {
-      [
-        ...(document.published?.variations ?? []),
-        ...(document.draft?.variations ?? []),
-      ].forEach((variation) =>
-        extractLinkBlocksFromVariation(variation).forEach((block) => {
-          if (block.externalDocumentId) {
-            delete block.hyperlink;
-          }
-        }),
-      );
-    });
-
-    return content;
-  }
-
-  private resolveNameConflicts<T extends NamedEntity>(
-    collectedItems: T[],
-    storedItems: T[],
-  ): void {
-    const processedItems = [...storedItems];
-    collectedItems.forEach((collectedItem: T): void => {
-      if (this.hasNameConflict(collectedItem, processedItems)) {
-        this.resolveNameConflict(collectedItem, processedItems);
-      }
-      processedItems.push(collectedItem);
-    });
-  }
-
-  private resolveNameConflict<T extends NamedEntity>(
-    collectedItem: T,
-    processedItems: T[],
-  ): void {
-    validateNonNull(
-      this.config.nameConflictSuffix,
-      `Name conflict found "${collectedItem.name}". Try to use "NAME_CONFLICT_SUFFIX" variable`,
-    );
-
-    collectedItem.name += this.config.nameConflictSuffix!;
-
-    if (this.hasNameConflict(collectedItem, processedItems)) {
-      this.resolveNameConflict(collectedItem, processedItems);
-    }
-  }
-
-  private hasNameConflict<T extends NamedEntity>(
-    collectedItem: T,
-    storedItems: T[],
-  ): boolean {
-    return !!storedItems.find(
-      (currentItem) =>
-        currentItem &&
-        currentItem.name?.toLowerCase() === collectedItem.name?.toLowerCase() &&
-        currentItem.externalId !== collectedItem.externalId,
-    );
-  }
-
-  private isFromSameSource(
-    item: ExternalIdentifiable,
-    prefix: string | undefined,
-    sourceId: string | null,
-  ): boolean {
-    if (sourceId) {
-      return this.isSourceIdMatch(item, sourceId);
-    }
-
-    if (prefix) {
-      return this.isExternalIdPrefixMatch(item, prefix);
-    }
-
-    return this.hasExternalId(item);
-  }
-
-  private isSourceIdMatch(
-    item: ExternalIdentifiable,
-    sourceId: string | null,
-  ): boolean {
-    return item.sourceId === sourceId;
-  }
-
-  private isExternalIdPrefixMatch(
-    item: ExternalIdentifiable,
-    prefix: string,
-  ): boolean {
-    return !!item?.externalId && item.externalId.startsWith(prefix);
-  }
-
-  private hasExternalId(item: ExternalIdentifiable): boolean {
-    return !!item?.externalId;
-  }
-
-  private getSourceId(): string | null {
-    return this.config.genesysSourceId || null;
-  }
-
-  private getPrefixedExternalId(item: Identifiable) {
-    return (this.config.externalIdPrefix || '') + item.id;
+  private getPrefixedExternalId(item: Identifiable): string {
+    return this.externalIdPrefix + item.id;
   }
 }

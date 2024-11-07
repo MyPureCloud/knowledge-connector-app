@@ -1,0 +1,27 @@
+import { Category } from '../model/category.js';
+import { Label } from '../model/label.js';
+import { Document } from '../model/document.js';
+import { Context, SyncableContents } from '../model';
+import { ExternalLink } from '../model/external-link.js';
+
+export interface PipeContext extends Context {
+  pipe: {
+    processedItems: {
+      categories: Category[];
+      labels: Label[];
+      documents: Document[];
+    };
+    unprocessedItems: {
+      categories: Category[];
+      labels: Label[];
+      documents: Document[];
+    };
+  };
+  storedContent?: {
+    documents: Document[];
+    categories: Category[];
+    labels: Label[];
+  };
+  syncableContents: SyncableContents;
+  articleLookupTable: Record<string, ExternalLink>;
+}

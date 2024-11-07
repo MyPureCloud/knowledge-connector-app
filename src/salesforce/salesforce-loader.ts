@@ -1,77 +1,34 @@
 import { SalesforceAdapter } from './salesforce-adapter.js';
-import { ExternalContent } from '../model/external-content.js';
 import { articleMapper, categoryMapper } from './content-mapper.js';
 import { SalesforceConfig } from './model/salesforce-config.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Adapter } from '../adapter/adapter.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
-import { getLogger } from '../utils/logger.js';
 import { AbstractLoader } from '../pipe/abstract-loader.js';
 import { Category, Document, Label } from '../model';
 import { SalesforceContext } from './model/salesforce-context.js';
 import { SalesforceMapperConfiguration } from './model/salesforce-mapper-configuration.js';
 import { LANGUAGE_MAPPING } from './salesforce-language-mapping.js';
-import { ExternalLink } from '../model/external-link.js';
-import { arraysFromAsync } from '../utils/arrays.js';
+import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
+import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
 
 /**
  * SalesforceLoader is a specific {@Link Loader} implementation for fetching data from Salesforce's API
  */
-export class SalesforceLoader extends AbstractLoader {
+export class SalesforceLoader extends AbstractLoader<SalesforceContext> {
   private config: SalesforceConfig = {};
   private adapter?: SalesforceAdapter;
-  private context?: SalesforceContext;
   private mapperConfiguration: SalesforceMapperConfiguration | null = null;
 
   public async initialize(
     config: SalesforceConfig,
     adapters: AdapterPair<SalesforceAdapter, Adapter>,
+    context: SalesforceContext,
   ): Promise<void> {
-    await super.initialize(config, adapters);
+    await super.initialize(config, adapters, context);
 
     this.config = config;
     this.adapter = adapters.sourceAdapter;
-    this.context = {
-      processedItems: {
-        categories: [],
-        labels: [],
-        documents: [],
-      },
-      unprocessedItems: {
-        categories: [],
-        labels: [],
-        articles: [],
-      },
-      unprocessableItems: {
-        categories: [],
-        labels: [],
-        articles: [],
-      },
-      articleLookupTable: new Map<string, ExternalLink>(),
-      labelLookupTable: new Map<string, Label>(),
-    };
-  }
-
-  public async run(_input?: ExternalContent): Promise<ExternalContent> {
-    validateNonNull(this.adapter, 'Missing source adapter');
-    validateNonNull(this.context, 'Missing context');
-
-    getLogger().info('Fetching data...');
-
-    const labels = await arraysFromAsync(this.labelIterator());
-    const documents = await arraysFromAsync(this.documentIterator());
-
-    const data: ExternalContent = {
-      labels,
-      categories: [],
-      documents,
-      articleLookupTable: this.context?.articleLookupTable,
-    };
-
-    getLogger().info('Labels loaded: ' + data.labels.length);
-    getLogger().info('Documents loaded: ' + data.documents.length);
-
-    return data;
   }
 
   public async *categoryIterator(): AsyncGenerator<Category, void, void> {}
@@ -82,12 +39,16 @@ export class SalesforceLoader extends AbstractLoader {
       return;
     }
 
-    for await (const categoryGroup of this.adapter!.categoryIterator()) {
-      for (const label of categoryMapper(categoryGroup)) {
-        this.context?.labelLookupTable.set(label.externalId!, label);
-        yield label;
-      }
-    }
+    yield* this.loadItems<SalesforceCategoryGroup, Label>(
+      this.adapter!.categoryIterator(),
+      (item: SalesforceCategoryGroup): Label[] => {
+        const labels = categoryMapper(item);
+        this.addLabelsToLookupTable(labels);
+
+        return labels;
+      },
+      this.context!.adapter.unprocessedItems.categories,
+    );
   }
 
   public async *documentIterator(): AsyncGenerator<Document, void, void> {
@@ -95,19 +56,20 @@ export class SalesforceLoader extends AbstractLoader {
       return;
     }
 
-    for await (const article of this.adapter!.articleIterator()) {
-      const document = articleMapper(
-        article,
-        this.context!,
-        this.getConfiguration(),
-      );
-      if (article.urlName) {
-        this.context!.articleLookupTable.set(article.urlName, {
-          externalDocumentId: article.id,
-        });
-      }
-      yield document;
-    }
+    yield* this.loadItems<SalesforceArticleDetails, Document>(
+      this.adapter!.articleIterator(),
+      (item: SalesforceArticleDetails): Document[] => {
+        const documents = articleMapper(
+          item,
+          this.context!,
+          this.getConfiguration(),
+        );
+        this.addArticleToLookupTable(item);
+
+        return documents;
+      },
+      this.context!.adapter.unprocessedItems.articles,
+    );
   }
 
   private getConfiguration(): SalesforceMapperConfiguration {
@@ -150,5 +112,19 @@ export class SalesforceLoader extends AbstractLoader {
     return (this.config.salesforceArticleContentFields?.split(',') || [])
       .map((f) => f.trim())
       .filter((f) => f.length > 0);
+  }
+
+  private addLabelsToLookupTable(labels: Label[]): void {
+    labels.forEach((label) => {
+      this.context!.labelLookupTable[label.externalId!] = label;
+    });
+  }
+
+  private addArticleToLookupTable(article: SalesforceArticleDetails): void {
+    if (article.urlName) {
+      this.context!.articleLookupTable[article.urlName] = {
+        externalDocumentId: article.id,
+      };
+    }
   }
 }

@@ -1,4 +1,3 @@
-import { SourceAdapter } from '../adapter/source-adapter.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
 import { ServiceNowConfig } from './model/servicenow-config.js';
 import { ServiceNowApi } from './servicenow-api.js';
@@ -8,14 +7,14 @@ import { ServiceNowArticleAttachment } from './model/servicenow-article-attachme
 import { getLogger } from '../utils/logger.js';
 import { AttachmentDomainValidator } from '../processor/attachment-domain-validator/attachment-domain-validator.js';
 import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-validator/attachment-domain-not-allowed-error.js';
-import { arraysFromAsync } from '../utils/arrays.js';
 import { ServiceNowCategory } from './model/servicenow-category.js';
+import { ServiceNowContext } from './model/servicenow-context.js';
+import { AbstractSourceAdapter } from '../adapter/abstract-source-adapter.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 
 export class ServiceNowAdapter
-  implements
-    SourceAdapter<unknown, unknown, ServiceNowArticle>,
-    ImageSourceAdapter
+  extends AbstractSourceAdapter<unknown, unknown, ServiceNowArticle>
+  implements ImageSourceAdapter
 {
   private static ARTICLE_NUMBER_REGEX =
     /(?:sysparm_article|sys_kb_id)(?:&#61;|=)([A-Za-z0-9]+)/;
@@ -25,25 +24,20 @@ export class ServiceNowAdapter
   private attachmentDomainValidator?: AttachmentDomainValidator;
 
   constructor() {
+    super();
+
     this.api = new ServiceNowApi();
   }
 
-  public initialize(config: ServiceNowConfig): Promise<void> {
+  public async initialize(
+    config: ServiceNowConfig,
+    context: ServiceNowContext,
+  ): Promise<void> {
+    await super.initialize(config, context);
+
     this.config = config;
     this.attachmentDomainValidator = new AttachmentDomainValidator(config);
-    return this.api.initialize(config);
-  }
-
-  public async getAllArticles(): Promise<ServiceNowArticle[]> {
-    return arraysFromAsync(this.articleIterator());
-  }
-
-  public async getAllCategories(): Promise<ServiceNowCategory[]> {
-    return arraysFromAsync(this.categoryIterator());
-  }
-
-  public async getAllLabels(): Promise<unknown[]> {
-    return arraysFromAsync(this.labelIterator());
+    return this.api.initialize(config, context);
   }
 
   public async *categoryIterator(): AsyncGenerator<

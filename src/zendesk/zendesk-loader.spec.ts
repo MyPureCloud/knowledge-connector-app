@@ -12,6 +12,7 @@ import {
   generateNormalizedLabel,
   generateRawDocument,
 } from '../tests/utils/entity-generators.js';
+import { ZendeskContext } from './model/zendesk-context.js';
 
 const mockGetAttachment =
   jest.fn<(articleId: string | null, url: string) => Promise<Image | null>>();
@@ -50,11 +51,13 @@ describe('ZendeskLoader', () => {
   let config: ZendeskConfig;
   let adapter: ZendeskAdapter;
   let loader: ZendeskLoader;
+  let context: ZendeskContext;
 
   beforeEach(async () => {
     config = {};
     adapter = new ZendeskAdapter();
     loader = new ZendeskLoader();
+    context = buildContext();
 
     mockArticleIterator.mockImplementation(articleIterator);
     mockCategoryIterator.mockImplementation(categoryIterator);
@@ -63,10 +66,14 @@ describe('ZendeskLoader', () => {
 
   describe('run', () => {
     beforeEach(async () => {
-      await loader.initialize(config, {
-        sourceAdapter: adapter,
-        destinationAdapter: {} as Adapter,
-      });
+      await loader.initialize(
+        config,
+        {
+          sourceAdapter: adapter,
+          destinationAdapter: {} as Adapter,
+        },
+        context,
+      );
     });
 
     it('should map label', async () => {
@@ -93,6 +100,7 @@ describe('ZendeskLoader', () => {
             sourceAdapter: adapter,
             destinationAdapter: {} as Adapter,
           },
+          context,
         );
       });
 
@@ -110,6 +118,7 @@ describe('ZendeskLoader', () => {
             sourceAdapter: adapter,
             destinationAdapter: {} as Adapter,
           },
+          context,
         );
       });
 
@@ -127,6 +136,7 @@ describe('ZendeskLoader', () => {
             sourceAdapter: adapter,
             destinationAdapter: {} as Adapter,
           },
+          context,
         );
       });
 
@@ -136,6 +146,37 @@ describe('ZendeskLoader', () => {
       });
     });
   });
+
+  function buildContext(): ZendeskContext {
+    return {
+      adapter: {
+        unprocessedItems: {
+          categories: [],
+          labels: [],
+          articles: [],
+        },
+      },
+      syncableContents: {
+        categories: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+        labels: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+        documents: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+      },
+      articleLookupTable: {},
+      categoryLookupTable: {},
+    };
+  }
 });
 
 jest.mock('./zendesk-adapter.js', () => {
@@ -153,11 +194,7 @@ jest.mock('./zendesk-adapter.js', () => {
   };
 });
 
-async function* articleIterator(): AsyncGenerator<
-  ZendeskArticle,
-  void,
-  void
-> {
+async function* articleIterator(): AsyncGenerator<ZendeskArticle, void, void> {
   yield generateLoadedArticle();
 }
 
@@ -187,11 +224,7 @@ function generateLoadedCategory(): ZendeskCategory {
   };
 }
 
-async function* labelIterator(): AsyncGenerator<
-  ZendeskLabel,
-  void,
-  void
-> {
+async function* labelIterator(): AsyncGenerator<ZendeskLabel, void, void> {
   yield generateLoadedLabel();
 }
 

@@ -19,7 +19,7 @@ import {
 import { ExternalLink } from '../model/external-link.js';
 
 export function extractDocumentIdFromUrl(
-  articleLookupTable: Map<string, ExternalLink>,
+  articleLookupTable: Record<string, ExternalLink>,
   hyperlink: string,
   regexp: RegExp | undefined,
 ): ExternalLink | undefined {
@@ -32,7 +32,7 @@ export function extractDocumentIdFromUrl(
     return undefined;
   }
   const key = match.slice(1).join('#');
-  return articleLookupTable.get(key);
+  return articleLookupTable[key];
 }
 
 export function extractLinkBlocksFromVariation(

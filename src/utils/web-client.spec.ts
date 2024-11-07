@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import { readResponse, Response } from './web-client';
-import { ApiError } from '../adapter/errors/api-error';
+import { readResponse, Response } from './web-client.js';
+import { ApiError } from '../adapter/errors/api-error.js';
 
 describe('WebClient', () => {
   const URL = 'https://some-random-url.genesys.com';

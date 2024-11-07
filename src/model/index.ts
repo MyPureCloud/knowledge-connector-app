@@ -15,4 +15,4 @@ export { SyncDataRequest } from './sync-data-request.js';
 export { SyncDataResponse } from './sync-data-response.js';
 export * from './sync-export-model.js';
 export { SyncableContents, ImportableContent } from './syncable-contents.js';
-export { Context } from './context.js';
+export { Context } from '../context/context.js';

@@ -2,6 +2,7 @@ export enum ErrorCodes {
   CONFIGURER_ERROR = 'configurer.error',
   DOWNLOAD_FAILURE = 'download.failure',
   VALIDATION_ERROR = 'validation.error',
+  DOCUMENT_LINK_ERROR = 'document.link.error',
   FILE_TYPE_NOT_SUPPORTED = 'file.type.not.supported',
   ATTACHMENT_DOMAIN_NOT_ALLOWED = 'attachment.domain.not.allowed',
   THIRD_PARTY_UNEXPECTED_ERROR = 'third.party.unexpected.error',
