@@ -3,7 +3,7 @@ import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapte
 import { SourceAdapter } from '../adapter/source-adapter.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
-import { Document } from '../model/sync-export-model.js';
+import { Document } from '../model/document.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Loader } from './loader.js';
 import { ExternalContent } from '../model/external-content.js';

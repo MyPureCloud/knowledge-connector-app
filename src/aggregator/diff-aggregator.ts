@@ -9,11 +9,7 @@ import {
 import { validateNonNull } from '../utils/validate-non-null.js';
 import _ from 'lodash';
 import { ExternalIdentifiable } from '../model/external-identifiable.js';
-import {
-  Document,
-  DocumentVersion,
-  Variation,
-} from '../model/sync-export-model.js';
+import { Document, DocumentVersion, Variation } from '../model/document.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
 import { CategoryReference } from '../model/category-reference.js';

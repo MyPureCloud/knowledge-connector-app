@@ -5,6 +5,7 @@ import { SalesforceApi } from './salesforce-api.js';
 import { SourceAdapter } from '../adapter/source-adapter.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
+import { removeTrailingSlash } from '../utils/remove-trailing-slash';
 
 export class SalesforceAdapter
   implements
@@ -26,17 +27,45 @@ export class SalesforceAdapter
     return this.api.initialize(config);
   }
 
-  public getAllArticles(): Promise<SalesforceArticleDetails[]> {
-    return this.api.fetchAllArticles();
+  public async getAllArticles(): Promise<SalesforceArticleDetails[]> {
+    const list: SalesforceArticleDetails[] = [];
+    for await (const article of this.articleIterator()) {
+      list.push(article);
+    }
+
+    return list;
   }
 
-  public getAllCategories(): Promise<SalesforceCategoryGroup[]> {
-    return this.api.fetchAllCategories();
+  public async getAllCategories(): Promise<SalesforceCategoryGroup[]> {
+    const list: SalesforceCategoryGroup[] = [];
+    for await (const categoryGroup of this.categoryIterator()) {
+      list.push(categoryGroup);
+    }
+
+    return list;
   }
 
   public getAllLabels(): Promise<unknown[]> {
     return Promise.reject();
   }
+
+  public async *articleIterator(): AsyncGenerator<
+    SalesforceArticleDetails,
+    void,
+    void
+  > {
+    yield* this.api.articleIterator();
+  }
+
+  public async *categoryIterator(): AsyncGenerator<
+    SalesforceCategoryGroup,
+    void,
+    void
+  > {
+    yield* this.api.categoryIterator();
+  }
+
+  public async *labelIterator(): AsyncGenerator<unknown, void, void> {}
 
   public getDocumentLinkMatcherRegexp(): RegExp | undefined {
     return SalesforceAdapter.URL_NAME_REGEX;
@@ -53,6 +82,8 @@ export class SalesforceAdapter
   }
 
   public getResourceBaseUrl(): string {
-    return this.api.getInstanceUrl();
+    return removeTrailingSlash(
+      this.config.relativeLinkBaseUrl || this.api.getInstanceUrl(),
+    );
   }
 }

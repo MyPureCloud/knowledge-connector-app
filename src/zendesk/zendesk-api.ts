@@ -64,7 +64,7 @@ export class ZendeskApi {
   }
 
   public getInstanceUrl(): string {
-    return removeTrailingSlash(this.config.relativeLinkBaseUrl || this.config.zendeskBaseUrl || '');
+    return removeTrailingSlash(this.config.zendeskBaseUrl || '');
   }
 
   private fetchCategories(): Promise<ZendeskSection[]> {

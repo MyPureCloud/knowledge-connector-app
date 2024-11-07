@@ -5,9 +5,11 @@ import {
   readResponse,
   verifyResponseStatus,
 } from '../utils/web-client.js';
-import { ServiceNowResponse } from './model/servicenow-response.js';
+import { ServiceNowArticleResponse } from './model/servicenow-article-response.js';
 import { ServiceNowArticleAttachment } from './model/servicenow-article-attachment.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
+import { ServiceNowCategory } from './model/servicenow-category.js';
+import { ServiceNowCategoryResponse } from './model/servicenow-category-response.js';
 
 export class ServiceNowApi {
   private config: ServiceNowConfig = {};
@@ -20,29 +22,80 @@ export class ServiceNowApi {
     this.baseUrl = removeTrailingSlash(this.config.servicenowBaseUrl || '');
   }
 
-  public async fetchAllArticles(): Promise<ServiceNowArticle[]> {
-    return await this.getPage<ServiceNowArticle>(
-      `/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=${this.limit}`,
+  public async *categoryIterator(): AsyncGenerator<
+    ServiceNowCategory,
+    void,
+    void
+  > {
+    yield* this.getCategoryPage(
+      `/api/now/table/kb_category?sysparm_fields=sys_id,full_category&active=true&sysparm_query=parent_id!%3Dundefined&sysparm_limit=${this.limit}`,
+      'sysparm_offset',
     );
   }
 
-  private async getPage<T>(endpoint: string): Promise<ServiceNowArticle[]> {
-    const url = this.buildUrl(`${this.baseUrl}${endpoint}`);
-    const response = await fetch(url, {
-      headers: this.buildHeaders(),
-    });
+  public async *articleIterator(): AsyncGenerator<
+    ServiceNowArticle,
+    void,
+    void
+  > {
+    yield* this.getArticlePage(
+      `/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&${this.queryParams()}&limit=${this.limit}`,
+      'offset',
+    );
+  }
 
-    const json = await readResponse<ServiceNowResponse>(url, response);
-    const end = json.result.meta.end;
-    let list = json.result.articles;
+  private async *getArticlePage(
+    endpoint: string,
+    offsetParam: string,
+  ): AsyncGenerator<ServiceNowArticle, void, void> {
+    let url: string | null = `${this.baseUrl}${endpoint}&${offsetParam}=0`;
 
-    if (json.result.meta.count > end) {
-      const nextUrl = `/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=${this.limit}&offset=${end}`;
-      const tail = await this.getPage<T>(nextUrl);
-      list = list.concat(tail);
+    while (url) {
+      const response = await fetch(url, {
+        headers: this.buildHeaders(),
+      });
+
+      const json: ServiceNowArticleResponse =
+        await readResponse<ServiceNowArticleResponse>(url, response);
+      const list = json.result.articles;
+
+      for (const item of list) {
+        yield item;
+      }
+
+      url =
+        json.result.meta.count > json.result.meta.end
+          ? `${this.baseUrl}${endpoint}&${offsetParam}=${json.result.meta.end}`
+          : null;
     }
+  }
 
-    return list;
+  private async *getCategoryPage(
+    endpoint: string,
+    offsetParam: string,
+  ): AsyncGenerator<ServiceNowCategory, void, void> {
+    let offset: number | null = 0;
+    let url: string | null =
+      `${this.baseUrl}${endpoint}&${offsetParam}=${offset}`;
+
+    while (url && offset !== null) {
+      const response = await fetch(url, {
+        headers: this.buildHeaders(),
+      });
+
+      const json: ServiceNowCategoryResponse =
+        await readResponse<ServiceNowCategoryResponse>(url, response);
+      const list = json.result;
+
+      for (const item of list) {
+        yield item;
+      }
+
+      offset = list.length > 0 ? offset + list.length : null;
+      url = offset
+        ? `${this.baseUrl}${endpoint}&${offsetParam}=${offset}`
+        : null;
+    }
   }
 
   public async fetchAttachmentInfo(
@@ -66,7 +119,7 @@ export class ServiceNowApi {
   }
 
   public getInstanceUrl(): string {
-    return removeTrailingSlash(this.config.relativeLinkBaseUrl || this.config.servicenowBaseUrl || '');
+    return removeTrailingSlash(this.config.servicenowBaseUrl || '');
   }
 
   private buildHeaders() {
@@ -80,7 +133,7 @@ export class ServiceNowApi {
     };
   }
 
-  private buildUrl(baseUrl: string): string {
+  private queryParams(): string {
     const esc = encodeURIComponent;
     const params: string[] = [];
 
@@ -101,11 +154,7 @@ export class ServiceNowApi {
       params.push(`language=${esc(language)}`);
     }
 
-    if (params.length > 0) {
-      baseUrl += '&' + params.join('&');
-    }
-
-    return baseUrl;
+    return params.join('&');
   }
 
   private buildFilters(categories?: string): string {

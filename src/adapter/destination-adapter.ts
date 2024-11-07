@@ -1,10 +1,7 @@
 import { Adapter } from './adapter.js';
 import { Image } from '../model/image.js';
-import {
-  Document,
-  ExportModel,
-  SyncModel,
-} from '../model/sync-export-model.js';
+import { Document } from '../model/document.js';
+import { ExportModel, SyncModel } from '../model/sync-export-model.js';
 import { SyncDataResponse } from '../model/sync-data-response.js';
 import { BulkDeleteResponse } from '../model/bulk-delete-response.js';
 import { Config } from '../config.js';

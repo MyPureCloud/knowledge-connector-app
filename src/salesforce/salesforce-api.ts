@@ -22,55 +22,74 @@ export class SalesforceApi {
 
   public async initialize(config: SalesforceConfig): Promise<void> {
     this.config = config;
-    this.instanceUrl = config.salesforceBaseUrl || '';
+    this.instanceUrl = removeTrailingSlash(config.salesforceBaseUrl || '');
     this.bearerToken = await this.authenticate();
   }
 
-  public async fetchAllArticles(): Promise<SalesforceArticleDetails[]> {
+  public async *articleIterator(): AsyncGenerator<
+    SalesforceArticleDetails,
+    void,
+    void
+  > {
     const filters = this.constructFilters();
 
-    const articleInfos = await this.get<SalesforceArticle>(
+    const articleInfos = this.getPage<SalesforceArticle>(
       `/services/data/${this.config.salesforceApiVersion}/support/knowledgeArticles?${filters}`,
       SalesforceEntityTypes.ARTICLES,
     );
 
     // Article listing does not contain the body, so fetching them one by one is necessary
-    const articlePromises = articleInfos.map((articleInfo) =>
-      this.fetchArticleDetails(articleInfo.id),
-    );
-
-    return Promise.all(articlePromises);
+    for await (const articleInfo of articleInfos) {
+      yield await this.fetchArticleDetails(articleInfo.id);
+    }
   }
 
-  public async fetchAllCategories(): Promise<SalesforceCategoryGroup[]> {
-    const categoryGroups = await this.fetchCategoryGroups();
-
-    for (const categoryGroup of categoryGroups) {
+  public async *categoryIterator(): AsyncGenerator<
+    SalesforceCategoryGroup,
+    void,
+    void
+  > {
+    for await (const categoryGroup of this.fetchCategoryGroups()) {
       for (const topCategory of categoryGroup.topCategories) {
         await this.fillCategoryAncestry(categoryGroup.name, topCategory);
       }
+      yield categoryGroup;
     }
+  }
 
-    return categoryGroups;
+  public getAttachment(
+    articleId: string | null,
+    url: string,
+  ): Promise<Image | null> {
+    return fetchImage(
+      `${this.instanceUrl}/services/data/${this.config.salesforceApiVersion}/sobjects/knowledge__kav${url}`,
+      {
+        Authorization: 'Bearer ' + this.bearerToken,
+      },
+    );
+  }
+
+  public getInstanceUrl(): string {
+    return removeTrailingSlash(this.instanceUrl);
   }
 
   private async fillCategoryAncestry(
-    categoryGroup: string,
+    categoryGroupName: string,
     category: SalesforceCategory,
-  ): Promise<void> {
-    const response = await this.fetchCategory(categoryGroup, category.name);
+  ): Promise<SalesforceCategory> {
+    const response = await this.fetchCategory(categoryGroupName, category.name);
     category.childCategories = response.childCategories;
 
     if (
-      category.childCategories == null ||
-      category.childCategories.length == 0
+      category.childCategories != null &&
+      category.childCategories.length > 0
     ) {
-      return;
+      for (const child of category.childCategories) {
+        await this.fillCategoryAncestry(categoryGroupName, child);
+      }
     }
 
-    for (const child of category.childCategories) {
-      await this.fillCategoryAncestry(categoryGroup, child);
-    }
+    return category;
   }
 
   private async fetchCategory(
@@ -85,22 +104,14 @@ export class SalesforceApi {
     return readResponse<SalesforceCategory>(url, response);
   }
 
-  public fetchCategoryGroups(): Promise<SalesforceCategoryGroup[]> {
-    return this.get<SalesforceCategoryGroup>(
+  private async *fetchCategoryGroups(): AsyncGenerator<
+    SalesforceCategoryGroup,
+    void,
+    void
+  > {
+    yield* this.getPage<SalesforceCategoryGroup>(
       `/services/data/${this.config.salesforceApiVersion}/support/dataCategoryGroups?sObjectName=KnowledgeArticleVersion`,
       SalesforceEntityTypes.CATEGORY_GROUPS,
-    );
-  }
-
-  public getAttachment(
-    articleId: string | null,
-    url: string,
-  ): Promise<Image | null> {
-    return fetchImage(
-      `${this.instanceUrl}/services/data/${this.config.salesforceApiVersion}/sobjects/knowledge__kav${url}`,
-      {
-        Authorization: 'Bearer ' + this.bearerToken,
-      },
     );
   }
 
@@ -167,13 +178,9 @@ export class SalesforceApi {
       `Instance URL not found in the response: ${JSON.stringify(data)}`,
     );
 
-    this.instanceUrl = data.instance_url;
+    this.instanceUrl = removeTrailingSlash(data.instance_url);
 
     return data.access_token;
-  }
-
-  public getInstanceUrl(): string {
-    return removeTrailingSlash(this.config.relativeLinkBaseUrl || this.instanceUrl || '');
   }
 
   private async fetchArticleDetails(
@@ -187,29 +194,30 @@ export class SalesforceApi {
     return readResponse<SalesforceArticleDetails>(url, response);
   }
 
-  private get<T>(
+  private async *getPage<T>(
     endpoint: string,
     property: SalesforceEntityTypes,
-  ): Promise<T[]> {
-    return this.getPage(`${this.instanceUrl}${endpoint}`, property);
-  }
+  ): AsyncGenerator<T, void, void> {
+    const headers = this.buildHeaders();
+    let url: string | null = `${this.instanceUrl}${endpoint}`;
 
-  private async getPage<T>(
-    url: string,
-    property: SalesforceEntityTypes,
-  ): Promise<T[]> {
-    const response = await fetch(url, {
-      headers: this.buildHeaders(),
-    });
+    while (url) {
+      const response = await fetch(url, {
+        headers,
+      });
 
-    const json = await readResponse<SalesforceResponse>(url, response);
-    let list = json[property] as T[];
-    if (json.nextPageUrl) {
-      const tail = await this.get<T>(json.nextPageUrl, property);
-      list = list.concat(tail);
+      const json: SalesforceResponse = await readResponse<SalesforceResponse>(
+        url,
+        response,
+      );
+      const list = json[property] as T[];
+
+      for (const item of list) {
+        yield item;
+      }
+
+      url = json.nextPageUrl ? `${this.instanceUrl}${json.nextPageUrl}` : null;
     }
-
-    return list;
   }
 
   private buildHeaders() {

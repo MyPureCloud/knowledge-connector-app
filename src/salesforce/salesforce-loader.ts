@@ -1,14 +1,18 @@
 import { SalesforceAdapter } from './salesforce-adapter.js';
 import { ExternalContent } from '../model/external-content.js';
-import { contentMapper } from './content-mapper.js';
+import { articleMapper, categoryMapper } from './content-mapper.js';
 import { SalesforceConfig } from './model/salesforce-config.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Adapter } from '../adapter/adapter.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import { getLogger } from '../utils/logger.js';
-import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
 import { AbstractLoader } from '../pipe/abstract-loader.js';
-import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
+import { Category, Document, Label } from '../model';
+import { SalesforceContext } from './model/salesforce-context.js';
+import { SalesforceMapperConfiguration } from './model/salesforce-mapper-configuration.js';
+import { LANGUAGE_MAPPING } from './salesforce-language-mapping.js';
+import { ExternalLink } from '../model/external-link.js';
+import { arraysFromAsync } from '../utils/arrays.js';
 
 /**
  * SalesforceLoader is a specific {@Link Loader} implementation for fetching data from Salesforce's API
@@ -16,6 +20,8 @@ import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
 export class SalesforceLoader extends AbstractLoader {
   private config: SalesforceConfig = {};
   private adapter?: SalesforceAdapter;
+  private context?: SalesforceContext;
+  private mapperConfiguration: SalesforceMapperConfiguration | null = null;
 
   public async initialize(
     config: SalesforceConfig,
@@ -25,30 +31,42 @@ export class SalesforceLoader extends AbstractLoader {
 
     this.config = config;
     this.adapter = adapters.sourceAdapter;
+    this.context = {
+      processedItems: {
+        categories: [],
+        labels: [],
+        documents: [],
+      },
+      unprocessedItems: {
+        categories: [],
+        labels: [],
+        articles: [],
+      },
+      unprocessableItems: {
+        categories: [],
+        labels: [],
+        articles: [],
+      },
+      articleLookupTable: new Map<string, ExternalLink>(),
+      labelLookupTable: new Map<string, Label>(),
+    };
   }
 
   public async run(_input?: ExternalContent): Promise<ExternalContent> {
     validateNonNull(this.adapter, 'Missing source adapter');
+    validateNonNull(this.context, 'Missing context');
 
     getLogger().info('Fetching data...');
 
-    const [categories, articles] = await Promise.all([
-      this.loadCategories(),
-      this.loadArticles(),
-    ]);
+    const labels = await arraysFromAsync(this.labelIterator());
+    const documents = await arraysFromAsync(this.documentIterator());
 
-    const baseUrl = this.adapter!.getResourceBaseUrl();
-
-    articles.forEach((article) => this.replaceImageUrls(article));
-
-    const data = contentMapper(
-      categories,
-      articles,
-      this.config,
-      this.shouldLoadCategories(),
-      this.shouldBuildExternalUrls(),
-      baseUrl,
-    );
+    const data: ExternalContent = {
+      labels,
+      categories: [],
+      documents,
+      articleLookupTable: this.context?.articleLookupTable,
+    };
 
     getLogger().info('Labels loaded: ' + data.labels.length);
     getLogger().info('Documents loaded: ' + data.documents.length);
@@ -56,55 +74,81 @@ export class SalesforceLoader extends AbstractLoader {
     return data;
   }
 
-  private replaceImageUrls(article: SalesforceArticleDetails): void {
-    article.layoutItems.forEach((item) => {
-      if (item.type !== 'RICH_TEXT_AREA') {
-        return;
+  public async *categoryIterator(): AsyncGenerator<Category, void, void> {}
+
+  // Due to structural differences, Salesforce categories will be mapped to labels
+  public async *labelIterator(): AsyncGenerator<Label, void, void> {
+    if (!this.shouldLoadLabels()) {
+      return;
+    }
+
+    for await (const categoryGroup of this.adapter!.categoryIterator()) {
+      for (const label of categoryMapper(categoryGroup)) {
+        this.context?.labelLookupTable.set(label.externalId!, label);
+        yield label;
       }
+    }
+  }
 
-      const htmlString = item.value;
-      const regex = /<img[^>]+?src="([^"]+)"/g;
-      let match;
-      while ((match = regex.exec(htmlString)) !== null) {
-        const imageUrl = match[1];
-        const replacedImgUrl = this.processImageUrl(imageUrl, item.name);
-        item.value = item.value.replace(imageUrl, replacedImgUrl);
+  public async *documentIterator(): AsyncGenerator<Document, void, void> {
+    if (!this.shouldLoadArticles()) {
+      return;
+    }
+
+    for await (const article of this.adapter!.articleIterator()) {
+      const document = articleMapper(
+        article,
+        this.context!,
+        this.getConfiguration(),
+      );
+      if (article.urlName) {
+        this.context!.articleLookupTable.set(article.urlName, {
+          externalDocumentId: article.id,
+        });
       }
-    });
+      yield document;
+    }
   }
 
-  private processImageUrl(url: string, fieldType: string): string {
-    let parsedUrl: URL;
-    try {
-      parsedUrl = new URL(url.replace(/&amp;/g, '&'));
-    } catch (error) {
-      getLogger().debug(`Cannot process image URL ${url} - ${error}`);
-      // Invalid URL, treat it as relative
-      return url;
+  private getConfiguration(): SalesforceMapperConfiguration {
+    if (!this.mapperConfiguration) {
+      const fetchLabels = this.shouldLoadLabels();
+      const buildExternalUrls = this.shouldBuildExternalUrls();
+      const languageCode = this.mapLanguageCode();
+      const contentFields = this.getContentFieldList();
+      const baseUrl = this.adapter!.getResourceBaseUrl();
+
+      this.mapperConfiguration = {
+        fetchLabels,
+        buildExternalUrls,
+        languageCode,
+        contentFields,
+        baseUrl,
+      };
     }
 
-    const searchParams = new URLSearchParams(parsedUrl.search);
-    const eid = searchParams.get('eid');
-    const refid = searchParams.get('refid');
-
-    if (eid == null || refid == null) {
-      return url;
-    }
-
-    return `/${eid}/richTextImageFields/${fieldType}/${refid}`;
+    return this.mapperConfiguration;
   }
 
-  private async loadArticles(): Promise<SalesforceArticleDetails[]> {
-    if (this.shouldLoadArticles()) {
-      return this.adapter!.getAllArticles();
+  private mapLanguageCode(): string {
+    validateNonNull(
+      this.config.salesforceLanguageCode,
+      'Missing SALESFORCE_LANGUAGE_CODE from config',
+    );
+
+    let languageCode = this.config.salesforceLanguageCode!;
+    if (languageCode.length > 2) {
+      languageCode = LANGUAGE_MAPPING[languageCode] ?? languageCode;
     }
-    return [];
+
+    return languageCode
+      .replace('-', '_')
+      .replace(/_([a-z]{2})$/, (_, p1) => `_${p1.toUpperCase()}`);
   }
 
-  private async loadCategories(): Promise<SalesforceCategoryGroup[]> {
-    if (this.shouldLoadCategories()) {
-      return this.adapter!.getAllCategories();
-    }
-    return [];
+  private getContentFieldList(): string[] {
+    return (this.config.salesforceArticleContentFields?.split(',') || [])
+      .map((f) => f.trim())
+      .filter((f) => f.length > 0);
   }
 }

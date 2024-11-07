@@ -1,7 +1,8 @@
 import { SourceAdapter } from '../adapter/source-adapter.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
-import { Document, ExportModel } from '../model/sync-export-model.js';
+import { Document } from '../model/document.js';
+import { ExportModel } from '../model/sync-export-model.js';
 import { GenesysSourceConfig } from './model/genesys-source-config.js';
 import { GenesysSourceApi } from './genesys-source-api.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
@@ -12,6 +13,7 @@ import { getLogger } from '../utils/logger.js';
 import { AttachmentDomainValidator } from '../processor/attachment-domain-validator/attachment-domain-validator.js';
 import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-validator/attachment-domain-not-allowed-error.js';
 import { InvalidExportJobError } from './errors/invalid-export-job-error.js';
+import { removeTrailingSlash } from '../utils/remove-trailing-slash';
 
 /**
  * GenesysSourceAdapter implements {@Link SourceAdapter} to fetch data from Genesys Knowledge's API
@@ -66,7 +68,9 @@ export class GenesysSourceAdapter
   }
 
   public getResourceBaseUrl(): string {
-    return this.api.getInstanceUrl();
+    return removeTrailingSlash(
+      this.config.relativeLinkBaseUrl || this.api.getInstanceUrl() || '',
+    );
   }
 
   private async exportAllEntities(): Promise<ExportModel> {

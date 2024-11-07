@@ -11,6 +11,7 @@ import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
 import { getLogger } from '../utils/logger.js';
 import { AttachmentDomainValidator } from '../processor/attachment-domain-validator/attachment-domain-validator.js';
 import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-validator/attachment-domain-not-allowed-error.js';
+import { removeTrailingSlash } from '../utils/remove-trailing-slash';
 
 export class ZendeskAdapter
   implements
@@ -79,7 +80,9 @@ export class ZendeskAdapter
   }
 
   public getResourceBaseUrl(): string {
-    return this.api.getInstanceUrl();
+    return removeTrailingSlash(
+      this.config.relativeLinkBaseUrl || this.api.getInstanceUrl(),
+    );
   }
 
   private async getAttachmentInfo(

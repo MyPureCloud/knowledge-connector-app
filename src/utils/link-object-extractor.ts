@@ -1,4 +1,4 @@
-import { Variation } from '../model/sync-export-model.js';
+import { Variation } from '../model/document.js';
 import { LinkBlock } from '../model/link-block.js';
 import {
   DocumentBodyBlock,

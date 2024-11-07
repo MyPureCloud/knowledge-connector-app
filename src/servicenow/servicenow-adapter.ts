@@ -8,13 +8,17 @@ import { ServiceNowArticleAttachment } from './model/servicenow-article-attachme
 import { getLogger } from '../utils/logger.js';
 import { AttachmentDomainValidator } from '../processor/attachment-domain-validator/attachment-domain-validator.js';
 import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-validator/attachment-domain-not-allowed-error.js';
+import { arraysFromAsync } from '../utils/arrays.js';
+import { ServiceNowCategory } from './model/servicenow-category.js';
+import { removeTrailingSlash } from '../utils/remove-trailing-slash';
 
 export class ServiceNowAdapter
   implements
     SourceAdapter<unknown, unknown, ServiceNowArticle>,
     ImageSourceAdapter
 {
-  private static ARTICLE_NUMBER_REGEX = /(?:sysparm_article|sys_kb_id)(?:&#61;|=)([A-Za-z0-9]+)/;
+  private static ARTICLE_NUMBER_REGEX =
+    /(?:sysparm_article|sys_kb_id)(?:&#61;|=)([A-Za-z0-9]+)/;
 
   private config: ServiceNowConfig = {};
   private api: ServiceNowApi;
@@ -30,8 +34,34 @@ export class ServiceNowAdapter
     return this.api.initialize(config);
   }
 
-  public getAllArticles(): Promise<ServiceNowArticle[]> {
-    return this.api.fetchAllArticles();
+  public async getAllArticles(): Promise<ServiceNowArticle[]> {
+    return arraysFromAsync(this.articleIterator());
+  }
+
+  public async getAllCategories(): Promise<unknown[]> {
+    return arraysFromAsync(this.categoryIterator());
+  }
+
+  public async getAllLabels(): Promise<unknown[]> {
+    return arraysFromAsync(this.labelIterator());
+  }
+
+  public async *categoryIterator(): AsyncGenerator<
+    ServiceNowCategory,
+    void,
+    void
+  > {
+    yield* this.api.categoryIterator();
+  }
+
+  public async *labelIterator(): AsyncGenerator<unknown, void, void> {}
+
+  public async *articleIterator(): AsyncGenerator<
+    ServiceNowArticle,
+    void,
+    void
+  > {
+    yield* this.api.articleIterator();
   }
 
   public getDocumentLinkMatcherRegexp(): RegExp | undefined {
@@ -40,10 +70,10 @@ export class ServiceNowAdapter
 
   public async getAttachment(
     articleId: string | null,
-    url: string,
+    attachmentUrl: string,
   ): Promise<Image | null> {
     // sys_id=e78fb8af47474650376bb52f316d4313 or sys_id&#61;e78fb8af47474650376bb52f316d4313
-    const attachmentIdMatch = url.match(/sys_id(?:=|&#61;)([^&]+)/);
+    const attachmentIdMatch = attachmentUrl.match(/sys_id(?:=|&#61;)([^&]+)/);
     if (!attachmentIdMatch || !articleId) {
       return null;
     }
@@ -52,40 +82,36 @@ export class ServiceNowAdapter
     if (!info) {
       articleId = articleId.split(':')[1];
       getLogger().warn(
-        `Cannot find attachment [${url}] for article [${articleId}]`,
+        `Cannot find attachment [${attachmentUrl}] for article [${articleId}]`,
       );
       return null;
     }
 
-    if (
-      !this.attachmentDomainValidator!.isDomainAllowed(
-        info.result.download_link,
-      )
-    ) {
-      throw new AttachmentDomainNotAllowedError(info.result.download_link);
+    const {
+      result: {
+        download_link: url,
+        file_name: name,
+        content_type: contentType,
+      },
+    } = info;
+
+    if (!this.attachmentDomainValidator!.isDomainAllowed(url)) {
+      throw new AttachmentDomainNotAllowedError(url);
     }
-    const content = await this.api.downloadAttachment(
-      info.result.download_link,
-    );
+    const content = await this.api.downloadAttachment(url);
 
     return {
-      url: info.result.download_link,
-      name: info.result.file_name,
-      contentType: info.result.content_type,
+      url,
+      name,
+      contentType,
       content,
     };
   }
 
-  public getAllCategories(): Promise<unknown[]> {
-    return Promise.reject();
-  }
-
-  public getAllLabels(): Promise<unknown[]> {
-    return Promise.reject();
-  }
-
   public getResourceBaseUrl(): string {
-    return this.api.getInstanceUrl();
+    return removeTrailingSlash(
+      this.config.relativeLinkBaseUrl || this.api.getInstanceUrl(),
+    );
   }
 
   private async getAttachmentInfo(

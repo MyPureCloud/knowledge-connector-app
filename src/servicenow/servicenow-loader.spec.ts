@@ -8,37 +8,45 @@ import { Image } from '../model';
 import {
   generateNormalizedCategory,
   generateRawDocument,
-} from '../tests/utils/entity-generators';
-import { ExternalLink } from '../model/external-link.js';
+} from '../tests/utils/entity-generators.js';
+import { ServiceNowCategory } from './model/servicenow-category.js';
+import { arraysFromAsync } from '../utils/arrays';
 
-const mockGetAllArticles = jest.fn<() => Promise<ServiceNowArticle[]>>();
 const mockGetAttachment =
   jest.fn<(articleId: string | null, url: string) => Promise<Image | null>>();
-const mockGetAllCategories = jest.fn<() => Promise<unknown[]>>();
-const mockGetAllLabels = jest.fn<() => Promise<unknown[]>>();
+const mockCategoryIterator =
+  jest.fn<() => AsyncGenerator<ServiceNowCategory, void, void>>();
+const mockLabelIterator = jest.fn<() => AsyncGenerator<unknown, void, void>>();
+const mockArticleIterator =
+  jest.fn<() => AsyncGenerator<ServiceNowArticle, void, void>>();
+
+const CATEGORY_EXTERNAL_ID = 'category-external-id';
+const CATEGORY_NAME = 'category-name';
+const PARENT_CATEGORY_EXTERNAL_ID = 'parent-category-external-id';
+const PARENT_CATEGORY_NAME = 'parent-category-name';
 
 describe('ServiceNowLoader', () => {
   const CATEGORY = generateNormalizedCategory(
     '',
     null,
-    'category-display-value',
-    'topic-valuecategory-value',
+    CATEGORY_NAME,
+    CATEGORY_EXTERNAL_ID,
     {
       id: null,
-      name: 'topic-display-value',
+      name: PARENT_CATEGORY_NAME,
     },
   );
-  const TOPIC = generateNormalizedCategory(
+  const PARENT_CATEGORY = generateNormalizedCategory(
     '',
     null,
-    'topic-display-value',
-    'topic-value',
+    PARENT_CATEGORY_NAME,
+    PARENT_CATEGORY_EXTERNAL_ID,
   );
   const DOCUMENT = generateRawDocument(
     '<p>article body</p>',
     {
       id: null,
-      name: 'category-display-value',
+      name: CATEGORY_NAME,
     },
     null,
     'kb_knowledge:0d7094289f011200550bf7b6077fcffc',
@@ -57,7 +65,8 @@ describe('ServiceNowLoader', () => {
     adapter = new ServiceNowAdapter();
     loader = new ServiceNowLoader();
 
-    mockGetAllArticles.mockResolvedValueOnce([generateArticle()]);
+    mockArticleIterator.mockImplementation(articleIterator);
+    mockCategoryIterator.mockImplementation(categoryIterator);
   });
 
   describe('run', () => {
@@ -68,38 +77,18 @@ describe('ServiceNowLoader', () => {
       });
     });
 
-    it('should fetch articles only', async () => {
-      await loader.run();
+    it('should map categories', async () => {
+      const { value: result1 } = await loader.categoryIterator().next();
+      const { value: result2 } = await loader.categoryIterator().next();
 
-      expect(mockGetAllArticles).toHaveBeenCalled();
-      expect(mockGetAllLabels).not.toHaveBeenCalled();
-      expect(mockGetAllCategories).not.toHaveBeenCalled();
+      expect(result1).toEqual(PARENT_CATEGORY);
+      expect(result2).toEqual(CATEGORY);
     });
 
-    it('should map entities', async () => {
-      const result = await loader.run();
+    it('should map articles', async () => {
+      const { value } = await loader.documentIterator().next();
 
-      expect(result).toEqual({
-        labels: [],
-        documents: [DOCUMENT],
-        categories: [CATEGORY, TOPIC],
-        articleLookupTable: new Map<string, ExternalLink>([
-          [
-            'article-number',
-            {
-              externalDocumentId:
-                'kb_knowledge:0d7094289f011200550bf7b6077fcffc',
-            },
-          ],
-          [
-            '0d7094289f011200550bf7b6077fcffc',
-            {
-              externalDocumentId:
-                'kb_knowledge:0d7094289f011200550bf7b6077fcffc',
-            },
-          ],
-        ]),
-      });
+      expect(value).toEqual(DOCUMENT);
     });
 
     describe('when categories excluded', () => {
@@ -114,36 +103,9 @@ describe('ServiceNowLoader', () => {
       });
 
       it('should leave categories empty', async () => {
-        const result = await loader.run();
+        const result = await arraysFromAsync(loader.categoryIterator());
 
-        expect(result).toEqual({
-          labels: [],
-          documents: [
-            generateRawDocument(
-              '<p>article body</p>',
-              null,
-              null,
-              'kb_knowledge:0d7094289f011200550bf7b6077fcffc',
-            ),
-          ],
-          categories: [],
-          articleLookupTable: new Map<string, ExternalLink>([
-            [
-              'article-number',
-              {
-                externalDocumentId:
-                  'kb_knowledge:0d7094289f011200550bf7b6077fcffc',
-              },
-            ],
-            [
-              '0d7094289f011200550bf7b6077fcffc',
-              {
-                externalDocumentId:
-                  'kb_knowledge:0d7094289f011200550bf7b6077fcffc',
-              },
-            ],
-          ]),
-        });
+        expect(result.length).toBe(0);
       });
     });
 
@@ -159,14 +121,9 @@ describe('ServiceNowLoader', () => {
       });
 
       it('should leave documents empty', async () => {
-        const result = await loader.run();
+        const result = await arraysFromAsync(loader.documentIterator());
 
-        expect(result).toEqual({
-          labels: [],
-          documents: [],
-          categories: [CATEGORY, TOPIC],
-          articleLookupTable: new Map<string, ExternalLink>(),
-        });
+        expect(result.length).toBe(0);
       });
     });
   });
@@ -177,15 +134,23 @@ jest.mock('./servicenow-adapter.js', () => {
     ServiceNowAdapter: jest.fn().mockImplementation(() => {
       return {
         initialise: jest.fn<(config: ServiceNowConfig) => Promise<void>>(),
-        getAllArticles: () => mockGetAllArticles(),
+        categoryIterator: () => mockCategoryIterator(),
+        labelIterator: () => mockLabelIterator(),
+        articleIterator: () => mockArticleIterator(),
         getAttachment: (articleId: string | null, url: string) =>
           mockGetAttachment(articleId, url),
-        getAllCategories: () => mockGetAllCategories(),
-        getAllLabels: () => mockGetAllLabels(),
       };
     }),
   };
 });
+
+async function* articleIterator(): AsyncGenerator<
+  ServiceNowArticle,
+  void,
+  void
+> {
+  yield generateArticle();
+}
 
 function generateArticle(): ServiceNowArticle {
   return {
@@ -195,15 +160,11 @@ function generateArticle(): ServiceNowArticle {
     snippet: 'article-snippet',
     number: 'article-number',
     fields: {
-      category: {
-        name: 'category-name',
-        value: 'category-value',
-        display_value: 'category-display-value',
-      },
-      topic: {
-        name: 'topic-name',
-        value: 'topic-value',
-        display_value: 'topic-display-value',
+      kb_category: {
+        name: 'kb_category',
+        label: 'Category',
+        value: CATEGORY_EXTERNAL_ID,
+        display_value: CATEGORY_NAME,
       },
       text: {
         value: '<p>article body</p>',
@@ -212,5 +173,34 @@ function generateArticle(): ServiceNowArticle {
         value: 'published',
       },
     },
+  };
+}
+
+async function* categoryIterator(): AsyncGenerator<
+  ServiceNowCategory,
+  void,
+  void
+> {
+  yield generateCategory(
+    CATEGORY_EXTERNAL_ID,
+    CATEGORY_NAME,
+    PARENT_CATEGORY_EXTERNAL_ID,
+  );
+  yield generateCategory(PARENT_CATEGORY_EXTERNAL_ID, PARENT_CATEGORY_NAME);
+}
+
+function generateCategory(
+  id: string,
+  name: string,
+  parentId?: string,
+): ServiceNowCategory {
+  return {
+    sys_id: id,
+    full_category: name,
+    ...(parentId
+      ? {
+          parent_id: { link: '', value: parentId },
+        }
+      : {}),
   };
 }

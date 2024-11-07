@@ -7,14 +7,15 @@ import { SalesforceLoader } from './salesforce-loader.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
 import { generateRawDocument } from '../tests/utils/entity-generators.js';
 import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
-import { ExternalLink } from '../model/external-link.js';
+import { arraysFromAsync } from '../utils/arrays';
 
-const mockGetAllArticles = jest.fn<() => Promise<SalesforceArticleDetails[]>>();
 const mockGetAttachment =
   jest.fn<(articleId: string | null, url: string) => Promise<Image | null>>();
-const mockGetAllCategories =
-  jest.fn<() => Promise<SalesforceCategoryGroup[]>>();
-const mockGetAllLabels = jest.fn<() => Promise<unknown[]>>();
+const mockCategoryIterator =
+  jest.fn<() => AsyncGenerator<SalesforceCategoryGroup, void, void>>();
+const mockLabelIterator = jest.fn<() => AsyncGenerator<unknown, void, void>>();
+const mockArticleIterator =
+  jest.fn<() => AsyncGenerator<SalesforceArticleDetails, void, void>>();
 const mockGetResourceBaseUrl = jest.fn<() => Promise<unknown[]>>();
 
 describe('SalesforceLoader', () => {
@@ -47,8 +48,8 @@ describe('SalesforceLoader', () => {
     adapter = new SalesforceAdapter();
     loader = new SalesforceLoader();
 
-    mockGetAllArticles.mockResolvedValueOnce([generateArticle()]);
-    mockGetAllCategories.mockResolvedValueOnce([generateCategory()]);
+    mockArticleIterator.mockImplementation(articleIterator);
+    mockCategoryIterator.mockImplementation(categoryIterator);
     mockGetResourceBaseUrl.mockResolvedValueOnce([
       () => 'https://salesforce.com',
     ]);
@@ -62,36 +63,24 @@ describe('SalesforceLoader', () => {
       });
     });
 
-    it('should fetch articles and categories only', async () => {
-      await loader.run();
+    it('should map labels', async () => {
+      const { value } = await loader.labelIterator().next();
 
-      expect(mockGetAllArticles).toHaveBeenCalled();
-      expect(mockGetAllCategories).toHaveBeenCalled();
-      expect(mockGetAllLabels).not.toHaveBeenCalled();
+      expect(value).toEqual(LABEL);
     });
 
-    it('should map entities', async () => {
-      const result = await loader.run();
+    it('should map documents', async () => {
+      await loader.labelIterator().next();
 
-      expect(result).toEqual({
-        labels: [LABEL],
-        documents: [DOCUMENT],
-        categories: [],
-        articleLookupTable: new Map<string, ExternalLink>([
-          [
-            'testUrlName',
-            {
-              externalDocumentId: 'article-external-id',
-            },
-          ],
-        ]),
-      });
+      const { value } = await loader.documentIterator().next();
+
+      expect(value).toEqual(DOCUMENT);
     });
 
-    describe('when categories excluded', () => {
+    describe('when labels excluded', () => {
       beforeEach(async () => {
         await loader.initialize(
-          { ...config, fetchCategories: 'false' },
+          { ...config, fetchLabels: 'false' },
           {
             sourceAdapter: adapter,
             destinationAdapter: {} as Adapter,
@@ -99,24 +88,10 @@ describe('SalesforceLoader', () => {
         );
       });
 
-      it('should leave labels (=categories) empty', async () => {
-        const result = await loader.run();
+      it('should leave labels empty', async () => {
+        const result = await arraysFromAsync(loader.categoryIterator());
 
-        expect(result).toEqual({
-          labels: [],
-          documents: [
-            generateRawDocument(
-              '<p><img src="https://document-image.url"></p>',
-              null,
-              null,
-            ),
-          ],
-          categories: [],
-          articleLookupTable: new Map<string, ExternalLink>([
-            ['testUrlName', { externalDocumentId: 'article-external-id' }],
-          ]),
-        });
-        expect(mockGetAllCategories).not.toHaveBeenCalled();
+        expect(result.length).toBe(0);
       });
     });
 
@@ -132,15 +107,9 @@ describe('SalesforceLoader', () => {
       });
 
       it('should leave documents empty', async () => {
-        const result = await loader.run();
+        const result = await arraysFromAsync(loader.documentIterator());
 
-        expect(result).toEqual({
-          labels: [LABEL],
-          documents: [],
-          categories: [],
-          articleLookupTable: new Map<string, ExternalLink>(),
-        });
-        expect(mockGetAllArticles).not.toHaveBeenCalled();
+        expect(result.length).toBe(0);
       });
     });
   });
@@ -151,16 +120,24 @@ jest.mock('./salesforce-adapter.js', () => {
     SalesforceAdapter: jest.fn().mockImplementation(() => {
       return {
         initialise: jest.fn<(config: SalesforceConfig) => Promise<void>>(),
-        getAllArticles: () => mockGetAllArticles(),
+        articleIterator: () => mockArticleIterator(),
         getAttachment: (articleId: string | null, url: string) =>
           mockGetAttachment(articleId, url),
-        getAllCategories: () => mockGetAllCategories(),
-        getAllLabels: () => mockGetAllLabels(),
+        categoryIterator: () => mockCategoryIterator(),
+        labelIterator: () => mockLabelIterator(),
         getResourceBaseUrl: () => mockGetResourceBaseUrl(),
       };
     }),
   };
 });
+
+async function* articleIterator(): AsyncGenerator<
+  SalesforceArticleDetails,
+  void,
+  void
+> {
+  yield generateArticle();
+}
 
 function generateArticle(): SalesforceArticleDetails {
   return {
@@ -191,6 +168,15 @@ function generateArticle(): SalesforceArticleDetails {
     ],
   };
 }
+
+async function* categoryIterator(): AsyncGenerator<
+    SalesforceCategoryGroup,
+    void,
+    void
+> {
+    yield generateCategory();
+}
+
 
 function generateCategory(): SalesforceCategoryGroup {
   return {

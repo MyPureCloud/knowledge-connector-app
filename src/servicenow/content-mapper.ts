@@ -1,57 +1,52 @@
-import { ExternalContent } from '../model/external-content.js';
-import { Document, DocumentVersion } from '../model/sync-export-model.js';
+import { Document, DocumentVersion } from '../model/document.js';
 import { ServiceNowArticle } from './model/servicenow-article.js';
 import { Category } from '../model/category.js';
 import { CategoryReference } from '../model/category-reference.js';
-import { ExternalLink } from '../model/external-link.js';
-import { ServiceNowConfig } from './model/servicenow-config';
+import { ServiceNowCategory } from './model/servicenow-category.js';
+import { ServiceNowContext } from './model/servicenow-context.js';
+import { ServiceNowMapperConfiguration } from './model/servicenow-mapper-configuration.js';
 
-export function contentMapper(
-  articles: ServiceNowArticle[],
-  fetchCategories: boolean,
-  buildExternalUrls: boolean,
-  config: ServiceNowConfig,
-): ExternalContent {
+export function categoryMapper(
+  category: ServiceNowCategory,
+  context: ServiceNowContext,
+): Category | null {
+  const {
+    sys_id: externalId,
+    full_category: name,
+    parent_id: parent,
+  } = category;
+
+  const parentCategory =
+    parent && parent.value
+      ? context.categoryLookupTable.get(parent.value)
+      : null;
+  if (parentCategory === undefined) {
+    // Parent is not yet processed
+    return null;
+  }
+
   return {
-    categories: articles
-      ? [
-          ...new Map(
-            articles
-              .flatMap((a: ServiceNowArticle) => categoryMapper(a))
-              .filter((c: Category | null): c is Category => !!c)
-              .map((c: Category) => [c.externalId, c]),
-          ).values(),
-        ]
-      : [],
-    labels: [],
-    documents: articles
-      ? articles.map((a: ServiceNowArticle) =>
-          articleMapper(
-            a,
-            fetchCategories,
-            buildExternalUrls,
-            config.servicenowBaseUrl,
-          ),
-        )
-      : [],
-    articleLookupTable: buildArticleLookupTable(articles),
+    id: null,
+    name,
+    externalId,
+    parentCategory: parentCategory
+      ? { id: null, name: parentCategory.full_category }
+      : null,
   };
 }
 
-function categoryMapper(article: ServiceNowArticle): Category[] {
-  return getCategoryWithParent(article);
-}
-
-function articleMapper(
+export function articleMapper(
   article: ServiceNowArticle,
-  fetchCategories: boolean,
-  buildExternalUrls: boolean,
-  baseUrl?: string,
+  configuration: ServiceNowMapperConfiguration,
 ): Document {
-  const id = article.id;
-  const title = article.title;
-  const body = article.fields.text.value;
-  const state = article.fields.workflow_state.value;
+  const {
+    id,
+    title,
+    fields: {
+      text: { value: body },
+      workflow_state: { value: state },
+    },
+  } = article;
 
   const documentVersion: DocumentVersion = {
     visible: true,
@@ -63,97 +58,31 @@ function articleMapper(
         body: null,
       },
     ],
-    category: fetchCategories ? getCategoryReference(article) : null,
+    category: configuration.fetchCategories
+      ? getCategoryReference(article)
+      : null,
     labels: null,
   };
 
   return {
     id: null,
     externalId: String(id),
-    externalUrl: buildExternalUrls
-      ? buildExternalUrl(baseUrl, article.number)
+    externalUrl: configuration.buildExternalUrls
+      ? buildExternalUrl(configuration.baseUrl, article.number)
       : null,
     published: state === 'published' ? documentVersion : null,
     draft: state !== 'published' ? documentVersion : null,
   };
 }
 
-function getCategory(article: ServiceNowArticle): {
-  category?: Category;
-  parent?: Category;
-} {
-  const categoryValue = article.fields?.category?.value ?? null;
-  const categoryName = article.fields?.category?.display_value ?? null;
-  const parentCategoryValue = article.fields?.topic?.value ?? null;
-  const parentCategoryName = article.fields?.topic?.display_value ?? null;
-
-  if (!categoryName && !parentCategoryName) {
-    return {};
-  }
-
-  if (!categoryName && parentCategoryName) {
-    return {
-      category: {
-        id: null,
-        name: parentCategoryName,
-        externalId: parentCategoryValue,
-        parentCategory: null,
-      },
-    };
-  }
-
-  return {
-    category: {
-      id: null,
-      name: categoryName,
-      externalId: parentCategoryValue + categoryValue,
-      parentCategory: {
-        id: null,
-        name: parentCategoryName,
-      },
-    },
-    parent: {
-      id: null,
-      name: parentCategoryName,
-      externalId: parentCategoryValue,
-      parentCategory: null,
-    },
-  };
-}
-
-function getCategoryWithParent(article: ServiceNowArticle): Category[] {
-  const { category, parent } = getCategory(article);
-
-  return [category, parent].filter(
-    (c: Category | undefined): c is Category => !!c,
-  );
-}
-
 function getCategoryReference(
   article: ServiceNowArticle,
 ): CategoryReference | null {
-  const { category } = getCategory(article);
-
-  if (!category) {
+  if (!article.fields.kb_category?.value) {
     return null;
   }
 
-  const { id, name } = category;
-  return { id, name };
-}
-
-function buildArticleLookupTable(articles: ServiceNowArticle[]) {
-  const lookupTable: Map<string, ExternalLink> = new Map<
-    string,
-    ExternalLink
-  >();
-  articles.forEach((article) => {
-    if (article.number) {
-      lookupTable.set(article.number, { externalDocumentId: article.id });
-      lookupTable.set(article.id.split(':')[1], { externalDocumentId: article.id });
-    }
-  });
-  return lookupTable;
+  return { id: null, name: article.fields.kb_category?.display_value };
 }
 
 function buildExternalUrl(

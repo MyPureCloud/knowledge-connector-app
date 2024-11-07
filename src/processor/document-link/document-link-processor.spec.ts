@@ -4,11 +4,8 @@ import { SourceAdapter } from '../../adapter/source-adapter.js';
 import { AdapterPair } from '../../adapter/adapter-pair.js';
 import { DestinationAdapter } from '../../adapter/destination-adapter.js';
 import { Config } from '../../config.js';
-import {
-  Document,
-  ExportModel,
-  SyncModel,
-} from '../../model/sync-export-model.js';
+import { ExportModel, SyncModel } from '../../model/sync-export-model.js';
+import { Document } from '../../model/document.js';
 import { Image } from '../../model/image.js';
 import { SyncDataResponse } from '../../model/sync-data-response.js';
 import { BulkDeleteResponse } from '../../model/bulk-delete-response.js';

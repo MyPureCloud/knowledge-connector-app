@@ -1,6 +1,6 @@
 import { Label } from './label.js';
 import { Category } from './category.js';
-import { Document } from './sync-export-model.js';
+import { Document } from './document.js';
 import { ExternalLink } from './external-link.js';
 
 export interface ExternalContent {

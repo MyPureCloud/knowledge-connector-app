@@ -1,6 +1,6 @@
 import { Category } from '../../model/category.js';
 import { Label } from '../../model/label.js';
-import { Document } from '../../model/sync-export-model.js';
+import { Document } from '../../model/document.js';
 import { jest } from '@jest/globals';
 
 export const SourceAdapter = jest.fn(() => ({

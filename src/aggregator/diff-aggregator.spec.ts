@@ -11,14 +11,11 @@ import {
   generateNormalizedLabel,
 } from '../tests/utils/entity-generators.js';
 import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
-import {
-  Document,
-  ExportModel,
-  SyncModel,
-} from '../model/sync-export-model.js';
+import { ExportModel, SyncModel } from '../model/sync-export-model.js';
 import { ImportableContent } from '../model/syncable-contents.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
+import { Document } from '../model/document.js';
 import { ExternalIdentifiable } from '../model/external-identifiable.js';
 import { ConfigurerError } from './errors/configurer-error.js';
 import { NamedEntity } from '../model/named-entity.js';

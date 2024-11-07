@@ -1,6 +1,6 @@
 import { Label } from '../../model/label.js';
 import { Category } from '../../model/category.js';
-import { Document } from '../../model/sync-export-model.js';
+import { Document } from '../../model/document.js';
 import { DocumentAlternative } from '../../model/document-alternative.js';
 import { CategoryReference, LabelReference } from '../../model';
 

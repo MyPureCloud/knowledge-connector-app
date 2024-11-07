@@ -25,7 +25,7 @@ describe('SalesforceApi', () => {
     mockLoginResponse();
   });
 
-  describe('fetchAllArticles', () => {
+  describe('articleIterator', () => {
     it('should load articles with given filters', async () => {
       await api.initialize({
         ...config,
@@ -39,7 +39,7 @@ describe('SalesforceApi', () => {
         articles: [],
       });
 
-      await api.fetchAllArticles();
+      await api.articleIterator().next();
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://base-url/services/data/v56.0/support/knowledgeArticles?channel=Pkb&categories={"something":"someone","otherGroup":"other_category"}&queryMethod=BELOW',
@@ -64,7 +64,7 @@ describe('SalesforceApi', () => {
         articles: [],
       });
 
-      await api.fetchAllArticles();
+      await api.articleIterator().next();
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://base-url/services/data/v56.0/support/knowledgeArticles?channel=Pkb&categories={"something":"someone"}&queryMethod=BELOW',
@@ -89,7 +89,7 @@ describe('SalesforceApi', () => {
         articles: [],
       });
 
-      await api.fetchAllArticles();
+      await api.articleIterator().next();
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://base-url/services/data/v56.0/support/knowledgeArticles?channel=Pkb&categories={"something":"someone"}&queryMethod=BELOW',
