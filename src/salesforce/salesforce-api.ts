@@ -2,7 +2,7 @@ import { SalesforceConfig } from './model/salesforce-config.js';
 import { SalesforceEntityTypes } from './model/salesforce-entity-types.js';
 import { SalesforceResponse } from './model/salesforce-response.js';
 import { SalesforceArticle } from './model/salesforce-article.js';
-import { fetch, fetchImage, Response } from '../utils/web-client.js';
+import { fetch, fetchImage, readResponse } from '../utils/web-client.js';
 import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
 import { SalesforceCategory } from './model/salesforce-category.js';
@@ -81,9 +81,8 @@ export class SalesforceApi {
     const response = await fetch(url, {
       headers: this.buildHeaders(),
     });
-    await this.verifyResponse(response, url);
 
-    return (await response.json()) as SalesforceCategory;
+    return readResponse<SalesforceCategory>(url, response);
   }
 
   public fetchCategoryGroups(): Promise<SalesforceCategoryGroup[]> {
@@ -134,7 +133,8 @@ export class SalesforceApi {
     bodyParams.append('username', this.config.salesforceUsername!);
     bodyParams.append('password', this.config.salesforcePassword!);
 
-    const response = await fetch(`${processedLoginUrl}/services/oauth2/token`, {
+    const url = `${processedLoginUrl}/services/oauth2/token`;
+    const response = await fetch(url, {
       method: 'POST',
       body: bodyParams,
       headers: {
@@ -142,18 +142,21 @@ export class SalesforceApi {
       },
     });
 
-    if (!response.ok) {
-      const message = JSON.stringify(await response.json());
-      return Promise.reject(
-        new InvalidCredentialsError(
-          `Failed to get Salesforce bearer token. Response: ${message}`,
-          { status: response.status, response: message },
-        ),
+    let data;
+    try {
+      data = await readResponse<SalesforceAccessTokenResponse>(url, response);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new InvalidCredentialsError(
+          `Failed to get Salesforce bearer token. Reason: ${error.message}`,
+          error.getDetails(),
+        );
+      }
+      throw new InvalidCredentialsError(
+        `Failed to get Salesforce bearer token. Reason: ${error}`,
+        { status: response.status, message: error },
       );
     }
-
-    const data: SalesforceAccessTokenResponse =
-      (await response.json()) as SalesforceAccessTokenResponse;
 
     validateNonNull(
       data.access_token,
@@ -176,9 +179,8 @@ export class SalesforceApi {
     const response = await fetch(url, {
       headers: this.buildHeaders(),
     });
-    await this.verifyResponse(response, url);
 
-    return (await response.json()) as SalesforceArticleDetails;
+    return readResponse<SalesforceArticleDetails>(url, response);
   }
 
   private get<T>(
@@ -195,9 +197,8 @@ export class SalesforceApi {
     const response = await fetch(url, {
       headers: this.buildHeaders(),
     });
-    await this.verifyResponse(response, url);
 
-    const json = (await response.json()) as SalesforceResponse;
+    const json = await readResponse<SalesforceResponse>(url, response);
     let list = json[property] as T[];
     if (json.nextPageUrl) {
       const tail = await this.get<T>(json.nextPageUrl, property);
@@ -227,16 +228,6 @@ export class SalesforceApi {
       Authorization: 'Bearer ' + this.bearerToken,
       'Accept-Language': this.config.salesforceLanguageCode!,
     };
-  }
-
-  private async verifyResponse(response: Response, url: string): Promise<void> {
-    if (!response.ok) {
-      const message = JSON.stringify(await response.json());
-      throw new ApiError(
-        `Api request [${url}] failed with status [${response.status}] and message [${message}]`,
-        { url, status: response.status, message },
-      );
-    }
   }
 
   private constructFilters(): string {

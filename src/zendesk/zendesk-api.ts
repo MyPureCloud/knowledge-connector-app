@@ -5,8 +5,12 @@ import { ZendeskArticleAttachment } from './model/zendest-article-attachment.js'
 import { ZendeskSection } from './model/zendesk-section.js';
 import { ZendeskArticle } from './model/zendesk-article.js';
 import { ZendeskLabel } from './model/zendesk-label.js';
-import { fetch, HeadersInit, Response } from '../utils/web-client.js';
-import { ApiError } from '../adapter/errors/api-error.js';
+import {
+  fetch,
+  HeadersInit,
+  readResponse,
+  verifyResponseStatus,
+} from '../utils/web-client.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 
 export class ZendeskApi {
@@ -54,7 +58,7 @@ export class ZendeskApi {
     const response = await fetch(url, {
       headers: this.buildHeaders(),
     });
-    await this.verifyResponse(response, url);
+    await verifyResponseStatus(url, response);
 
     return await response.blob();
   }
@@ -84,9 +88,8 @@ export class ZendeskApi {
     const response = await fetch(url, {
       headers: this.buildHeaders(),
     });
-    await this.verifyResponse(response, url);
 
-    const json = (await response.json()) as ZendeskResponse;
+    const json = await readResponse<ZendeskResponse>(url, response);
     let list = json[property] as T[];
     if (json.next_page) {
       const tail = await this.getPage<T>(json.next_page, property);
@@ -104,15 +107,5 @@ export class ZendeskApi {
           'utf-8',
         ).toString('base64'),
     };
-  }
-
-  private async verifyResponse(response: Response, url: string): Promise<void> {
-    if (!response.ok) {
-      const message = JSON.stringify(await response.json());
-      throw new ApiError(
-        `Api request [${url}] failed with status [${response.status}] and message [${message}]`,
-        { url, status: response.status, message },
-      );
-    }
   }
 }

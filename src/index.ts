@@ -3,7 +3,13 @@ export { Adapter } from './adapter/adapter.js';
 export { loadConfigurer } from './utils/configurer-loader.js';
 export { parseConfig } from './utils/config-parser.js';
 export { setLogger } from './utils/logger.js';
-export { fetch, fetchImage } from './utils/web-client.js';
+export {
+  fetch,
+  fetchImage,
+  readBody,
+  readResponse,
+  verifyResponseStatus,
+} from './utils/web-client.js';
 export { ApiError } from './adapter/errors/api-error.js';
 export { InvalidCredentialsError } from './adapter/errors/invalid-credentials-error.js';
 export { ConfigurerError } from './aggregator/errors/configurer-error.js';

@@ -6,6 +6,7 @@ import {
   Response,
 } from 'undici';
 import { DownloadError } from './errors/download-error.js';
+import { ApiError } from '../adapter/errors/api-error.js';
 
 export { Response, RequestInit, HeadersInit } from 'undici';
 
@@ -41,4 +42,68 @@ export async function fetch(
   init?: RequestInit,
 ): Promise<Response> {
   return await innerFetch(url, init);
+}
+
+export async function readResponse<T>(
+  url: string,
+  response: Response,
+): Promise<T> {
+  await verifyResponseStatus(url, response);
+
+  const body = await readBody(url, response);
+
+  try {
+    return JSON.parse(body) as T;
+  } catch (error) {
+    throw new ApiError(
+      `Api request [${url}] failed to parse body [${body}] - ${error}`,
+      {
+        url,
+        status: response.status,
+        message: String(error),
+        body,
+      },
+    );
+  }
+}
+
+export async function verifyResponseStatus(
+  url: string,
+  response: Response,
+): Promise<void> {
+  const { status, ok } = response;
+
+  if (!ok) {
+    const body = await readBody(url, response);
+
+    throw new ApiError(
+      `Api request [${url}] failed with status [${status}] and message [${body}]`,
+      {
+        url,
+        status,
+        message: `API request failed with status: ${status}`,
+        body,
+      },
+    );
+  }
+}
+
+export async function readBody(
+  url: string,
+  response: Response,
+): Promise<string> {
+  const { status } = response;
+
+  try {
+    return await response.text();
+  } catch (error) {
+    throw new ApiError(
+      `Api request [${url}] failed to read body from response with status [${status}] - ${error}`,
+      {
+        url,
+        status,
+        message: String(error),
+      },
+    );
+  }
 }

@@ -1,9 +1,8 @@
+import { isString } from 'lodash';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { SalesforceApi } from './salesforce-api.js';
 import { fetch, Response } from '../utils/web-client.js';
-import { SalesforceResponse } from './model/salesforce-response.js';
 import { SalesforceConfig } from './model/salesforce-config.js';
-import { SalesforceAccessTokenResponse } from './model/salesforce-access-token-response.js';
 
 jest.mock('../utils/web-client.js');
 
@@ -36,14 +35,9 @@ describe('SalesforceApi', () => {
           '{"something":"someone","otherGroup":"other_category"}',
       });
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: () =>
-          Promise.resolve({
-            articles: [],
-          } as unknown as SalesforceResponse),
-      } as Response);
+      mockApiResponse(200, {
+        articles: [],
+      });
 
       await api.fetchAllArticles();
 
@@ -66,14 +60,9 @@ describe('SalesforceApi', () => {
         salesforceCategories: '{"something":"someone"}',
       });
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: () =>
-          Promise.resolve({
-            articles: [],
-          } as unknown as SalesforceResponse),
-      } as Response);
+      mockApiResponse(200, {
+        articles: [],
+      });
 
       await api.fetchAllArticles();
 
@@ -96,14 +85,9 @@ describe('SalesforceApi', () => {
         salesforceCategories: '{"something":"someone"}',
       });
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: () =>
-          Promise.resolve({
-            articles: [],
-          } as unknown as SalesforceResponse),
-      } as Response);
+      mockApiResponse(200, {
+        articles: [],
+      });
 
       await api.fetchAllArticles();
 
@@ -119,15 +103,20 @@ describe('SalesforceApi', () => {
     });
   });
 
-  function mockLoginResponse() {
+  function mockLoginResponse(): void {
+    mockApiResponse(200, {
+      access_token: 'access-token',
+      instance_url: 'https://base-url',
+    });
+  }
+
+  function mockApiResponse(status: number, body: unknown): void {
+    const str = isString(body) ? body : JSON.stringify(body);
+
     mockFetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: () =>
-        Promise.resolve({
-          access_token: 'access-token',
-          instance_url: 'https://base-url',
-        } as SalesforceAccessTokenResponse),
+      ok: status === 200,
+      status,
+      text: () => Promise.resolve(str),
     } as Response);
   }
 });
