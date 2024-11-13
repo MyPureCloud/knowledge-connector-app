@@ -1,66 +1,45 @@
 import { ZendeskLabel } from './model/zendesk-label.js';
 import { ZendeskArticle } from './model/zendesk-article.js';
-import { ExternalContent } from '../model/external-content.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
 import { ZendeskSection } from './model/zendesk-section.js';
 import { Document, DocumentVersion } from '../model/document.js';
-import { ZendeskCategory } from './model/zendesk-category.js';
 import { GeneratedValue } from '../utils/generated-value.js';
-import { ExternalLink } from '../model/external-link.js';
+import { ZendeskContext } from './model/zendesk-context.js';
 
-export function contentMapper(
-  categories: ZendeskSection[],
-  labels: ZendeskLabel[],
-  articles: ZendeskArticle[],
-  fetchCategories: boolean,
-  fetchLabels: boolean,
-): ExternalContent {
-  const sectionIdAndNameMapping = buildIdAndNameMapping(categories);
-
-  return {
-    categories: categories
-      ? categories.map((c) => categoryMapper(c, sectionIdAndNameMapping))
-      : [],
-    labels: labels ? labels.map(labelMapper) : [],
-    documents: articles
-      ? articles.map((a) =>
-          articleMapper(
-            a,
-            sectionIdAndNameMapping,
-            fetchCategories,
-            fetchLabels,
-          ),
-        )
-      : [],
-    articleLookupTable: buildArticleLookupTable(articles),
-  };
-}
-
-function categoryMapper(
+export function categoryMapper(
   category: ZendeskSection,
-  idAndNameMapping: Map<string, string>,
-): Category {
+  context: ZendeskContext,
+): Category | null {
   const { id, name, category_id, parent_section_id } = category;
 
-  const parentId = String(parent_section_id || category_id);
+  const parentId =
+    !!parent_section_id || !!category_id
+      ? String(parent_section_id || category_id)
+      : undefined;
 
-  const parentName = parentId ? idAndNameMapping.get(parentId) : null;
+  const parentCategory = parentId
+    ? context.categoryLookupTable.get(parentId)
+    : null;
+  if (parentCategory === undefined) {
+    // Parent is not yet processed
+    return null;
+  }
 
   return {
     id: null,
     externalId: String(id),
     name,
-    parentCategory: parentName
+    parentCategory: parentCategory
       ? {
           id: null,
-          name: parentName,
+          name: parentCategory.name,
         }
       : null,
   };
 }
 
-function labelMapper(label: ZendeskLabel): Label {
+export function labelMapper(label: ZendeskLabel): Label {
   const { id, name } = label;
 
   return {
@@ -71,9 +50,9 @@ function labelMapper(label: ZendeskLabel): Label {
   };
 }
 
-function articleMapper(
+export function articleMapper(
   article: ZendeskArticle,
-  sectionIdAndNameMapping: Map<string, string>,
+  context: ZendeskContext,
   fetchCategories: boolean,
   fetchLabels: boolean,
 ): Document {
@@ -85,7 +64,7 @@ function articleMapper(
     fetchCategories && section_id
       ? {
           id: categoryId,
-          name: sectionIdAndNameMapping.get(categoryId) || categoryId,
+          name: context.categoryLookupTable.get(categoryId)?.name || categoryId,
         }
       : null;
 
@@ -115,23 +94,4 @@ function articleMapper(
     published: !draft ? documentVersion : null,
     draft: draft ? documentVersion : null,
   };
-}
-
-function buildIdAndNameMapping(items: ZendeskCategory[]): Map<string, string> {
-  const mapping = new Map<string, string>();
-
-  if (items) {
-    items.forEach((item) => {
-      if (item.id && item.name) {
-        mapping.set(String(item.id), item.name);
-      }
-    });
-  }
-
-  return mapping;
-}
-
-function buildArticleLookupTable(_articles: ZendeskArticle[]) {
-  // TODO
-  return new Map<string, ExternalLink>();
 }

@@ -11,7 +11,8 @@ import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
 import { getLogger } from '../utils/logger.js';
 import { AttachmentDomainValidator } from '../processor/attachment-domain-validator/attachment-domain-validator.js';
 import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-validator/attachment-domain-not-allowed-error.js';
-import { removeTrailingSlash } from '../utils/remove-trailing-slash';
+import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
+import { arraysFromAsync } from '../utils/arrays.js';
 
 export class ZendeskAdapter
   implements
@@ -33,16 +34,16 @@ export class ZendeskAdapter
     return this.api.initialize(config);
   }
 
-  public getAllArticles(): Promise<ZendeskArticle[]> {
-    return this.api.fetchAllArticles();
+  public async getAllArticles(): Promise<ZendeskArticle[]> {
+    return arraysFromAsync(this.articleIterator());
   }
 
-  public getAllCategories(): Promise<ZendeskSection[]> {
-    return this.api.fetchAllCategories();
+  public async getAllCategories(): Promise<ZendeskSection[]> {
+    return arraysFromAsync(this.categoryIterator());
   }
 
-  public getAllLabels(): Promise<ZendeskLabel[]> {
-    return this.api.fetchAllLabels();
+  public async getAllLabels(): Promise<ZendeskLabel[]> {
+    return arraysFromAsync(this.labelIterator());
   }
 
   public getDocumentLinkMatcherRegexp(): RegExp | undefined {
@@ -90,13 +91,44 @@ export class ZendeskAdapter
     contentUrl: string,
   ): Promise<ZendeskArticleAttachment | undefined> {
     if (!this.attachmentCache[articleId]) {
-      this.attachmentCache[articleId] =
-        await this.api.fetchAttachmentInfoListForArticle(articleId);
+      this.attachmentCache[articleId] = await arraysFromAsync(this.attachmentIterator(articleId));
     }
     return this.attachmentCache[articleId].find(
       (item) =>
         item.content_url.startsWith(contentUrl) ||
         contentUrl.startsWith(item.content_url),
     );
+  }
+
+  public async *articleIterator(): AsyncGenerator<
+    ZendeskArticle,
+    void,
+    void
+  > {
+    yield* this.api.articleIterator();
+  }
+
+  public async *categoryIterator(): AsyncGenerator<
+    ZendeskSection,
+    void,
+    void
+  > {
+    yield* this.api.categoryIterator();
+  }
+
+  public async *labelIterator(): AsyncGenerator<
+    ZendeskLabel,
+    void,
+    void
+  > {
+    yield* this.api.labelIterator();
+  }
+
+  public async *attachmentIterator(articleId: string): AsyncGenerator<
+    ZendeskArticleAttachment,
+    void,
+    void
+  > {
+    yield* this.api.attachmentInfoListForArticleIterator(articleId);
   }
 }

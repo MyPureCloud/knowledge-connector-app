@@ -10,7 +10,7 @@ import { AttachmentDomainValidator } from '../processor/attachment-domain-valida
 import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-validator/attachment-domain-not-allowed-error.js';
 import { arraysFromAsync } from '../utils/arrays.js';
 import { ServiceNowCategory } from './model/servicenow-category.js';
-import { removeTrailingSlash } from '../utils/remove-trailing-slash';
+import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 
 export class ServiceNowAdapter
   implements
@@ -38,7 +38,7 @@ export class ServiceNowAdapter
     return arraysFromAsync(this.articleIterator());
   }
 
-  public async getAllCategories(): Promise<unknown[]> {
+  public async getAllCategories(): Promise<ServiceNowCategory[]> {
     return arraysFromAsync(this.categoryIterator());
   }
 

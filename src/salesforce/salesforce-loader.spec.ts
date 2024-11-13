@@ -170,13 +170,12 @@ function generateArticle(): SalesforceArticleDetails {
 }
 
 async function* categoryIterator(): AsyncGenerator<
-    SalesforceCategoryGroup,
-    void,
-    void
+  SalesforceCategoryGroup,
+  void,
+  void
 > {
-    yield generateCategory();
+  yield generateCategory();
 }
-
 
 function generateCategory(): SalesforceCategoryGroup {
   return {

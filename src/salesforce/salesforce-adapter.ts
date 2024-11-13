@@ -5,7 +5,8 @@ import { SalesforceApi } from './salesforce-api.js';
 import { SourceAdapter } from '../adapter/source-adapter.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
-import { removeTrailingSlash } from '../utils/remove-trailing-slash';
+import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
+import { arraysFromAsync } from '../utils/arrays.js';
 
 export class SalesforceAdapter
   implements
@@ -28,21 +29,11 @@ export class SalesforceAdapter
   }
 
   public async getAllArticles(): Promise<SalesforceArticleDetails[]> {
-    const list: SalesforceArticleDetails[] = [];
-    for await (const article of this.articleIterator()) {
-      list.push(article);
-    }
-
-    return list;
+    return arraysFromAsync(this.articleIterator());
   }
 
   public async getAllCategories(): Promise<SalesforceCategoryGroup[]> {
-    const list: SalesforceCategoryGroup[] = [];
-    for await (const categoryGroup of this.categoryIterator()) {
-      list.push(categoryGroup);
-    }
-
-    return list;
+    return arraysFromAsync(this.categoryIterator());
   }
 
   public getAllLabels(): Promise<unknown[]> {

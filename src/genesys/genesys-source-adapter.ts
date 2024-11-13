@@ -13,7 +13,7 @@ import { getLogger } from '../utils/logger.js';
 import { AttachmentDomainValidator } from '../processor/attachment-domain-validator/attachment-domain-validator.js';
 import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-validator/attachment-domain-not-allowed-error.js';
 import { InvalidExportJobError } from './errors/invalid-export-job-error.js';
-import { removeTrailingSlash } from '../utils/remove-trailing-slash';
+import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 
 /**
  * GenesysSourceAdapter implements {@Link SourceAdapter} to fetch data from Genesys Knowledge's API
@@ -65,6 +65,42 @@ export class GenesysSourceAdapter
       throw new AttachmentDomainNotAllowedError(url);
     }
     return fetchImage(url);
+  }
+
+  public async *articleIterator(): AsyncGenerator<
+    Document,
+    void,
+    void
+  > {
+    if (this.exportedKnowledgeData?.importAction?.documents) {
+      for (const document of this.exportedKnowledgeData.importAction.documents) {
+        yield document;
+      }
+    }
+  }
+
+  public async *categoryIterator(): AsyncGenerator<
+    Category,
+    void,
+    void
+  > {
+    if (this.exportedKnowledgeData?.importAction?.categories) {
+      for (const category of this.exportedKnowledgeData.importAction.categories) {
+        yield category;
+      }
+    }
+  }
+
+  public async *labelIterator(): AsyncGenerator<
+    Label,
+    void,
+    void
+  > {
+    if (this.exportedKnowledgeData?.importAction?.labels) {
+      for (const label of this.exportedKnowledgeData.importAction.labels) {
+        yield label;
+      }
+    }
   }
 
   public getResourceBaseUrl(): string {
