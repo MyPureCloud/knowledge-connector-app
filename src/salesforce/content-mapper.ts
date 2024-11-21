@@ -12,6 +12,7 @@ import { LANGUAGE_MAPPING } from './salesforce-language-mapping.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 
+const EXCLUDED_FIELD_NAMES = ['Title', 'UrlName'];
 const EXCLUDED_FIELD_TYPES = ['DATE_TIME', 'LOOKUP', 'CHECKBOX'];
 
 export function contentMapper(
@@ -170,7 +171,8 @@ function filterField(
 ) {
   return (
     (contentFields.length === 0 || contentFields.includes(item.name)) &&
-    !EXCLUDED_FIELD_TYPES.includes(item.type)
+    !EXCLUDED_FIELD_TYPES.includes(item.type) &&
+    !EXCLUDED_FIELD_NAMES.includes(item.name)
   );
 }
 

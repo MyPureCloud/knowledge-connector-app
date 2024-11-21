@@ -62,6 +62,18 @@ describe('contentMapper', () => {
       urlName: 'testUrl',
       layoutItems: [
         {
+          label: 'Title',
+          name: 'Title',
+          type: 'TEXT',
+          value: 'Self link',
+        },
+        {
+          label: 'URL Name',
+          name: 'UrlName',
+          type: 'TEXT',
+          value: 'Self-link',
+        },
+        {
           label: 'layout item label 1',
           name: 'layout item name 1',
           type: 'TEXT',
