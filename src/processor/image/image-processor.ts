@@ -92,7 +92,7 @@ export class ImageProcessor implements Processor {
     if (this.config.disableImageUpload === 'true') {
       if (this.config?.relativeImageBaseUrl) {
         for (const imageBlock of imageBlocks) {
-          await this.processImageBlockWithoutUpload(imageBlock);
+          this.processImageBlockWithoutUpload(imageBlock);
         }
       }
       return;
@@ -103,9 +103,7 @@ export class ImageProcessor implements Processor {
     }
   }
 
-  private async processImageBlockWithoutUpload(
-    imageBlock: DocumentBodyImageBlock,
-  ): Promise<void> {
+  private processImageBlockWithoutUpload(imageBlock: DocumentBodyImageBlock) {
     const url = imageBlock.image.url;
     if (url && isRelativeUrl(url)) {
       const resolvedURL = new URL(url, this.relativeImageBaseUrl);
@@ -126,6 +124,7 @@ export class ImageProcessor implements Processor {
       getLogger().debug(
         `Cannot fetch image [${imageBlock.image.url}] for article [${articleId}]`,
       );
+      this.processImageBlockWithoutUpload(imageBlock);
       return;
     }
 
@@ -140,6 +139,8 @@ export class ImageProcessor implements Processor {
         }
       } catch (error) {
         getLogger().error(`Cannot upload image ${image.url} - ${error}`);
+        this.processImageBlockWithoutUpload(imageBlock);
+        return;
       }
     }
 

@@ -21,6 +21,7 @@ describe('ImageProcessor', () => {
   let imageProcessor: ImageProcessor;
   let mockGetAttachment: jest.Mock<() => Promise<Image | null>>;
   let mockLookupImage: jest.Mock<() => Promise<string | null>>;
+  let mockUploadImage: jest.Mock<() => Promise<string | null>>;
 
   beforeEach(async () => {
     sourceAdapter = {
@@ -33,6 +34,10 @@ describe('ImageProcessor', () => {
 
     destinationAdapter = new GenesysDestinationAdapter();
     mockLookupImage = destinationAdapter.lookupImage as jest.Mock<
+      () => Promise<string | null>
+    >;
+
+    mockUploadImage = destinationAdapter.uploadImage as jest.Mock<
       () => Promise<string | null>
     >;
 
@@ -163,7 +168,37 @@ describe('ImageProcessor', () => {
 
       expect(
         result.documents[0].published?.variations[0].body?.blocks[0].image?.url,
-      ).toBe('relative-image.jpg');
+      ).toBe('https://api-cdn.usw2.pure.cloud/relative-image.jpg');
+    });
+
+    it('should update original relative url to base+relative when upload fails', async () => {
+      const config = {
+        relativeImageBaseUrl: 'https://api-cdn.usw2.pure.cloud',
+        attachmentDomainAllowList: 'api-cdn.usw2.pure.com',
+      };
+      imageProcessor = new ImageProcessor();
+      await imageProcessor.initialize(config, adapters);
+      mockGetAttachment.mockResolvedValue({
+        url: 'https://attachment-url',
+        name: 'test.png',
+        contentType: 'image/png',
+        content: new Blob([]),
+      });
+      mockLookupImage.mockResolvedValue(null);
+      mockUploadImage.mockRejectedValue(new Error('Failed'));
+      const documents = [generateNormalizedDocument('1')];
+      documents[0].published!.variations[0].body!.blocks[0].image!.url =
+        'relative-image.jpg';
+
+      const result = await imageProcessor.run({
+        categories: [],
+        labels: [],
+        documents,
+      });
+
+      expect(
+        result.documents[0].published?.variations[0].body?.blocks[0].image?.url,
+      ).toBe('https://api-cdn.usw2.pure.cloud/relative-image.jpg');
     });
   });
 
