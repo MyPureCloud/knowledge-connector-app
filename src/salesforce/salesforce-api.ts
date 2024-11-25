@@ -172,6 +172,10 @@ export class SalesforceApi {
     return data.access_token;
   }
 
+  public getInstanceUrl(): string {
+    return removeTrailingSlash(this.config.relativeLinkBaseUrl || this.instanceUrl || '');
+  }
+
   private async fetchArticleDetails(
     articleId: string,
   ): Promise<SalesforceArticleDetails> {

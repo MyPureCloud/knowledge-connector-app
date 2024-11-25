@@ -10,6 +10,7 @@ describe('contentMapper', () => {
         { salesforceLanguageCode: 'en-US' },
         false,
         false,
+        'https://test.lightning.force.com'
       );
 
       expect(result.documents[0].published?.title).toBe('the title');
@@ -28,6 +29,7 @@ describe('contentMapper', () => {
         },
         false,
         false,
+        'https://test.lightning.force.com'
       );
 
       expect(result.documents[0].published?.title).toBe('the title');
@@ -46,6 +48,7 @@ describe('contentMapper', () => {
         },
         false,
         true,
+        'https://test.lightning.force.com'
       );
 
       expect(result.documents[0].externalUrl).toBe(

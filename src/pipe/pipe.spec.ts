@@ -206,6 +206,8 @@ describe('Pipe', () => {
       getAllArticles: jest.fn<() => Promise<Document[]>>(),
 
       getDocumentLinkMatcherRegexp: jest.fn<() => RegExp | undefined>(),
+
+      getBaseUrl: jest.fn<() => string>(),
     };
   }
 

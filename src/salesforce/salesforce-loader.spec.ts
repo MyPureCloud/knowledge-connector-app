@@ -15,6 +15,7 @@ const mockGetAttachment =
 const mockGetAllCategories =
   jest.fn<() => Promise<SalesforceCategoryGroup[]>>();
 const mockGetAllLabels = jest.fn<() => Promise<unknown[]>>();
+const mockGetBaseUrl = jest.fn<() => Promise<unknown[]>>();
 
 describe('SalesforceLoader', () => {
   const LABEL = generateMappedLabel();
@@ -48,6 +49,7 @@ describe('SalesforceLoader', () => {
 
     mockGetAllArticles.mockResolvedValueOnce([generateArticle()]);
     mockGetAllCategories.mockResolvedValueOnce([generateCategory()]);
+    mockGetBaseUrl.mockResolvedValueOnce([() => 'https://salesforce.com']);
   });
 
   describe('run', () => {
@@ -152,6 +154,7 @@ jest.mock('./salesforce-adapter.js', () => {
           mockGetAttachment(articleId, url),
         getAllCategories: () => mockGetAllCategories(),
         getAllLabels: () => mockGetAllLabels(),
+        getBaseUrl: () => mockGetBaseUrl(),
       };
     }),
   };

@@ -65,6 +65,10 @@ export class GenesysSourceAdapter
     return fetchImage(url);
   }
 
+  public getBaseUrl(): string {
+    return this.api.getInstanceUrl();
+  }
+
   private async exportAllEntities(): Promise<ExportModel> {
     getLogger().debug('Export articles in loader');
     const jobStatus = await this.api.createExportJob();

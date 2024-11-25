@@ -10,7 +10,6 @@ import { ExternalLink } from '../model/external-link.js';
 import { SalesforceConfig } from './model/salesforce-config.js';
 import { LANGUAGE_MAPPING } from './salesforce-language-mapping.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
-import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 
 const EXCLUDED_FIELD_NAMES = ['Title', 'UrlName'];
 const EXCLUDED_FIELD_TYPES = ['DATE_TIME', 'LOOKUP', 'CHECKBOX'];
@@ -21,6 +20,7 @@ export function contentMapper(
   config: SalesforceConfig,
   fetchCategories: boolean,
   buildExternalUrls: boolean,
+  baseUrl: string,
 ): ExternalContent {
   validateNonNull(
     config.salesforceLanguageCode,
@@ -42,7 +42,6 @@ export function contentMapper(
   )
     .map((f) => f.trim())
     .filter((f) => f.length > 0);
-  const baseUrl = removeTrailingSlash(config.salesforceLightningBaseUrl || '');
 
   return {
     labels: Array.from(labelsMapping, ([key, value]) => ({

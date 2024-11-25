@@ -84,6 +84,10 @@ export class ServiceNowAdapter
     return Promise.reject();
   }
 
+  public getBaseUrl(): string {
+    return this.api.getInstanceUrl();
+  }
+
   private async getAttachmentInfo(
     attachmentId: string,
   ): Promise<ServiceNowArticleAttachment | undefined> {
