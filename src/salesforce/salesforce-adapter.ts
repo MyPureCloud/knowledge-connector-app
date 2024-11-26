@@ -5,7 +5,6 @@ import { SalesforceApi } from './salesforce-api.js';
 import { SourceAdapter } from '../adapter/source-adapter.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
-import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-validator/attachment-domain-not-allowed-error.js';
 
 export class SalesforceAdapter
   implements
