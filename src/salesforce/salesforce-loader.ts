@@ -47,7 +47,7 @@ export class SalesforceLoader extends AbstractLoader {
       this.config,
       this.shouldLoadCategories(),
       this.shouldBuildExternalUrls(),
-      baseUrl
+      baseUrl,
     );
 
     getLogger().info('Labels loaded: ' + data.labels.length);
@@ -74,10 +74,22 @@ export class SalesforceLoader extends AbstractLoader {
   }
 
   private processImageUrl(url: string, fieldType: string): string {
-    const parsedUrl = new URL(url.replace(/&amp;/g, '&'));
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url.replace(/&amp;/g, '&'));
+    } catch (error) {
+      // Invalid URL, treat it as relative
+      return url;
+    }
+
     const searchParams = new URLSearchParams(parsedUrl.search);
     const eid = searchParams.get('eid');
     const refid = searchParams.get('refid');
+
+    if (eid == null || refid == null) {
+      return url;
+    }
+
     return `/${eid}/richTextImageFields/${fieldType}/${refid}`;
   }
 
