@@ -84,7 +84,7 @@ export class ServiceNowAdapter
     return Promise.reject();
   }
 
-  public getBaseUrl(): string {
+  public getResourceBaseUrl(): string {
     return this.api.getInstanceUrl();
   }
 

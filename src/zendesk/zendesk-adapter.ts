@@ -78,7 +78,7 @@ export class ZendeskAdapter
     };
   }
 
-  public getBaseUrl(): string {
+  public getResourceBaseUrl(): string {
     return this.api.getInstanceUrl();
   }
 

@@ -12,5 +12,5 @@ export interface SourceAdapter<C, L, A> extends Adapter {
 
   getDocumentLinkMatcherRegexp(): RegExp | undefined;
 
-  getBaseUrl(): string;
+  getResourceBaseUrl(): string;
 }

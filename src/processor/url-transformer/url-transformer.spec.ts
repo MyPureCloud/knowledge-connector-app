@@ -114,7 +114,7 @@ describe('UrlTransformer', () => {
 
   describe('when relativeLinkBaseUrl defined', () => {
     beforeEach(async () => {
-      adapters.sourceAdapter.getBaseUrl = () => 'https://the.dom.ain';
+      adapters.sourceAdapter.getResourceBaseUrl = () => 'https://the.dom.ain';
 
       await transformer.initialize(
         {},
@@ -322,7 +322,7 @@ describe('UrlTransformer', () => {
 
       getDocumentLinkMatcherRegexp: jest.fn<() => RegExp | undefined>(),
 
-      getBaseUrl: jest.fn<() => string>(),
+      getResourceBaseUrl: jest.fn<() => string>(),
     };
   }
 });

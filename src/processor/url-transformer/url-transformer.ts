@@ -29,7 +29,7 @@ export class UrlTransformer implements Processor {
 
     this.fixNonHttpsImages = this.config.fixNonHttpsImages === 'true';
     this.fixNonHttpsLinks = this.config.fixNonHttpsLinks === 'true';
-    this.relativeLinkBaseUrl = adapters.sourceAdapter.getBaseUrl() || null;
+    this.relativeLinkBaseUrl = adapters.sourceAdapter.getResourceBaseUrl() || null;
   }
 
   public async run(content: ExternalContent): Promise<ExternalContent> {

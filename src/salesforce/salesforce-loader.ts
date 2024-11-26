@@ -37,7 +37,7 @@ export class SalesforceLoader extends AbstractLoader {
       this.loadArticles(),
     ]);
 
-    const baseUrl = this.adapter!.getBaseUrl();
+    const baseUrl = this.adapter!.getResourceBaseUrl();
 
     articles.forEach((article) => this.replaceImageUrls(article));
 

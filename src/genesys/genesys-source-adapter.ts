@@ -65,7 +65,7 @@ export class GenesysSourceAdapter
     return fetchImage(url);
   }
 
-  public getBaseUrl(): string {
+  public getResourceBaseUrl(): string {
     return this.api.getInstanceUrl();
   }
 

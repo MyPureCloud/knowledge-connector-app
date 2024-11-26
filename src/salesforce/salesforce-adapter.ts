@@ -47,7 +47,7 @@ export class SalesforceAdapter
     return this.api.getAttachment(articleId, url);
   }
 
-  public getBaseUrl(): string {
+  public getResourceBaseUrl(): string {
     return this.api.getInstanceUrl();
   }
 }
