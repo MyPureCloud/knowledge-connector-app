@@ -1,10 +1,13 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
-import { Document, ExternalContent } from '../../model';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { Category, Document, ExternalContent, Label } from '../../model';
 import { UrlTransformer } from './url-transformer.js';
 import { AdapterPair } from '../../adapter/adapter-pair.js';
 import { SourceAdapter } from '../../adapter/source-adapter.js';
 import { DestinationAdapter } from '../../adapter/destination-adapter.js';
 import _ from 'lodash';
+import { GenesysDestinationAdapter } from '../../genesys/genesys-destination-adapter.js';
+
+jest.mock('../../genesys/genesys-destination-adapter.js');
 
 describe('UrlTransformer', () => {
   const HYPERLINKS = [
@@ -43,6 +46,12 @@ describe('UrlTransformer', () => {
 
   let transformer: UrlTransformer;
   let content: ExternalContent;
+  let adapters: AdapterPair<
+    SourceAdapter<Category, Label, Document>,
+    DestinationAdapter
+  >;
+  let destinationAdapter: GenesysDestinationAdapter;
+  let sourceAdapter: SourceAdapter<Category, Label, Document>;
 
   beforeEach(() => {
     transformer = new UrlTransformer();
@@ -52,6 +61,13 @@ describe('UrlTransformer', () => {
       categories: [],
       documents: [generateDocument(), generateDocument(), generateDocument()],
     };
+
+    sourceAdapter = createSourceAdapter();
+    destinationAdapter = new GenesysDestinationAdapter();
+    adapters = {
+      sourceAdapter,
+      destinationAdapter,
+    };
   });
 
   describe('when fixNonHttpsImages enabled', () => {
@@ -60,7 +76,7 @@ describe('UrlTransformer', () => {
         {
           fixNonHttpsImages: 'true',
         },
-        {} as AdapterPair<
+        adapters as AdapterPair<
           SourceAdapter<unknown, unknown, unknown>,
           DestinationAdapter
         >,
@@ -81,7 +97,7 @@ describe('UrlTransformer', () => {
         {
           fixNonHttpsLinks: 'true',
         },
-        {} as AdapterPair<
+        adapters as AdapterPair<
           SourceAdapter<unknown, unknown, unknown>,
           DestinationAdapter
         >,
@@ -98,11 +114,11 @@ describe('UrlTransformer', () => {
 
   describe('when relativeLinkBaseUrl defined', () => {
     beforeEach(async () => {
+      adapters.sourceAdapter.getResourceBaseUrl = () => 'https://the.dom.ain';
+
       await transformer.initialize(
-        {
-          relativeLinkBaseUrl: 'https://the.dom.ain',
-        },
-        {} as AdapterPair<
+        {},
+        adapters as AdapterPair<
           SourceAdapter<unknown, unknown, unknown>,
           DestinationAdapter
         >,
@@ -123,7 +139,7 @@ describe('UrlTransformer', () => {
           fixNonHttpsLinks: 'true',
           fixNonHttpsImages: 'true',
         },
-        {} as AdapterPair<
+        adapters as AdapterPair<
           SourceAdapter<unknown, unknown, unknown>,
           DestinationAdapter
         >,
@@ -289,6 +305,24 @@ describe('UrlTransformer', () => {
         labels: [],
       },
       draft: null,
+    };
+  }
+
+  function createSourceAdapter(): SourceAdapter<Category, Label, Document> {
+    return {
+      initialize: jest
+        .fn<() => Promise<void>>()
+        .mockReturnValue(Promise.resolve()),
+
+      getAllCategories: jest.fn<() => Promise<Category[]>>(),
+
+      getAllLabels: jest.fn<() => Promise<Label[]>>(),
+
+      getAllArticles: jest.fn<() => Promise<Document[]>>(),
+
+      getDocumentLinkMatcherRegexp: jest.fn<() => RegExp | undefined>(),
+
+      getResourceBaseUrl: jest.fn<() => string>(),
     };
   }
 });

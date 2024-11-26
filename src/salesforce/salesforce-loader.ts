@@ -37,6 +37,8 @@ export class SalesforceLoader extends AbstractLoader {
       this.loadArticles(),
     ]);
 
+    const baseUrl = this.adapter!.getResourceBaseUrl();
+
     articles.forEach((article) => this.replaceImageUrls(article));
 
     const data = contentMapper(
@@ -45,6 +47,7 @@ export class SalesforceLoader extends AbstractLoader {
       this.config,
       this.shouldLoadCategories(),
       this.shouldBuildExternalUrls(),
+      baseUrl
     );
 
     getLogger().info('Labels loaded: ' + data.labels.length);

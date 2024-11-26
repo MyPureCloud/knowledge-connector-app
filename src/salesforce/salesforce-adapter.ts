@@ -46,4 +46,8 @@ export class SalesforceAdapter
   ): Promise<Image | null> {
     return this.api.getAttachment(articleId, url);
   }
+
+  public getResourceBaseUrl(): string {
+    return this.api.getInstanceUrl();
+  }
 }

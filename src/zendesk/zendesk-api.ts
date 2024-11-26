@@ -63,6 +63,10 @@ export class ZendeskApi {
     return await response.blob();
   }
 
+  public getInstanceUrl(): string {
+    return removeTrailingSlash(this.config.relativeLinkBaseUrl || this.config.zendeskBaseUrl || '');
+  }
+
   private fetchCategories(): Promise<ZendeskSection[]> {
     return this.get<ZendeskSection>(
       `/api/v2/help_center/${this.config.zendeskLocale}/categories`,

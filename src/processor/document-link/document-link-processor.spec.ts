@@ -31,6 +31,7 @@ describe('DocumentLinkProcessor', function () {
       getAllLabels: jest.fn<() => Promise<unknown[]>>(),
       getAllArticles: jest.fn<() => Promise<unknown[]>>(),
       getDocumentLinkMatcherRegexp: jest.fn<() => RegExp | undefined>(),
+      getResourceBaseUrl: jest.fn<() => string>(),
     };
 
     mockGetDocumentLinkMatcherRegexp =

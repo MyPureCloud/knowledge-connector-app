@@ -78,6 +78,10 @@ export class ZendeskAdapter
     };
   }
 
+  public getResourceBaseUrl(): string {
+    return this.api.getInstanceUrl();
+  }
+
   private async getAttachmentInfo(
     articleId: string,
     contentUrl: string,

@@ -11,6 +11,10 @@ export class GenesysSourceApi extends GenesysApi {
     return this.authenticate();
   }
 
+  public getInstanceUrl(): string {
+    return removeTrailingSlash(this.config.relativeLinkBaseUrl || '') || this.getBaseUrl();
+  }
+
   protected getLoginUrl(): string {
     validateNonNull(
       this.config.genesysSourceLoginUrl,

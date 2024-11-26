@@ -65,6 +65,10 @@ export class ServiceNowApi {
     return await response.blob();
   }
 
+  public getInstanceUrl(): string {
+    return removeTrailingSlash(this.config.relativeLinkBaseUrl || this.config.servicenowBaseUrl || '');
+  }
+
   private buildHeaders() {
     return {
       Authorization:

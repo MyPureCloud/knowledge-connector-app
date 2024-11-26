@@ -11,4 +11,6 @@ export interface SourceAdapter<C, L, A> extends Adapter {
   getAllArticles(): Promise<A[]>;
 
   getDocumentLinkMatcherRegexp(): RegExp | undefined;
+
+  getResourceBaseUrl(): string;
 }
