@@ -5,6 +5,7 @@ import { SalesforceApi } from './salesforce-api.js';
 import { SourceAdapter } from '../adapter/source-adapter.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
+import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-validator/attachment-domain-not-allowed-error.js';
 
 export class SalesforceAdapter
   implements
@@ -12,6 +13,8 @@ export class SalesforceAdapter
     ImageSourceAdapter
 {
   private static URL_NAME_REGEX = /\/articles\/[^/]+\/Knowledge\/([^/]+)/;
+  private static ATTACHMENT_RELATIVE_PATH_REGEX =
+    /^\/[^/]+\/richTextImageFields\/[^/]+\/[^/]+$/;
   private config: SalesforceConfig = {};
   private api: SalesforceApi;
 
@@ -44,6 +47,15 @@ export class SalesforceAdapter
     articleId: string | null,
     url: string,
   ): Promise<Image | null> {
+    if (!SalesforceAdapter.ATTACHMENT_RELATIVE_PATH_REGEX.test(url)) {
+      if (url.startsWith('/')) {
+        return Promise.resolve(null);
+      }
+
+      throw new AttachmentDomainNotAllowedError(
+        `Url with external domain found ${url}`,
+      );
+    }
     return this.api.getAttachment(articleId, url);
   }
 
