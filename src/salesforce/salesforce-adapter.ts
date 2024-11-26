@@ -43,18 +43,12 @@ export class SalesforceAdapter
     return SalesforceAdapter.URL_NAME_REGEX;
   }
 
-  public getAttachment(
+  public async getAttachment(
     articleId: string | null,
     url: string,
   ): Promise<Image | null> {
     if (!SalesforceAdapter.ATTACHMENT_RELATIVE_PATH_REGEX.test(url)) {
-      if (url.startsWith('/')) {
-        return Promise.resolve(null);
-      }
-
-      throw new AttachmentDomainNotAllowedError(
-        `Url with external domain found ${url}`,
-      );
+      return null;
     }
     return this.api.getAttachment(articleId, url);
   }

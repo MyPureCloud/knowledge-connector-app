@@ -9,7 +9,6 @@ import { getLogger } from '../utils/logger.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
 import { AbstractLoader } from '../pipe/abstract-loader.js';
 import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
-import { isRelativeUrl } from '../utils/links';
 
 /**
  * SalesforceLoader is a specific {@Link Loader} implementation for fetching data from Salesforce's API
@@ -48,7 +47,7 @@ export class SalesforceLoader extends AbstractLoader {
       this.config,
       this.shouldLoadCategories(),
       this.shouldBuildExternalUrls(),
-      baseUrl
+      baseUrl,
     );
 
     getLogger().info('Labels loaded: ' + data.labels.length);
@@ -83,7 +82,6 @@ export class SalesforceLoader extends AbstractLoader {
       return url;
     }
 
-    // const parsedUrl = new URL(url.replace(/&amp;/g, '&'));
     const searchParams = new URLSearchParams(parsedUrl.search);
     const eid = searchParams.get('eid');
     const refid = searchParams.get('refid');
