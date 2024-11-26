@@ -20,7 +20,7 @@ const mockGetResourceBaseUrl = jest.fn<() => Promise<unknown[]>>();
 describe('SalesforceLoader', () => {
   const LABEL = generateMappedLabel();
   const DOCUMENT = generateRawDocument(
-    '<p><img src="/null/richTextImageFields//null"></p>',
+    '<p><img src="https://document-image.url"></p>',
     null,
     [
       {
@@ -49,7 +49,9 @@ describe('SalesforceLoader', () => {
 
     mockGetAllArticles.mockResolvedValueOnce([generateArticle()]);
     mockGetAllCategories.mockResolvedValueOnce([generateCategory()]);
-    mockGetResourceBaseUrl.mockResolvedValueOnce([() => 'https://salesforce.com']);
+    mockGetResourceBaseUrl.mockResolvedValueOnce([
+      () => 'https://salesforce.com',
+    ]);
   });
 
   describe('run', () => {
@@ -104,7 +106,7 @@ describe('SalesforceLoader', () => {
           labels: [],
           documents: [
             generateRawDocument(
-              '<p><img src="/null/richTextImageFields//null"></p>',
+              '<p><img src="https://document-image.url"></p>',
               null,
               null,
             ),

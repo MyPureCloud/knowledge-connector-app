@@ -78,6 +78,7 @@ export class SalesforceLoader extends AbstractLoader {
     try {
       parsedUrl = new URL(url.replace(/&amp;/g, '&'));
     } catch (error) {
+      getLogger().debug(`Cannot process image URL ${url} - ${error}`);
       // Invalid URL, treat it as relative
       return url;
     }
