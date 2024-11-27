@@ -51,6 +51,8 @@ export class ImageProcessor implements Processor {
       this.relativeImageBaseUrl = removeTrailingSlash(
         config.relativeImageBaseUrl || '',
       );
+    } else if (this.config?.useResourceBaseUrl === 'true') {
+      this.relativeImageBaseUrl = adapters.sourceAdapter.getResourceBaseUrl();
     }
   }
 
@@ -90,7 +92,7 @@ export class ImageProcessor implements Processor {
     const imageBlocks = this.findAllImageBlocks(variation.body.blocks);
 
     if (this.config.disableImageUpload === 'true') {
-      if (this.config?.relativeImageBaseUrl) {
+      if (this.relativeImageBaseUrl) {
         for (const imageBlock of imageBlocks) {
           this.processImageBlockWithoutUpload(imageBlock);
         }
@@ -220,7 +222,7 @@ export class ImageProcessor implements Processor {
       getLogger().debug(`Trying to fetch image [${url}] directly`);
 
       if (isRelativeUrl(url)) {
-        if (!this.config?.relativeImageBaseUrl) {
+        if (!this.relativeImageBaseUrl) {
           getLogger().debug(
             `Relative image url [${url}] found but missing RELATIVE_IMAGE_BASE_URL from config`,
           );

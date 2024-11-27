@@ -27,6 +27,7 @@ describe('ImageProcessor', () => {
     sourceAdapter = {
       initialize: jest.fn<() => Promise<void>>(),
       getAttachment: jest.fn<() => Promise<Image | null>>(),
+      getResourceBaseUrl: jest.fn<() => string>(),
     };
     mockGetAttachment = sourceAdapter.getAttachment as jest.Mock<
       () => Promise<Image | null>
