@@ -6,4 +6,6 @@ import { Adapter } from './adapter.js';
  */
 export interface ImageSourceAdapter extends Adapter {
   getAttachment(articleId: string | null, url: string): Promise<Image | null>;
+
+  getResourceBaseUrl(): string;
 }
