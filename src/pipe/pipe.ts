@@ -286,7 +286,7 @@ export class Pipe {
     unprocessedItems: T[],
   ): Promise<void> {
     for await (let item of this.executeLoaders<T>(iteratorName)) {
-      getLogger().debug('Pipe load next item'); // TODO
+      getLogger().info(`Pipe load next item with externalId: ${item.externalId}`); // TODO
       try {
         item = await this.executeRunnable<T>(item, this.processorList, method);
 
@@ -407,6 +407,7 @@ export class Pipe {
   }
 
   private async loadContext(): Promise<PipeContext | null> {
+    getLogger().info('LOAD CONTEXT');
     if (this.contextRepositoryList.length > 0) {
       const [repository] = this.contextRepositoryList;
 

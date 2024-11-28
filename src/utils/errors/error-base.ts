@@ -20,4 +20,8 @@ export abstract class ErrorBase extends Error {
   public getDetails(): { [key: string]: unknown } {
     return this.details;
   }
+
+  public toString = () : string => {
+    return JSON.stringify({message: this.message, code: this.code, details: this.details, stack: this.stack});
+  }
 }
