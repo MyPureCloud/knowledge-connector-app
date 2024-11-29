@@ -10,7 +10,6 @@ import { DocumentLinkProcessorConfig } from './document-link-processor-config.js
 import { Document } from '../../model/document.js';
 import { Category, Label } from '../../model';
 import { Processor } from '../processor.js';
-import { DocumentLinkError } from './document-link-error.js';
 import { PipeContext } from '../../pipe/pipe-context.js';
 
 export class DocumentLinkProcessor implements Processor {
@@ -63,11 +62,16 @@ export class DocumentLinkProcessor implements Processor {
           return;
         }
 
-        const externalLink = extractDocumentIdFromUrl(
-          articleLookupTable,
+        const documentId = extractDocumentIdFromUrl(
           block.hyperlink,
           this.regexp,
         );
+
+        if (!documentId) {
+          return;
+        }
+
+        const externalLink = articleLookupTable[documentId];
 
         if (!externalLink) {
           throw new DocumentLinkError('Cannot resolve link', {

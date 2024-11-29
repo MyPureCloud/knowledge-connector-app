@@ -29,6 +29,10 @@ export class HtmlTransformer implements Processor {
       ...(item.published?.variations || []),
       ...(item.draft?.variations || []),
     ].forEach((variation) => {
+      if (!variation.rawHtml && variation.body) {
+        return;
+      }
+
       const blocks = convertHtmlToBlocks(variation.rawHtml || '');
       variation.body = {
         blocks,

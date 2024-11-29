@@ -407,7 +407,6 @@ export class Pipe {
   }
 
   private async loadContext(): Promise<PipeContext | null> {
-    getLogger().info('LOAD CONTEXT');
     if (this.contextRepositoryList.length > 0) {
       const [repository] = this.contextRepositoryList;
 

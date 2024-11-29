@@ -16,8 +16,8 @@ export class ServiceNowAdapter
   extends AbstractSourceAdapter<unknown, unknown, ServiceNowArticle>
   implements ImageSourceAdapter
 {
-  private static ARTICLE_NUMBER_REGEX =
-    /(?:sysparm_article|sys_kb_id)(?:&#61;|=)([A-Za-z0-9]+)/;
+  private static ARTICLE_REGEX =
+    /(?:sysparm_article|sys_kb_id)(?:&#61;|=|%3D)([A-Za-z0-9]+)/;
 
   private config: ServiceNowConfig = {};
   private api: ServiceNowApi;
@@ -59,7 +59,7 @@ export class ServiceNowAdapter
   }
 
   public getDocumentLinkMatcherRegexp(): RegExp | undefined {
-    return ServiceNowAdapter.ARTICLE_NUMBER_REGEX;
+    return ServiceNowAdapter.ARTICLE_REGEX;
   }
 
   public async getAttachment(
