@@ -286,11 +286,11 @@ export class Pipe {
     unprocessedItems: T[],
   ): Promise<void> {
     for await (let item of this.executeLoaders<T>(iteratorName)) {
-      getLogger().info(`Pipe load next item with externalId: ${item.externalId}`); // TODO
+      getLogger().info(
+        `Pipe load next item with externalId: ${item.externalId}`,
+      ); // TODO
       try {
         item = await this.executeRunnable<T>(item, this.processorList, method);
-
-        await new Promise((resolve) => setTimeout(() => resolve(true), 2000)); // TODO: remove
 
         await this.executeRunnable<T>(item, this.aggregatorList, method);
 
@@ -410,7 +410,9 @@ export class Pipe {
     if (this.contextRepositoryList.length > 0) {
       const [repository] = this.contextRepositoryList;
 
-      return await repository.load();
+      if (await repository.exists()) {
+        return await repository.load();
+      }
     }
 
     return null;

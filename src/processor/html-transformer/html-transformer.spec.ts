@@ -5,8 +5,8 @@ import { SourceAdapter } from '../../adapter/source-adapter.js';
 import { HtmlTransformer } from './html-transformer';
 import {
   generateNormalizedCategory,
-  generateNormalizedDocument,
   generateNormalizedLabel,
+  generateRawDocument,
 } from '../../tests/utils/entity-generators';
 import { cloneDeep } from 'lodash';
 import { DocumentBodyBlock } from 'knowledge-html-converter';
@@ -72,9 +72,14 @@ describe('HtmlTransformer', () => {
 
   describe('runOnDocument', () => {
     it('should return document with transformed body', async () => {
-      const document = generateNormalizedDocument('1');
+      const article = generateRawDocument(
+        '<p><img src="https://document-image.url"></p>',
+        null,
+        null,
+        'article-external-id-1',
+      );
 
-      const result = await htmlTransformer.runOnDocument(document);
+      const result = await htmlTransformer.runOnDocument(article);
 
       expect(result.published?.variations[0].rawHtml).toBeUndefined();
       expect(result.published?.variations[0].body).toEqual({
