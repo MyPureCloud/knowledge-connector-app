@@ -266,7 +266,7 @@ export class Pipe {
     if (hookCallbacks?.length) {
       for (const hook of hookCallbacks) {
         try {
-          await hook.callback();
+          await hook.callback(this.context);
         } catch (error) {
           getLogger().error(`Error running ON_TIMEOUT callback - ${error}`);
         }
