@@ -42,7 +42,7 @@ describe('SalesforceApi', () => {
       await api.fetchAllArticles();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://base-url/services/data/v56.0/support/knowledgeArticles?channel=Pkb&categories={"something":"someone","otherGroup":"other_category"}',
+        'https://base-url/services/data/v56.0/support/knowledgeArticles?channel=Pkb&categories={"something":"someone","otherGroup":"other_category"}&queryMethod=BELOW',
         {
           headers: {
             Authorization: 'Bearer access-token',
@@ -67,7 +67,7 @@ describe('SalesforceApi', () => {
       await api.fetchAllArticles();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://base-url/services/data/v56.0/support/knowledgeArticles?channel=Pkb&categories={"something":"someone"}',
+        'https://base-url/services/data/v56.0/support/knowledgeArticles?channel=Pkb&categories={"something":"someone"}&queryMethod=BELOW',
         {
           headers: {
             Authorization: 'Bearer access-token',
@@ -92,7 +92,7 @@ describe('SalesforceApi', () => {
       await api.fetchAllArticles();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://base-url/services/data/v56.0/support/knowledgeArticles?channel=Pkb&categories={"something":"someone"}',
+        'https://base-url/services/data/v56.0/support/knowledgeArticles?channel=Pkb&categories={"something":"someone"}&queryMethod=BELOW',
         {
           headers: {
             Authorization: 'Bearer access-token',
