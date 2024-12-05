@@ -241,7 +241,7 @@ export class SalesforceApi {
     }
     if (this.config.salesforceCategories) {
       filters.push(`categories=${this.config.salesforceCategories}`);
-      filters.push('queryMethod=AT');
+      filters.push('queryMethod=BELOW');
     }
 
     return filters.join('&');
