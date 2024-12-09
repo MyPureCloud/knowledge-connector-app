@@ -233,6 +233,9 @@ export class Pipe {
       if (error instanceof Interrupted) {
         getLogger().info('Interrupted.');
         await this.saveContext();
+      } else {
+        getLogger().error(`Pipe start thrown error - ${error}`, error as Error);
+        throw error;
       }
     } finally {
       const endTime = Date.now();
