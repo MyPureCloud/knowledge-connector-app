@@ -1,27 +1,43 @@
+import { ErrorMessageParams } from './error-message-params';
+import { ErrorBody } from './error-body';
+import { EntityType } from '../../model/entity-type';
+
 export abstract class ErrorBase extends Error {
   protected code: string;
-  protected details: { [key: string]: unknown };
+  protected entityName?: EntityType;
+  protected messageParams?: ErrorMessageParams;
 
   public constructor(
     code: string,
     message: string,
-    details?: { [key: string]: unknown },
+    entityName?: EntityType,
+    messageParams?: ErrorMessageParams,
   ) {
     super(message);
 
     this.code = code;
-    this.details = typeof details !== 'undefined' ? details : {};
+    this.entityName = entityName;
+    this.messageParams = messageParams;
   }
 
-  public getCode(): string {
-    return this.code;
-  }
+  public toString = (): string => {
+    return JSON.stringify({
+      code: this.code,
+      entityName: this.entityName,
+      messageWithParams: this.message,
+      messageParams: this.messageParams,
+      stack: this.stack,
+    });
+  };
 
-  public getDetails(): { [key: string]: unknown } {
-    return this.details;
-  }
-
-  public toString = () : string => {
-    return JSON.stringify({message: this.message, code: this.code, details: this.details, stack: this.stack});
+  public toFailedEntityErrors(): ErrorBody[] {
+    return [
+      {
+        code: this.code,
+        entityName: this.entityName,
+        messageWithParams: this.message,
+        messageParams: this.messageParams,
+      },
+    ];
   }
 }

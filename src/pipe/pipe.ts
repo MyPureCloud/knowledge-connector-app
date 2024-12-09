@@ -23,6 +23,8 @@ import { Interrupted } from '../utils/errors/interrupted.js';
 import { Worker } from './worker.js';
 import { runtime } from '../utils/runtime.js';
 import { catcher } from '../utils/catch-error-helper.js';
+import { FailedEntity } from '../model/failed-entity';
+import { ErrorBasePublic } from '../utils/errors';
 
 /**
  * Pipe is the collection of tasks and adapters which can be executed to do the sync from source to destination.
@@ -213,6 +215,7 @@ export class Pipe {
       .aggregators(this.aggregatorList)
       .processedItems(context.pipe.processedItems.documents)
       .unprocessedItems(context.pipe.unprocessedItems.documents)
+      .failedItems(context.pipe.failedItems.documents)
       .method(
         async (runnable, item, firstTry: boolean) =>
           (await runnable.runOnDocument(
@@ -230,6 +233,7 @@ export class Pipe {
       .aggregators(this.aggregatorList)
       .processedItems(context.pipe.processedItems.labels)
       .unprocessedItems(context.pipe.unprocessedItems.labels)
+      .failedItems(context.pipe.failedItems.labels)
       .method(
         async (runnable, item, firstTry: boolean) =>
           (await runnable.runOnLabel(item as Label, firstTry)) as Label,
@@ -244,6 +248,7 @@ export class Pipe {
       .aggregators(this.aggregatorList)
       .processedItems(context.pipe.processedItems.categories)
       .unprocessedItems(context.pipe.unprocessedItems.categories)
+      .failedItems(context.pipe.failedItems.categories)
       .method(
         async (runnable, item, firstTry: boolean) =>
           (await runnable.runOnCategory(
@@ -401,6 +406,11 @@ export class Pipe {
           documents: [],
         },
         unprocessedItems: {
+          categories: [],
+          labels: [],
+          documents: [],
+        },
+        failedItems: {
           categories: [],
           labels: [],
           documents: [],
