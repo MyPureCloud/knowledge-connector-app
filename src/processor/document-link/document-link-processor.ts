@@ -11,7 +11,7 @@ import { Document } from '../../model/document.js';
 import { Category, Label } from '../../model';
 import { Processor } from '../processor.js';
 import { PipeContext } from '../../pipe/pipe-context.js';
-import { DocumentLinkError } from './document-link-error';
+import { DocumentLinkError } from './document-link-error.js';
 
 export class DocumentLinkProcessor implements Processor {
   private config: DocumentLinkProcessorConfig = {};

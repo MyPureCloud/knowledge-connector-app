@@ -350,7 +350,7 @@ export class Pipe {
         item: T,
       ) => Promise<T>;
 
-      item = await this.execute<T, T>(runnable, fn, item);
+      item = await fn(item);
     }
     return item;
   }
