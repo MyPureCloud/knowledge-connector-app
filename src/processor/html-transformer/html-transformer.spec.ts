@@ -9,23 +9,17 @@ import {
   generateRawDocument,
 } from '../../tests/utils/entity-generators.js';
 import { cloneDeep } from 'lodash';
-import { DocumentBodyBlock } from 'knowledge-html-converter';
 import { PipeContext } from '../../pipe/pipe-context.js';
+import { convertHtmlToBlocks } from 'knowledge-html-converter';
+import { EntityType } from '../../model/entity-type.js';
+import { ErrorCodes } from '../../utils/errors/error-codes.js';
+import { HtmlConverterError } from '../../utils/errors/html-converter-error.js';
 
 jest.mock('../../utils/package-version.js');
 jest.mock('../../genesys/genesys-destination-adapter.js');
-jest.mock('knowledge-html-converter', () => {
-  return {
-    convertHtmlToBlocks: (_html: string): DocumentBodyBlock[] => [
-      {
-        type: 'Paragraph',
-        paragraph: {
-          blocks: [],
-        },
-      },
-    ],
-  };
-});
+jest.mock('knowledge-html-converter', () => ({
+  convertHtmlToBlocks: jest.fn()
+}))
 
 describe('HtmlTransformer', () => {
   let sourceAdapter: SourceAdapter<unknown, unknown, unknown>;
@@ -37,6 +31,15 @@ describe('HtmlTransformer', () => {
   let htmlTransformer: HtmlTransformer;
 
   beforeEach(async () => {
+    (convertHtmlToBlocks as jest.Mock).mockImplementation(() => [
+      {
+        type: 'Paragraph',
+        paragraph: {
+          blocks: [],
+        },
+      },
+    ]);
+
     sourceAdapter = {
       initialize: jest.fn<() => Promise<void>>(),
     } as unknown as SourceAdapter<unknown, unknown, unknown>;
@@ -49,6 +52,38 @@ describe('HtmlTransformer', () => {
     htmlTransformer = new HtmlTransformer();
 
     await htmlTransformer.initialize({}, adapters, {} as PipeContext);
+  });
+
+  it('should throw HtmlConverterError when convertHtmlToBlocks throws an error', async() => {
+    const errorMessage = 'An error occurred';
+    const expectedError = {
+      code: ErrorCodes.HTML_CONVERTER_ERROR,
+      entityName: EntityType.DOCUMENT,
+      messageWithParams: errorMessage,
+      messageParams: undefined,
+    };
+
+    (convertHtmlToBlocks as jest.Mock).mockImplementationOnce(() => {
+      throw new HtmlConverterError(
+        ErrorCodes.HTML_CONVERTER_ERROR,
+        errorMessage,
+        EntityType.DOCUMENT
+      );
+    });
+
+    const article = generateRawDocument(
+      '<p><img src="https://document-image.url"></p>',
+      null,
+      null,
+      'article-external-id-1',
+    );
+
+    try {
+      await htmlTransformer.runOnDocument(article);
+      expect(true).toBe(false);
+    } catch (error) {
+      expect((error as HtmlConverterError).toFailedEntityErrors()[0]).toEqual(expectedError);
+    }
   });
 
   describe('runOnCategory', () => {

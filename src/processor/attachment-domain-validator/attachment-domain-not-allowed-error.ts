@@ -1,6 +1,6 @@
 import { ErrorCodes } from '../../utils/errors/error-codes.js';
 import { ErrorBasePublic } from '../../utils/errors/error-base-public.js';
-import { EntityType } from '../../model/entity-type';
+import { EntityType } from '../../model/entity-type.js';
 
 export class AttachmentDomainNotAllowedError extends ErrorBasePublic {
   constructor(url: string, entityId?: string | null) {

@@ -1,7 +1,7 @@
 import { ErrorCodes } from './error-codes.js';
 import { ErrorBasePublic } from './error-base-public.js';
-import { ErrorMessageParams } from './error-message-params';
-import { EntityType } from '../../model/entity-type';
+import { ErrorMessageParams } from './error-message-params.js';
+import { EntityType } from '../../model/entity-type.js';
 
 export class DownloadError extends ErrorBasePublic {
   constructor(

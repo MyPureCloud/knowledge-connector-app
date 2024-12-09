@@ -30,6 +30,7 @@ import { Processor } from '../processor.js';
 import { Context } from '../../context/context.js';
 import { catcher } from '../../utils/catch-error-helper.js';
 import { Interrupted } from '../../utils/errors/interrupted.js';
+import { FileTypeNotSupportedError } from '../../genesys/errors/file-type-not-supported-error.js';
 
 export class ImageProcessor implements Processor {
   private config: ImageConfig = {};
@@ -162,8 +163,18 @@ export class ImageProcessor implements Processor {
       } catch (error) {
         await catcher<void>()
           .rethrow(Interrupted)
+          .on(FileTypeNotSupportedError, () => {
+            getLogger().warn(
+              `Not supported file type ${image.url}`,
+              error as Error,
+            );
+            this.processImageBlockWithoutUpload(imageBlock);
+          })
           .any((error: Error) => {
-            getLogger().error(`Cannot upload image ${image.url} - ${error}`);
+            getLogger().error(
+              `Cannot upload image ${image.url} - ${error}`,
+              error as Error,
+            );
             this.processImageBlockWithoutUpload(imageBlock);
           })
           .with(error);
@@ -273,6 +284,7 @@ export class ImageProcessor implements Processor {
           .any((error) => {
             getLogger().warn(
               `Unable to fetch image [${url}] directly - ${error}`,
+              error as Error,
             );
             return null;
           })

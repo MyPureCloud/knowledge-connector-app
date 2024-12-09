@@ -1,6 +1,6 @@
-import { ErrorMessageParams } from './error-message-params';
-import { ErrorBody } from './error-body';
-import { EntityType } from '../../model/entity-type';
+import { ErrorMessageParams } from './error-message-params.js';
+import { ErrorBody } from './error-body.js';
+import { EntityType } from '../../model/entity-type.js';
 
 export abstract class ErrorBase extends Error {
   protected code: string;

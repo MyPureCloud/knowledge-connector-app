@@ -23,8 +23,6 @@ import { Interrupted } from '../utils/errors/interrupted.js';
 import { Worker } from './worker.js';
 import { runtime } from '../utils/runtime.js';
 import { catcher } from '../utils/catch-error-helper.js';
-import { FailedEntity } from '../model/failed-entity';
-import { ErrorBasePublic } from '../utils/errors';
 
 /**
  * Pipe is the collection of tasks and adapters which can be executed to do the sync from source to destination.
