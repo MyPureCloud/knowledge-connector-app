@@ -37,7 +37,10 @@ export class PrefixExternalId implements Processor {
   }
 
   private replaceExternalId<T extends ExternalIdentifiable>(item: T): T {
-    if (this.externalIdPrefix) {
+    if (
+      this.externalIdPrefix &&
+      !item.externalId?.startsWith(this.externalIdPrefix)
+    ) {
       item.externalId = this.externalIdPrefix + item.externalId;
     }
     return item;

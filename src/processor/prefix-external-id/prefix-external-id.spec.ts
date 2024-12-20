@@ -87,4 +87,20 @@ describe('PrefixExternalId', () => {
       generateNormalizedLabel('-1', undefined, undefined, 'labels-1'),
     );
   });
+
+  it('should add prefix to document only once', async () => {
+    const once = await prefixExternalIdProcessor.runOnDocument(
+      generateNormalizedDocument(
+        '-1',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        'documents-1',
+      ),
+    );
+    const twice = await prefixExternalIdProcessor.runOnDocument(once);
+
+    expect(twice.externalId).toBe(`${EXTERNAL_ID_PREFIX}documents-1`);
+  });
 });

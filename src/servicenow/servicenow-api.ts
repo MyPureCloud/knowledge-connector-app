@@ -15,6 +15,7 @@ import {
   ServiceNowContext,
 } from './model/servicenow-context.js';
 import { setIfMissing } from '../utils/objects.js';
+import { Pager } from '../utils/pager.js';
 import { getLogger } from '../utils/logger.js';
 import {
   ServiceNowSingleArticle,
@@ -44,7 +45,7 @@ export class ServiceNowApi {
   ): Promise<void> {
     this.config = config;
     this.limit = this.config.limit ? parseInt(this.config.limit, 10) : 50;
-    this.baseUrl = removeTrailingSlash(this.config.servicenowBaseUrl || '');
+    this.baseUrl = removeTrailingSlash(this.config.servicenowBaseUrl ?? '');
 
     this.apiContext = setIfMissing(context, 'api', this.apiContext);
   }
@@ -58,9 +59,15 @@ export class ServiceNowApi {
       return;
     }
 
-    yield* this.getCategoryPage(
-      `/api/now/table/kb_category?sysparm_fields=sys_id,full_category&active=true&sysparm_query=parent_id!%3Dundefined&sysparm_limit=${this.limit}`,
+    const pager = new Pager(this.apiContext.categories.unprocessed, () =>
+      this.fetchNextCategoryPage(),
     );
+
+    for await (const item of pager.fetch()) {
+      yield item;
+    }
+
+    this.apiContext.articles.done = true;
   }
 
   public async *articleIterator(): AsyncGenerator<
@@ -72,9 +79,15 @@ export class ServiceNowApi {
       return;
     }
 
-    yield* this.getArticlePage(
-      `/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&${this.queryParams()}&limit=${this.limit}`,
+    const pager = new Pager(this.apiContext.articles.unprocessed, () =>
+      this.fetchNextArticlePage(),
     );
+
+    for await (const item of pager.fetch()) {
+      yield item;
+    }
+
+    this.apiContext.articles.done = true;
   }
 
   public async fetchAttachmentInfo(
@@ -124,98 +137,58 @@ export class ServiceNowApi {
     return null;
   }
 
-  private async *getArticlePage(
-    endpoint: string,
-  ): AsyncGenerator<ServiceNowArticle, void, void> {
-    getLogger().debug(`getArticlePage`); // TODO
-    let offset: number | null = this.apiContext.articles.nextOffset;
-    let url: string | null =
-      offset !== null ? `${this.baseUrl}${endpoint}&offset=${offset}` : null;
-
-    if (this.apiContext.articles.unprocessed) {
-      getLogger().debug(
-        `Processing unprocessed item ${this.apiContext.articles.unprocessed.length}`,
-      ); // TODO
-      for await (const item of this.processList(
-        this.apiContext.articles.unprocessed,
-      )) {
-        yield item;
-      }
-      getLogger().debug(`Processing unprocessed item finished`); // TODO
+  private async fetchNextArticlePage(): Promise<ServiceNowArticle[] | null> {
+    const url: string | null = this.constructArticleUrl(
+      this.apiContext.articles.nextOffset,
+    );
+    if (!url) {
+      return null;
     }
 
-    getLogger().debug(`Fetching page ${offset}`); // TODO
-    while (url) {
-      const response = await fetch(url, {
-        headers: this.buildHeaders(),
-      });
+    const response = await fetch(url, {
+      headers: this.buildHeaders(),
+    });
 
-      const json: ServiceNowArticleResponse =
-        await readResponse<ServiceNowArticleResponse>(url, response);
-      const list = json.result.articles;
+    const json: ServiceNowArticleResponse =
+      await readResponse<ServiceNowArticleResponse>(url, response);
+    const list = json.result.articles;
 
-      offset =
-        json.result.meta.count > json.result.meta.end
-          ? json.result.meta.end
-          : null;
-      url =
-        offset !== null ? `${this.baseUrl}${endpoint}&offset=${offset}` : null;
+    getLogger().debug(
+      `fetchNextArticlePage - count: ${json.result.meta.count}, end: ${json.result.meta.end}`,
+    );
+    this.apiContext.articles.nextOffset =
+      json.result.meta.count > json.result.meta.end
+        ? json.result.meta.end
+        : null;
 
-      this.apiContext.articles.unprocessed = list;
-      this.apiContext.articles.nextOffset = offset;
-
-      getLogger().debug(`Loaded articles ${list.length}`); // TODO
-      for await (const item of this.processList(
-        this.apiContext.articles.unprocessed,
-      )) {
-        yield item;
-      }
-      getLogger().debug(`Loaded articles finished`); // TODO
-    }
-
-    this.apiContext.articles.done = true;
+    return list;
   }
 
-  private async *getCategoryPage(
-    endpoint: string,
-  ): AsyncGenerator<ServiceNowCategory, void, void> {
-    let offset: number | null = this.apiContext.categories.nextOffset;
-    let url: string | null =
-      offset !== null
-        ? `${this.baseUrl}${endpoint}&sysparm_offset=${offset}`
-        : null;
-
-    if (this.apiContext.categories.unprocessed) {
-      for await (const item of this.processList(
-        this.apiContext.categories.unprocessed,
-      )) {
-        yield item;
-      }
+  private async fetchNextCategoryPage(): Promise<ServiceNowCategory[] | null> {
+    const url: string | null = this.constructCategoryUrl(
+      this.apiContext.categories.nextOffset,
+    );
+    if (!url) {
+      return null;
     }
 
-    while (url && offset !== null) {
-      const response = await fetch(url, {
-        headers: this.buildHeaders(),
-      });
+    const response = await fetch(url, {
+      headers: this.buildHeaders(),
+    });
 
-      const json: ServiceNowCategoryResponse =
-        await readResponse<ServiceNowCategoryResponse>(url, response);
-      const list = json.result;
+    const json: ServiceNowCategoryResponse =
+      await readResponse<ServiceNowCategoryResponse>(url, response);
+    const list = json.result;
 
-      offset = list.length > 0 ? offset + list.length : null;
-      url = offset
-        ? `${this.baseUrl}${endpoint}&sysparm_offset=${offset}`
+    getLogger().debug(
+      `fetchNextCategoryPage - offset: ${this.apiContext.categories.nextOffset}`,
+    );
+    this.apiContext.categories.nextOffset =
+      list.length > 0
+        ? this.apiContext.categories.nextOffset! + list.length
         : null;
 
-      this.apiContext.categories.unprocessed = list;
-      this.apiContext.categories.nextOffset = offset;
-
-      for await (const item of this.processList(list)) {
-        yield item;
-      }
-    }
-
-    this.apiContext.categories.done = true;
+    return list;
   }
 
   private buildHeaders() {
@@ -272,15 +245,17 @@ export class ServiceNowApi {
       .join('^OR');
   }
 
-  private async *processList<T>(list: T[]): AsyncGenerator<T, void, void> {
-    while (list.length > 0) {
-      const item = list.shift();
-      const str = JSON.stringify(item);
-      getLogger().debug(
-        `yield (${list.length} left) ${str.substring(0, Math.min(150, str.length))}`,
-      ); // TODO
-      yield Promise.resolve(item!);
-    }
-    getLogger().debug('processList finished'); // TODO
+  private constructArticleUrl(offset: number | null): string | null {
+    const endpoint = `/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&${this.queryParams()}&limit=${this.limit}`;
+    return offset !== null
+      ? `${this.baseUrl}${endpoint}&offset=${offset}`
+      : null;
+  }
+
+  private constructCategoryUrl(offset: number | null): string | null {
+    const endpoint = `/api/now/table/kb_category?sysparm_fields=sys_id,full_category&active=true&sysparm_query=parent_id!%3Dundefined&sysparm_limit=${this.limit}`;
+    return offset !== null
+      ? `${this.baseUrl}${endpoint}&sysparm_offset=${offset}`
+      : null;
   }
 }

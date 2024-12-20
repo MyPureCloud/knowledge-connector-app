@@ -9,6 +9,7 @@ import {
 import { DownloadError } from './errors/download-error.js';
 import { ApiError } from '../adapter/errors/api-error.js';
 import { readFileSync } from 'node:fs';
+import { runtime } from './runtime.js';
 
 export { Response, RequestInit, HeadersInit } from 'undici';
 
@@ -16,10 +17,19 @@ const packageVersion = process.env.npm_package_version ||
     JSON.parse(readFileSync(new URL('../../package.json', import.meta.url)).toString()).version || 'no version';
 const nodeVersion = process.version;
 
+/**
+ * Fetch an image from the URL
+ * @param url
+ * @param headers
+ * @throws DownloadError
+ * @throws Interrupted
+ */
 export async function fetchImage(
   url: string,
   headers?: HeadersInit,
 ): Promise<Image> {
+  runtime.check();
+
   if (url.startsWith('//')) {
     url = 'https:' + url;
   }
@@ -27,9 +37,7 @@ export async function fetchImage(
   const requestHeaders = headers ? { headers } : {};
   const response = await innerFetch(url, requestHeaders);
   if (!response.ok) {
-    return Promise.reject(
-      new DownloadError(`Image ${url} cannot be downloaded`, { url }),
-    );
+    throw new DownloadError(`Image ${url} cannot be downloaded`, { url });
   }
 
   const content = await response.blob();
@@ -43,10 +51,18 @@ export async function fetchImage(
   };
 }
 
+/**
+ * Execute request
+ * @param url
+ * @param init
+ * @throws Interrupted
+ */
 export async function fetch(
   url: string,
   init?: RequestInit,
 ): Promise<Response> {
+  runtime.check();
+
   const headers = new Headers(init?.headers);
   headers.set('User-Agent', `knowledge-connector-app/${packageVersion} (node.js ${nodeVersion})`);
 
@@ -57,6 +73,12 @@ export async function fetch(
   return await innerFetch(url, updatedInit);
 }
 
+/**
+ * Read and parse JSON response
+ * @param url
+ * @param response
+ * @throws ApiError
+ */
 export async function readResponse<T>(
   url: string,
   response: Response,
@@ -80,6 +102,12 @@ export async function readResponse<T>(
   }
 }
 
+/**
+ * Verify that the response is ok
+ * @param url
+ * @param response
+ * @throws ApiError
+ */
 export async function verifyResponseStatus(
   url: string,
   response: Response,
@@ -101,6 +129,11 @@ export async function verifyResponseStatus(
   }
 }
 
+/**
+ * Read the text response
+ * @param url
+ * @param response
+ */
 export async function readBody(
   url: string,
   response: Response,

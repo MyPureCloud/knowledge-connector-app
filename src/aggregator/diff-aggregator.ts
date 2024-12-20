@@ -14,6 +14,7 @@ import { DestinationAdapter } from '../adapter/destination-adapter.js';
 import { DiffAggregatorConfig } from './diff-aggregator-config.js';
 import { Identifiable } from '../model/identifiable.js';
 import { PipeContext } from '../pipe/pipe-context.js';
+import { MissingReferenceError } from '../utils/errors/missing-reference-error.js';
 
 const HELPER_PROPERTIES = ['externalIdAlternatives'];
 
@@ -23,30 +24,36 @@ const HELPER_PROPERTIES = ['externalIdAlternatives'];
  * It detects changes by fetching the current state of the destination system and compare the two based on 'externalId'.
  */
 export class DiffAggregator implements Aggregator {
-  private adapter?: DestinationAdapter;
   private context?: PipeContext;
   private protectedFields: string[] = [];
   private externalIdPrefix: string = '';
 
   public async initialize(
     config: DiffAggregatorConfig,
-    adapters: AdapterPair<Adapter, DestinationAdapter>,
+    _adapters: AdapterPair<Adapter, DestinationAdapter>,
     context: PipeContext,
   ): Promise<void> {
-    this.adapter = adapters.destinationAdapter;
     this.context = context;
 
     this.protectedFields = (config.protectedFields || '').split(',');
+    this.externalIdPrefix = config.externalIdPrefix ?? '';
   }
 
   public async runOnCategory(content: Category): Promise<void> {
     const { categories: storedCategories = [] } =
       this.context!.storedContent || {};
 
+    const { categories: collectedCategories = [] } =
+      this.context!.pipe.processedItems || {};
+
     this.collectModifiedItem(
       content,
       storedCategories,
-      this.normalizeCategory.bind(this),
+      (category: Category) =>
+        this.normalizeCategory(category, [
+          ...collectedCategories,
+          ...storedCategories,
+        ]),
       this.context!.syncableContents.categories,
     );
   }
@@ -163,10 +170,9 @@ export class DiffAggregator implements Aggregator {
       category: category
         ? this.normalizeCategoryReference(category, allCategories)
         : null,
-      labels:
-        labels && labels.length
-          ? labels.map((l) => this.normalizeLabelReference(l, allLabels))
-          : null,
+      labels: labels?.length
+        ? labels.map((l) => this.normalizeLabelReference(l, allLabels))
+        : null,
       variations: variations.map(this.normalizeVariation),
     };
   }
@@ -181,14 +187,20 @@ export class DiffAggregator implements Aggregator {
     };
   }
 
-  private normalizeCategory(category: Category): Category {
+  private normalizeCategory(
+    category: Category,
+    allCategories: Category[],
+  ): Category {
     const { externalId, name, parentCategory } = category;
 
     return {
       id: null,
       externalId: externalId || null,
       name,
-      parentCategory: this.normalizeCategoryReference(parentCategory, []),
+      parentCategory: this.normalizeCategoryReference(
+        parentCategory,
+        allCategories,
+      ),
     };
   }
 
@@ -208,10 +220,7 @@ export class DiffAggregator implements Aggregator {
       .shift();
 
     if (!category) {
-      return {
-        id: null,
-        name: categoryReference.name,
-      };
+      throw new MissingReferenceError('Category', categoryReference.id);
     }
 
     return {
@@ -242,10 +251,7 @@ export class DiffAggregator implements Aggregator {
       .shift();
 
     if (!label) {
-      return {
-        id: null,
-        name: labelReference.name,
-      };
+      throw new MissingReferenceError('Label', labelReference.id);
     }
 
     return {

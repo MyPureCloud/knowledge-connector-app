@@ -18,7 +18,7 @@ import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 import { ExternalLink } from '../model/external-link.js';
 
 /**
- * GenesysSourceAdapter extends {@Link SourceAdapter}, implements {@Link ImageSourceAdapter} to fetch data from Genesys Knowledge's API
+ * GenesysSourceAdapter extends {@Link AbstractSourceAdapter}, implements {@Link ImageSourceAdapter} to fetch data from Genesys Knowledge's API
  */
 export class GenesysSourceAdapter
   extends AbstractSourceAdapter<Category, Label, Document>
@@ -27,7 +27,6 @@ export class GenesysSourceAdapter
   private static DOCUMENT_LINK_REGEXP =
     /grn:knowledge:::documentVariation\/[0-9a-fA-F-]+\/([0-9a-fA-F-]+)\/([0-9a-fA-F-]+)/;
 
-  private config: GenesysSourceConfig = {};
   private api: GenesysSourceApi;
   private exportedKnowledgeData: ExportModel | null = null;
   private attachmentDomainValidator?: AttachmentDomainValidator;
@@ -44,7 +43,6 @@ export class GenesysSourceAdapter
   ): Promise<void> {
     await super.initialize(config, context);
 
-    this.config = config;
     await this.api.initialize(config);
 
     this.exportedKnowledgeData = await this.exportAllEntities();

@@ -2,12 +2,12 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { GenesysDestinationAdapter } from '../../genesys';
 import { AdapterPair } from '../../adapter/adapter-pair.js';
 import { SourceAdapter } from '../../adapter/source-adapter.js';
-import { HtmlTransformer } from './html-transformer';
+import { HtmlTransformer } from './html-transformer.js';
 import {
   generateNormalizedCategory,
   generateNormalizedLabel,
   generateRawDocument,
-} from '../../tests/utils/entity-generators';
+} from '../../tests/utils/entity-generators.js';
 import { cloneDeep } from 'lodash';
 import { DocumentBodyBlock } from 'knowledge-html-converter';
 import { PipeContext } from '../../pipe/pipe-context.js';

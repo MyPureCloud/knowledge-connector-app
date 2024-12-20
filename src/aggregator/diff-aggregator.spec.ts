@@ -16,6 +16,7 @@ import { Label } from '../model/label.js';
 import { Document } from '../model/document.js';
 import { ExternalIdentifiable } from '../model/external-identifiable.js';
 import { PipeContext } from '../pipe/pipe-context.js';
+import { MissingReferenceError } from '../utils/errors/missing-reference-error.js';
 
 jest.mock('../genesys/genesys-destination-adapter.js');
 
@@ -28,24 +29,24 @@ describe('DiffAggregator', () => {
   let aggregator: DiffAggregator;
   let context: PipeContext;
 
-  describe('run', () => {
-    beforeEach(async () => {
-      sourceAdapter = {} as typeof sourceAdapter;
-      destinationAdapter = new GenesysDestinationAdapter();
-      adapters = {
-        sourceAdapter,
-        destinationAdapter,
-      };
-      aggregator = new DiffAggregator();
-      context = buildContext();
+  beforeEach(async () => {
+    sourceAdapter = {} as typeof sourceAdapter;
+    destinationAdapter = new GenesysDestinationAdapter();
+    adapters = {
+      sourceAdapter,
+      destinationAdapter,
+    };
+    aggregator = new DiffAggregator();
+    context = buildContext();
 
-      await aggregator.initialize(
-        { protectedFields: 'published.alternatives' },
-        adapters,
-        context,
-      );
-    });
+    await aggregator.initialize(
+      { protectedFields: 'published.alternatives' },
+      adapters,
+      context,
+    );
+  });
 
+  describe('runOnCategory', () => {
     describe('when export from destination is empty', () => {
       beforeEach(() => {
         prepareStoredContent([], [], []);
@@ -55,16 +56,8 @@ describe('DiffAggregator', () => {
         await aggregator.runOnCategory(generateNormalizedCategory('-1'));
         await aggregator.runOnCategory(generateNormalizedCategory('-2'));
         await aggregator.runOnCategory(generateNormalizedCategory('-3'));
-        await aggregator.runOnLabel(generateNormalizedLabel('-1'));
-        await aggregator.runOnLabel(generateNormalizedLabel('-2'));
-        await aggregator.runOnLabel(generateNormalizedLabel('-3'));
-        await aggregator.runOnDocument(generateNormalizedDocument('-1'));
-        await aggregator.runOnDocument(generateNormalizedDocument('-2'));
-        await aggregator.runOnDocument(generateNormalizedDocument('-3'));
 
         verifyGroups(context.syncableContents.categories, 3, 0, 0);
-        verifyGroups(context.syncableContents.labels, 3, 0, 0);
-        verifyGroups(context.syncableContents.documents, 3, 0, 0);
       });
     });
 
@@ -75,14 +68,8 @@ describe('DiffAggregator', () => {
             generateNormalizedCategory('-1', 'category-id-1'),
             generateNormalizedCategory('-2', 'category-id-2'),
           ],
-          [
-            generateNormalizedLabel('-1', 'label-id-1'),
-            generateNormalizedLabel('-2', 'label-id-2'),
-          ],
-          [
-            generateNormalizedDocument('-1', 'document-id-1'),
-            generateNormalizedDocument('-4', 'document-id-4'),
-          ],
+          [],
+          [],
         );
       });
 
@@ -93,20 +80,176 @@ describe('DiffAggregator', () => {
         );
         await aggregator.runOnCategory(generateNormalizedCategory('-3'));
 
+        verifyGroups(context.syncableContents.categories, 1, 1, 0);
+      });
+    });
+
+    describe('when entity has parent', () => {
+      describe('when parent missing', () => {
+        it('should throw MissingReferenceError', () => {
+          expect(() =>
+            aggregator.runOnCategory(
+              generateNormalizedCategory(
+                '-1',
+                undefined,
+                undefined,
+                undefined,
+                {
+                  id: 'missing-id',
+                  name: 'missing-entity',
+                },
+              ),
+            ),
+          ).rejects.toThrow(MissingReferenceError);
+        });
+      });
+
+      describe('when parent exists', () => {
+        it('should resolve reference', async () => {
+          context.pipe.processedItems.categories.push(
+            generateNormalizedCategory(
+              '',
+              undefined,
+              'parent-category-name',
+              'parent-category-id',
+            ),
+          );
+
+          await aggregator.runOnCategory(
+            generateNormalizedCategory('-1', undefined, undefined, undefined, {
+              id: 'parent-category-id',
+              name: 'parent-category-name',
+            }),
+          );
+
+          expect(context.syncableContents.categories.created).toHaveLength(1);
+          expect(context.syncableContents.categories.created[0]).toEqual({
+            id: null,
+            externalId: 'category-external-id-1',
+            name: 'category-name-1',
+            parentCategory: {
+              id: null,
+              name: 'parent-category-name',
+            },
+          });
+        });
+
+        it('should resolve reference with externalIdPrefix', async () => {
+          const externalIdPrefix = 'external-id-prefix-';
+
+          await aggregator.initialize(
+            {
+              protectedFields: 'published.alternatives',
+              externalIdPrefix,
+            },
+            adapters,
+            context,
+          );
+
+          context.pipe.processedItems.categories.push(
+            generateNormalizedCategory(
+              '',
+              undefined,
+              'parent-category-name',
+              `${externalIdPrefix}parent-category-id`,
+            ),
+          );
+
+          await aggregator.runOnCategory(
+            generateNormalizedCategory('-1', undefined, undefined, undefined, {
+              id: 'parent-category-id',
+              name: 'parent-category-name',
+            }),
+          );
+
+          expect(context.syncableContents.categories.created).toHaveLength(1);
+          expect(context.syncableContents.categories.created[0]).toEqual({
+            id: null,
+            externalId: 'category-external-id-1',
+            name: 'category-name-1',
+            parentCategory: {
+              id: null,
+              name: 'parent-category-name',
+            },
+          });
+        });
+      });
+    });
+  });
+
+  describe('runOnLabel', () => {
+    describe('when export from destination is empty', () => {
+      beforeEach(() => {
+        prepareStoredContent([], [], []);
+      });
+
+      it('should collect all entities to the created group', async () => {
+        await aggregator.runOnLabel(generateNormalizedLabel('-1'));
+        await aggregator.runOnLabel(generateNormalizedLabel('-2'));
+        await aggregator.runOnLabel(generateNormalizedLabel('-3'));
+
+        verifyGroups(context.syncableContents.labels, 3, 0, 0);
+      });
+    });
+
+    describe('when export from destination is not empty', () => {
+      beforeEach(() => {
+        prepareStoredContent(
+          [],
+          [
+            generateNormalizedLabel('-1', 'label-id-1'),
+            generateNormalizedLabel('-2', 'label-id-2'),
+          ],
+          [],
+        );
+      });
+
+      it('should collect entities to the correct group', async () => {
         await aggregator.runOnLabel(
           generateNormalizedLabel('-1', null, 'updated-label'),
         );
         await aggregator.runOnLabel(generateNormalizedLabel('-2'));
         await aggregator.runOnLabel(generateNormalizedLabel('-3'));
 
+        verifyGroups(context.syncableContents.labels, 1, 1, 0);
+      });
+    });
+  });
+
+  describe('runOnDocument', () => {
+    describe('when export from destination is empty', () => {
+      beforeEach(() => {
+        prepareStoredContent([], [], []);
+      });
+
+      it('should collect all entities to the created group', async () => {
+        await aggregator.runOnDocument(generateNormalizedDocument('-1'));
+        await aggregator.runOnDocument(generateNormalizedDocument('-2'));
+        await aggregator.runOnDocument(generateNormalizedDocument('-3'));
+
+        verifyGroups(context.syncableContents.documents, 3, 0, 0);
+      });
+    });
+
+    describe('when export from destination is not empty', () => {
+      beforeEach(() => {
+        prepareStoredContent(
+          [],
+          [],
+          [
+            generateNormalizedDocument('-1', 'document-id-1'),
+            generateNormalizedDocument('-4', 'document-id-4'),
+          ],
+        );
+      });
+
+      it('should collect entities to the correct group', async () => {
         await aggregator.runOnDocument(
           generateNormalizedDocument('-1', null, 'updated-document'),
         );
         await aggregator.runOnDocument(generateNormalizedDocument('-2'));
         await aggregator.runOnDocument(generateNormalizedDocument('-3'));
 
-        verifyGroups(context.syncableContents.categories, 1, 1, 0);
-        verifyGroups(context.syncableContents.labels, 1, 1, 0);
         verifyGroups(context.syncableContents.documents, 2, 1, 1);
       });
 
@@ -216,20 +359,20 @@ describe('DiffAggregator', () => {
         });
       });
     });
-
-    function verifyGroups<T extends ExternalIdentifiable>(
-      importableContent: ImportableContent<T>,
-      createdCount: number,
-      updatedCount: number,
-      deletedCount: number,
-    ): void {
-      expect(importableContent.created.length).toBe(createdCount);
-      expect(importableContent.updated.length).toBe(updatedCount);
-      expect(importableContent.deleted.length).toBe(deletedCount);
-
-      importableContent.deleted.forEach((d) => expect(d.id).not.toBeNull());
-    }
   });
+
+  function verifyGroups<T extends ExternalIdentifiable>(
+    importableContent: ImportableContent<T>,
+    createdCount: number,
+    updatedCount: number,
+    deletedCount: number,
+  ): void {
+    expect(importableContent.created.length).toBe(createdCount);
+    expect(importableContent.updated.length).toBe(updatedCount);
+    expect(importableContent.deleted.length).toBe(deletedCount);
+
+    importableContent.deleted.forEach((d) => expect(d.id).not.toBeNull());
+  }
 
   function buildContext(): PipeContext {
     return {

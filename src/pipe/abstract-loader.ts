@@ -35,7 +35,6 @@ export abstract class AbstractLoader<
     unprocessedItems: I[],
   ): AsyncGenerator<O, void, void> {
     for await (const item of iterator) {
-      getLogger().debug('Load next item'); // TODO
       const result = mapper(item);
       if (result.length > 0) {
         for (const i of result) {
@@ -47,8 +46,8 @@ export abstract class AbstractLoader<
     }
 
     getLogger().debug(
-      `Processing unprocessed in loader ${unprocessedItems.length}`,
-    ); // TODO
+      `Processing ${unprocessedItems.length} postponed items in loader`,
+    );
     while (unprocessedItems.length > 0) {
       const item = unprocessedItems.shift();
       const result = mapper(item!);

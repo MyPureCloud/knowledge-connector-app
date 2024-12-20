@@ -12,7 +12,7 @@ export class NameConflictResolver implements Processor {
 
   public async initialize(
     config: NameConflictResolverConfig,
-    adapters: AdapterPair<Adapter, Adapter>,
+    _adapters: AdapterPair<Adapter, Adapter>,
     context: PipeContext,
   ): Promise<void> {
     this.context = context;

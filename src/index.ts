@@ -4,6 +4,7 @@ export { AdapterContext } from './adapter/adapter-context.js';
 export { loadConfigurer } from './utils/configurer-loader.js';
 export { parseConfig } from './utils/config-parser.js';
 export { setLogger } from './utils/logger.js';
+export { runtime } from './utils/runtime.js';
 export {
   fetch,
   fetchImage,

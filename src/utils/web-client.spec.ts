@@ -1,6 +1,8 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
-import { readResponse, Response } from './web-client.js';
+import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { fetch, fetchImage, readResponse, Response } from './web-client.js';
 import { ApiError } from '../adapter/errors/api-error.js';
+import { Interrupted } from './errors/interrupted.js';
+import { runtime } from './runtime.js';
 
 describe('WebClient', () => {
   const URL = 'https://some-random-url.genesys.com';
@@ -9,8 +11,6 @@ describe('WebClient', () => {
   };
   const RESPONSE_BODY_RAW = JSON.stringify(RESPONSE_BODY);
   const NON_JSON_RESPONSE_BODY = '<something><inside></inside></something>';
-
-  beforeEach(() => {});
 
   describe('readResponse', () => {
     it('should parse response body', async () => {
@@ -76,6 +76,32 @@ describe('WebClient', () => {
               body: NON_JSON_RESPONSE_BODY,
             },
           ),
+        );
+      });
+    });
+  });
+
+  describe('when interruption', () => {
+    beforeEach(() => {
+      runtime.interrupt();
+    });
+
+    afterEach(() => {
+      runtime.reset();
+    });
+
+    describe('fetch', () => {
+      it('should throw Interrupted', async () => {
+        await expect(async () => await fetch('', {})).rejects.toThrow(
+          Interrupted,
+        );
+      });
+    });
+
+    describe('fetchImage', () => {
+      it('should throw Interrupted', async () => {
+        await expect(async () => await fetchImage('', {})).rejects.toThrow(
+          Interrupted,
         );
       });
     });

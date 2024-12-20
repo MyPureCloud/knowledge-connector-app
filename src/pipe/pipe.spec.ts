@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { Pipe } from './pipe.js';
 import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
 import { SourceAdapter } from '../adapter/source-adapter.js';
@@ -6,20 +7,10 @@ import { Label } from '../model/label.js';
 import { Document } from '../model/document.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Loader } from './loader.js';
-import { ExternalContent } from '../model/external-content.js';
 import { SyncableContents } from '../model/syncable-contents.js';
 import { Aggregator } from '../aggregator/aggregator.js';
 import { Uploader } from '../uploader/uploader.js';
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  jest,
-} from '@jest/globals';
 import { Configurer } from './configurer.js';
-import { HookEvent } from './hook-callback.js';
 import { Processor } from '../processor/processor.js';
 import {
   generateNormalizedCategory,
@@ -80,7 +71,7 @@ describe('Pipe', () => {
       'aggregator',
       'uploader',
     ]);
-  }, 10000); // TODO: revert
+  });
 
   it('should initialize all adapters', async () => {
     expect.assertions(2);
@@ -100,7 +91,7 @@ describe('Pipe', () => {
 
     expect(sourceAdapter.initialize).toHaveBeenCalledTimes(1);
     expect(destinationAdapter.initialize).toHaveBeenCalledTimes(1);
-  }, 10000); // TODO: revert
+  });
 
   it('should initialize all tasks', async () => {
     expect.assertions(4);
@@ -122,61 +113,6 @@ describe('Pipe', () => {
     expect(processorMock.initialize).toHaveBeenCalledTimes(1);
     expect(aggregatorMock.initialize).toHaveBeenCalledTimes(1);
     expect(uploaderMock.initialize).toHaveBeenCalledTimes(1);
-  }, 10000); // TODO: revert
-
-  describe.skip('when killAfterLongRunningSeconds is set', () => {
-    let mockExit: jest.Spied<(code?: number) => never>;
-
-    beforeEach(() => {
-      mockExit = jest
-        .spyOn(process, 'exit')
-        .mockImplementation((_code?: number) => undefined as never);
-
-      jest.useFakeTimers();
-    });
-
-    afterEach(() => {
-      mockExit.mockRestore();
-      jest.useRealTimers();
-    });
-
-    it('should stop the process after configured seconds', async () => {
-      expect.assertions(1);
-
-      const loaderMock = createLongRunningLoaderMock();
-
-      await new Pipe().adapters(adapterPair).loaders(loaderMock).start({
-        killAfterLongRunningSeconds: '2',
-      });
-
-      expect(mockExit).toHaveBeenCalledWith(1);
-    });
-
-    describe('when ON_TIMEOUT hook callback is registered', () => {
-      it('should call hook callback before killing process', async () => {
-        expect.assertions(2);
-
-        const loaderMock = createLongRunningLoaderMock();
-        const hook = async () => {
-          return new Promise<void>((resolve) => {
-            setTimeout(() => {
-              expect(true).toBe(true);
-              resolve();
-            }, 100);
-          });
-        };
-
-        await new Pipe()
-          .adapters(adapterPair)
-          .loaders(loaderMock)
-          .hooks(HookEvent.ON_TIMEOUT, hook)
-          .start({
-            killAfterLongRunningSeconds: '2',
-          });
-
-        expect(mockExit).toHaveBeenCalledWith(1);
-      });
-    });
   });
 
   describe('when configurer given', () => {
@@ -212,35 +148,6 @@ describe('Pipe', () => {
         'aggregator',
         'uploader',
       ]);
-    }, 10000); // TODO: revert
-  });
-
-  describe.skip('when export contains generated fields', () => {
-    // let context: Context<unknown, unknown, unknown>;
-
-    beforeEach(() => {
-      // context = {
-      //   storedContent: {
-      //     categories: [],
-      //     labels: [],
-      //     documents: [
-      //       generateNormalizedDocumentWithInternalDocumentLinks(
-      //         '-1',
-      //         'https://modified.url/article/123',
-      //       ),
-      //     ],
-      //   },
-      // } as unknown as Context<unknown, unknown, unknown>;
-    });
-
-    it('should remove generated content and thus not detect change', async () => {
-      // await aggregator.runOnDocument(
-      //   generateNormalizedDocumentWithInternalDocumentLinks('-1', undefined),
-      // );
-      //
-      // expect(context.syncableContents.documents.created.length).toBe(0);
-      // expect(context.syncableContents.documents.updated.length).toBe(0);
-      // expect(context.syncableContents.documents.deleted.length).toBe(0);
     });
   });
 
@@ -331,30 +238,6 @@ describe('Pipe', () => {
         calls.push('uploader');
       },
     };
-  }
-
-  function createLongRunningLoaderMock(): Loader {
-    return {
-      initialize: jest
-        .fn<() => Promise<void>>()
-        .mockReturnValue(Promise.resolve()),
-
-      run: async (_input: ExternalContent | undefined) => {
-        // resolve after 3000ms
-        return new Promise((resolve) => {
-          setTimeout(() => resolve({} as ExternalContent), 3000);
-          jest.advanceTimersByTime(2000);
-          jest.runAllTicks();
-          jest.runAllTimers();
-        });
-      },
-
-      async *categoryIterator(): AsyncGenerator<Category, void, void> {},
-
-      async *labelIterator(): AsyncGenerator<Label, void, void> {},
-
-      async *documentIterator(): AsyncGenerator<Document, void, void> {},
-    } as Loader;
   }
 });
 

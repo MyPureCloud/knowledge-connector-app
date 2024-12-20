@@ -39,7 +39,8 @@ export class ZendeskAdapter
 
     this.config = config;
     this.attachmentDomainValidator = new AttachmentDomainValidator(config);
-    return this.api.initialize(config);
+
+    await this.api.initialize(config, context);
   }
 
   public async *articleIterator(): AsyncGenerator<ZendeskArticle, void, void> {

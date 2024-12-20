@@ -1,6 +1,6 @@
 export interface HookCallback {
   eventName: HookEvent;
-  callback: (...params: unknown[]) => Promise<void>;
+  callback: () => Promise<void>;
 }
 
 export enum HookEvent {

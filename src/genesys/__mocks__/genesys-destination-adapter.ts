@@ -2,6 +2,7 @@ import { SyncModel } from '../../model/sync-export-model.js';
 import { Image } from '../../model/image.js';
 import { jest } from '@jest/globals';
 import { GenesysDestinationConfig } from '../model/genesys-destination-config.js';
+import { SyncDataResponse } from '../../model';
 
 export const GenesysDestinationAdapter = jest.fn(() => ({
   initialize: jest
@@ -28,4 +29,10 @@ export const GenesysDestinationAdapter = jest.fn(() => ({
   uploadImage: jest.fn<() => Promise<Image | null>>(),
   importData: jest.fn<() => Promise<Image | null>>(),
   deleteArticles: jest.fn<() => Promise<Image | null>>(),
+  syncData: jest
+    .fn<(data: SyncModel) => Promise<SyncDataResponse>>()
+    .mockResolvedValue({
+      id: 'sync-id',
+      status: 'Completed',
+    }),
 }));

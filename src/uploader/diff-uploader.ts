@@ -36,9 +36,9 @@ export class DiffUploader implements Uploader {
     this.adapter = adapters.destinationAdapter;
     this.context = context;
 
-    this.externalIdPrefix = this.config!.externalIdPrefix || null;
-    this.sourceId = this.config!.genesysSourceId || null;
-    this.allowPruneAllEntities = config.allowPruneAllEntities === 'true';
+    this.externalIdPrefix = this.config.externalIdPrefix ?? null;
+    this.sourceId = this.config.genesysSourceId ?? null;
+    this.allowPruneAllEntities = this.config.allowPruneAllEntities === 'true';
   }
 
   public async run(importableContents: SyncableContents): Promise<void> {
@@ -169,15 +169,20 @@ export class DiffUploader implements Uploader {
   private verifyNotToDeleteEverything<T extends ExternalIdentifiable>(
     content: ImportableContent<T>,
     storedItems: T[],
-  ) {
-    const storedItemsFromSameSource = storedItems.filter((item: T) =>
-      isFromSameSource(item, this.sourceId, this.externalIdPrefix),
-    );
+  ): void {
+    const storedItemsFromSameSource = storedItems
+      .filter((item: T) =>
+        isFromSameSource(item, this.sourceId, this.externalIdPrefix),
+      )
+      .map((i) => i.externalId);
     if (
+      !this.allowPruneAllEntities &&
+      content.created.length === 0 &&
       content.deleted.length > 0 &&
       content.deleted.length === storedItemsFromSameSource.length &&
-      content.created.length === 0 &&
-      !this.allowPruneAllEntities
+      content.deleted
+        .map((i) => i.externalId)
+        .every((externalId) => storedItemsFromSameSource.includes(externalId))
     ) {
       getLogger().error(
         'Prune all entities are not allowed. This protection can be disabled with ALLOW_PRUNE_ALL_ENTITIES=true in the configuration.',
@@ -190,7 +195,7 @@ export class DiffUploader implements Uploader {
 
   private removeItemsNotFromSameSource<T extends ExternalIdentifiable>(
     content: ImportableContent<T>,
-  ) {
+  ): void {
     content.deleted = content.deleted.filter((item: T) =>
       isFromSameSource(item, this.sourceId, this.externalIdPrefix),
     );

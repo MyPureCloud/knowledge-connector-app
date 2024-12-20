@@ -32,7 +32,7 @@ export class DocumentLinkProcessor implements Processor {
     this.config = config;
     this.sourceAdapter = adapters.sourceAdapter;
     this.context = context;
-    this.externalIdPrefix = config.externalIdPrefix || '';
+    this.externalIdPrefix = config.externalIdPrefix ?? '';
     this.regexp = adapters.sourceAdapter.getDocumentLinkMatcherRegexp();
   }
 
@@ -44,7 +44,13 @@ export class DocumentLinkProcessor implements Processor {
     return item;
   }
 
-  public async runOnDocument(
+    /**
+     * Run the processor on a document
+     * @param item
+     * @param firstTry
+     * @throws DocumentLinkError
+     */
+    public async runOnDocument(
     item: Document,
     firstTry: boolean = true,
   ): Promise<Document> {
