@@ -1,14 +1,20 @@
 import { Image } from '../model/image.js';
 import {
   fetch as innerFetch,
+  Headers,
   HeadersInit,
   RequestInit,
   Response,
 } from 'undici';
 import { DownloadError } from './errors/download-error.js';
 import { ApiError } from '../adapter/errors/api-error.js';
+import { readFileSync } from 'node:fs';
 
 export { Response, RequestInit, HeadersInit } from 'undici';
+
+const packageVersion = process.env.npm_package_version ||
+    JSON.parse(readFileSync(new URL('../../package.json', import.meta.url)).toString()).version || 'no version';
+const nodeVersion = process.version;
 
 export async function fetchImage(
   url: string,
@@ -41,7 +47,14 @@ export async function fetch(
   url: string,
   init?: RequestInit,
 ): Promise<Response> {
-  return await innerFetch(url, init);
+  const headers = new Headers(init?.headers);
+  headers.set('User-Agent', `knowledge-connector-app: ${packageVersion}, @Node-version: ${nodeVersion}`);
+
+  const updatedInit = {
+    ...init,
+    headers,
+  };
+  return await innerFetch(url, updatedInit);
 }
 
 export async function readResponse<T>(
