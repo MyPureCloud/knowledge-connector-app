@@ -48,7 +48,7 @@ export async function fetch(
   init?: RequestInit,
 ): Promise<Response> {
   const headers = new Headers(init?.headers);
-  headers.set('User-Agent', `knowledge-connector-app: ${packageVersion}, node-version: ${nodeVersion}`);
+  headers.set('User-Agent', `knowledge-connector-app/${packageVersion} (node.js ${nodeVersion})`);
 
   const updatedInit = {
     ...init,
