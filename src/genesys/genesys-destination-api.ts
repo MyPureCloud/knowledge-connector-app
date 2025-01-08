@@ -90,10 +90,14 @@ export class GenesysDestinationApi extends GenesysApi {
   public async upload(
     uploadUrl: UploadAssetResponse,
     blob: Blob,
+    contentType: string,
   ): Promise<void> {
     const response = await fetch(uploadUrl.url, {
       method: 'PUT',
-      headers: uploadUrl.headers,
+      headers: {
+        ...uploadUrl.headers,
+        'Content-Type': contentType,
+      },
       body: blob,
     });
     await this.verifyResponse(response, uploadUrl.url);
