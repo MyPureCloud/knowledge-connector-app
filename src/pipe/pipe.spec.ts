@@ -26,6 +26,7 @@ import {
   generateNormalizedDocument,
   generateNormalizedLabel,
 } from '../tests/utils/entity-generators.js';
+import { ExternalLink } from '../model/external-link.js';
 
 jest.mock('../genesys/genesys-destination-adapter.js');
 
@@ -258,6 +259,9 @@ describe('Pipe', () => {
       getDocumentLinkMatcherRegexp: jest.fn<() => RegExp | undefined>(),
 
       getResourceBaseUrl: jest.fn<() => string>(),
+
+      constructDocumentLink:
+        jest.fn<(id: string) => Promise<ExternalLink | null>>(),
     };
   }
 

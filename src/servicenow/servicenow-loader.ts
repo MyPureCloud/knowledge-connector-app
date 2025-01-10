@@ -27,6 +27,10 @@ export class ServiceNowLoader extends AbstractLoader<ServiceNowContext> {
 
     this.config = config;
     this.adapter = adapters.sourceAdapter;
+
+    if (!this.context!.categoryLookupTable) {
+      this.context!.categoryLookupTable = {};
+    }
   }
 
   public async *categoryIterator(): AsyncGenerator<Category, void, void> {
@@ -84,12 +88,13 @@ export class ServiceNowLoader extends AbstractLoader<ServiceNowContext> {
   }
 
   private addArticleToLookupTable(article: ServiceNowArticle): void {
-    if (article.id) {
-      if (article.number) {
-        this.context!.articleLookupTable[article.number] = {
-          externalDocumentId: article.id,
-        };
-      }
+    this.context!.articleLookupTable[article.number] = {
+      externalDocumentId: article.id,
+    };
+    this.context!.articleLookupTable[article.id] = {
+      externalDocumentId: article.id,
+    };
+    if (article.id?.includes(':')) {
       this.context!.articleLookupTable[article.id.split(':')[1]] = {
         externalDocumentId: article.id,
       };

@@ -29,6 +29,10 @@ export class SalesforceLoader extends AbstractLoader<SalesforceContext> {
 
     this.config = config;
     this.adapter = adapters.sourceAdapter;
+
+    if (!this.context!.labelLookupTable) {
+      this.context!.labelLookupTable = {};
+    }
   }
 
   public async *categoryIterator(): AsyncGenerator<Category, void, void> {}

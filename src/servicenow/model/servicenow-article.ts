@@ -3,7 +3,7 @@ export interface ServiceNowArticle {
   id: string;
   title: string;
   snippet: string;
-  number?: string;
+  number: string;
   fields: {
     category?: {
       name: string;

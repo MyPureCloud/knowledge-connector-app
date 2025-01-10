@@ -14,6 +14,7 @@ import { arraysFromAsync } from '../utils/arrays.js';
 import { ZendeskContext } from './model/zendesk-context.js';
 import { AbstractSourceAdapter } from '../adapter/abstract-source-adapter.js';
 import { ZendeskSection } from './model/zendesk-section.js';
+import { ExternalLink } from '../model/external-link.js';
 
 export class ZendeskAdapter
   extends AbstractSourceAdapter<ZendeskCategory, ZendeskLabel, ZendeskArticle>
@@ -97,6 +98,12 @@ export class ZendeskAdapter
     return removeTrailingSlash(
       this.config.relativeLinkBaseUrl || this.api.getInstanceUrl(),
     );
+  }
+
+  public async constructDocumentLink(
+    _id: string,
+  ): Promise<ExternalLink | null> {
+    return null;
   }
 
   private async getAttachmentInfo(

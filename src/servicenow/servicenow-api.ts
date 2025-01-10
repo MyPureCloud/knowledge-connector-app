@@ -16,6 +16,10 @@ import {
 } from './model/servicenow-context.js';
 import { setIfMissing } from '../utils/objects.js';
 import { getLogger } from '../utils/logger.js';
+import {
+  ServiceNowSingleArticle,
+  ServiceNowSingleArticleResponse,
+} from './model/servicenow-single-article-response.js';
 
 export class ServiceNowApi {
   private config: ServiceNowConfig = {};
@@ -189,6 +193,42 @@ export class ServiceNowApi {
 
   public getInstanceUrl(): string {
     return removeTrailingSlash(this.config.servicenowBaseUrl || '');
+  }
+
+  public async getArticle(id: string): Promise<ServiceNowSingleArticle | null> {
+    const article = await this.getArticleById(id);
+
+    if (!article || article.number === id) {
+      // Article not found or the given id is already an article's "number"
+      return article;
+    }
+
+    return this.getArticleById(article.number);
+  }
+
+  private async getArticleById(
+    id: string,
+  ): Promise<ServiceNowSingleArticle | null> {
+    const url = `${this.baseUrl}/api/sn_km_api/knowledge/articles/${id}`;
+    try {
+      const response = await fetch(url, {
+        headers: this.buildHeaders(),
+      });
+
+      const json: ServiceNowSingleArticleResponse =
+        await readResponse<ServiceNowSingleArticleResponse>(url, response);
+
+      if (!json.result?.number) {
+        // Article not found
+        return null;
+      }
+
+      return json.result;
+    } catch (error) {
+      getLogger().error(`Failed to fetch article ${id}`, error as Error);
+    }
+
+    return null;
   }
 
   private buildHeaders() {

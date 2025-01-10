@@ -15,6 +15,7 @@ import { InvalidExportJobError } from './errors/invalid-export-job-error.js';
 import { GenesysContext } from './model/genesys-context.js';
 import { AbstractSourceAdapter } from '../adapter/abstract-source-adapter.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
+import { ExternalLink } from '../model/external-link.js';
 
 /**
  * GenesysSourceAdapter extends {@Link SourceAdapter}, implements {@Link ImageSourceAdapter} to fetch data from Genesys Knowledge's API
@@ -90,8 +91,14 @@ export class GenesysSourceAdapter
     return fetchImage(url);
   }
 
-  getResourceBaseUrl(): string {
+  public getResourceBaseUrl(): string {
     return removeTrailingSlash(this.api.getInstanceUrl() || '');
+  }
+
+  public async constructDocumentLink(
+    _id: string,
+  ): Promise<ExternalLink | null> {
+    return null;
   }
 
   private async exportAllEntities(): Promise<ExportModel> {

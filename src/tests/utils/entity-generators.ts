@@ -4,6 +4,9 @@ import { Document } from '../../model/document.js';
 import { DocumentAlternative } from '../../model/document-alternative.js';
 import { CategoryReference, LabelReference } from '../../model';
 
+export const LINKED_ARTICLE_ID = 'KB0012439';
+export const ARTICLE_LINK = `https://genesys.com/kb_view.do?sysparm_article=${LINKED_ARTICLE_ID}`;
+
 export function generateNormalizedLabel(
   suffix: string,
   id: string | null = null,
@@ -274,8 +277,7 @@ export function generateDocumentWithLinkedDocuments(suffix: string): Document {
                       type: 'Text',
                       text: {
                         text: 'Link 1',
-                        hyperlink:
-                          'https://genesys.com/kb_view.do?sysparm_article=KB0012439',
+                        hyperlink: ARTICLE_LINK,
                       },
                     },
                   ],
@@ -292,8 +294,7 @@ export function generateDocumentWithLinkedDocuments(suffix: string): Document {
                           type: 'Text',
                           text: {
                             text: 'Link 2',
-                            hyperlink:
-                              'https://genesys.com/kb_view.do?sysparm_article=KB0012439',
+                            hyperlink: ARTICLE_LINK,
                           },
                         },
                       ],
@@ -305,8 +306,7 @@ export function generateDocumentWithLinkedDocuments(suffix: string): Document {
                           type: 'Image',
                           image: {
                             url: 'https://genesys.com/1.png',
-                            hyperlink:
-                              'https://genesys.com/kb_view.do?sysparm_article=KB0012439',
+                            hyperlink: ARTICLE_LINK,
                           },
                         },
                       ],
@@ -322,8 +322,7 @@ export function generateDocumentWithLinkedDocuments(suffix: string): Document {
                       type: 'Image',
                       image: {
                         url: 'https://genesys.com/2.jpg',
-                        hyperlink:
-                          'https://genesys.com/kb_view.do?sysparm_article=KB0012439',
+                        hyperlink: ARTICLE_LINK,
                       },
                     },
                   ],
@@ -348,8 +347,7 @@ export function generateDocumentWithLinkedDocuments(suffix: string): Document {
                                         type: 'Text',
                                         text: {
                                           text: 'Link 5',
-                                          hyperlink:
-                                            'https://genesys.com/kb_view.do?sysparm_article=KB0012439',
+                                          hyperlink: ARTICLE_LINK,
                                         },
                                       },
                                     ],
@@ -365,8 +363,7 @@ export function generateDocumentWithLinkedDocuments(suffix: string): Document {
                               type: 'Image',
                               image: {
                                 url: 'https://genesys.com/3.png',
-                                hyperlink:
-                                  'https://genesys.com/kb_view.do?sysparm_article=KB0012439',
+                                hyperlink: ARTICLE_LINK,
                               },
                             },
                           ],

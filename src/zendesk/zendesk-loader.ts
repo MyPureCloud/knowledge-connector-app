@@ -30,6 +30,10 @@ export class ZendeskLoader extends AbstractLoader<ZendeskContext> {
     await super.initialize(_config, adapters, context);
 
     this.adapter = adapters.sourceAdapter;
+
+    if (!this.context!.categoryLookupTable) {
+      this.context!.categoryLookupTable = {};
+    }
   }
 
   public async *categoryIterator(): AsyncGenerator<Category, void, void> {

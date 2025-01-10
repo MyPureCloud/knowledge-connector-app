@@ -9,12 +9,18 @@ import { Document } from '../../model/document.js';
 import { Image } from '../../model/image.js';
 import { SyncDataResponse } from '../../model/sync-data-response.js';
 import { BulkDeleteResponse } from '../../model/bulk-delete-response.js';
-import { generateDocumentWithLinkedDocuments } from '../../tests/utils/entity-generators.js';
+import {
+  ARTICLE_LINK,
+  generateDocumentWithLinkedDocuments,
+  LINKED_ARTICLE_ID,
+} from '../../tests/utils/entity-generators.js';
 import { Category, Label } from '../../model';
 import { PipeContext } from '../../pipe/pipe-context.js';
+import { ExternalLink } from '../../model/external-link.js';
 
 describe('DocumentLinkProcessor', function () {
   const EXTERNAL_ID = 'some-external-id';
+  const OTHER_EXTERNAL_ID = 'other-external-id';
   const EXTERNAL_ID_PREFIX = 'external-id-prefix-';
 
   let linkProcessor: DocumentLinkProcessor;
@@ -23,6 +29,7 @@ describe('DocumentLinkProcessor', function () {
     SourceAdapter<unknown, unknown, unknown>,
     DestinationAdapter
   >;
+  let context: PipeContext;
   let mockGetDocumentLinkMatcherRegexp: jest.Mock<() => RegExp | undefined>;
 
   beforeEach(async () => {
@@ -33,6 +40,8 @@ describe('DocumentLinkProcessor', function () {
       articleIterator: jest.fn<() => AsyncGenerator<Document, void, void>>(),
       getDocumentLinkMatcherRegexp: jest.fn<() => RegExp | undefined>(),
       getResourceBaseUrl: jest.fn<() => string>(),
+      constructDocumentLink:
+        jest.fn<(id: string) => Promise<ExternalLink | null>>(),
     };
 
     mockGetDocumentLinkMatcherRegexp =
@@ -71,47 +80,78 @@ describe('DocumentLinkProcessor', function () {
     };
 
     linkProcessor = new DocumentLinkProcessor();
-
-    await linkProcessor.initialize({ updateDocumentLinks: 'true' }, adapters, {
-      articleLookupTable: {
-        KB0012439: { externalDocumentId: EXTERNAL_ID },
-      },
-    } as unknown as PipeContext);
   });
 
-  it('should replace hyperlink field with externalDocumentId for linked doc text block', async function () {
-    const result = await linkProcessor.runOnDocument(
-      generateDocumentWithLinkedDocuments('1'),
-    );
+  describe('when linked article known', () => {
+    beforeEach(async () => {
+      context = {
+        articleLookupTable: {
+          [LINKED_ARTICLE_ID]: { externalDocumentId: EXTERNAL_ID },
+        },
+        imageLookupTable: {},
+      } as unknown as PipeContext;
 
-    const blocks = result.published?.variations[0].body?.blocks ?? [];
-    expect(blocks.length).toBe(4);
-    expect(blocks[0].paragraph?.blocks[0].text?.hyperlink).toBeUndefined();
-    expect(blocks[0].paragraph?.blocks[0].text?.externalDocumentId).toBe(
-      EXTERNAL_ID,
-    );
-    expect(blocks[1].list?.blocks[0].blocks[0].text?.hyperlink).toBeUndefined();
-    expect(blocks[1].list?.blocks[0].blocks[0].text?.externalDocumentId).toBe(
-      EXTERNAL_ID,
-    );
-    expect(blocks[2].paragraph?.blocks[0].image?.hyperlink).toBeUndefined();
-    expect(blocks[2].paragraph?.blocks[0].image?.externalDocumentId).toBe(
-      EXTERNAL_ID,
-    );
-    expect(
-      blocks[3].table?.rows[0].cells[0].blocks[0].list?.blocks[0].blocks[0].text
-        ?.hyperlink,
-    ).toBeUndefined();
-    expect(
-      blocks[3].table?.rows[0].cells[0].blocks[0].list?.blocks[0].blocks[0].text
-        ?.externalDocumentId,
-    ).toBe(EXTERNAL_ID);
-    expect(
-      blocks[3].table?.rows[0].cells[1].blocks[0].image?.hyperlink,
-    ).toBeUndefined();
-    expect(
-      blocks[3].table?.rows[0].cells[1].blocks[0].image?.externalDocumentId,
-    ).toBe(EXTERNAL_ID);
+      await linkProcessor.initialize(
+        { updateDocumentLinks: 'true' },
+        adapters,
+        context,
+      );
+    });
+
+    it('should replace hyperlink field with externalDocumentId for linked doc text block', async function () {
+      const result = await linkProcessor.runOnDocument(
+        generateDocumentWithLinkedDocuments('1'),
+      );
+
+      verifyDocumentLinks(result, undefined, EXTERNAL_ID);
+    });
+  });
+
+  describe('when linked article unknown', () => {
+    beforeEach(async () => {
+      context = {
+        articleLookupTable: {
+          [OTHER_EXTERNAL_ID]: { externalDocumentId: OTHER_EXTERNAL_ID },
+        },
+        imageLookupTable: {},
+      } as unknown as PipeContext;
+
+      await linkProcessor.initialize(
+        { updateDocumentLinks: 'true' },
+        adapters,
+        context,
+      );
+    });
+
+    it('should fetch linked article data from source', async function () {
+      sourceAdapter.constructDocumentLink = jest
+        .fn<(id: string) => Promise<ExternalLink | null>>()
+        .mockResolvedValue({ externalDocumentId: OTHER_EXTERNAL_ID });
+
+      const result = await linkProcessor.runOnDocument(
+        generateDocumentWithLinkedDocuments('1'),
+        false,
+      );
+
+      verifyDocumentLinks(result, undefined, OTHER_EXTERNAL_ID);
+    });
+
+    describe('when source fetch fails', () => {
+      beforeEach(async () => {
+        sourceAdapter.constructDocumentLink = jest
+          .fn<(id: string) => Promise<ExternalLink | null>>()
+          .mockResolvedValue(null);
+      });
+
+      it('should keep original link', async function () {
+        const result = await linkProcessor.runOnDocument(
+          generateDocumentWithLinkedDocuments('1'),
+          false,
+        );
+
+        verifyDocumentLinks(result, ARTICLE_LINK, undefined);
+      });
+    });
   });
 
   describe('when externalIdPrefix defined', () => {
@@ -121,7 +161,7 @@ describe('DocumentLinkProcessor', function () {
         adapters,
         {
           articleLookupTable: {
-            KB0012439: { externalDocumentId: EXTERNAL_ID },
+            [LINKED_ARTICLE_ID]: { externalDocumentId: EXTERNAL_ID },
           },
         } as unknown as PipeContext,
       );
@@ -132,17 +172,48 @@ describe('DocumentLinkProcessor', function () {
         generateDocumentWithLinkedDocuments('1'),
       );
 
-      const blocks = result.published?.variations[0].body?.blocks ?? [];
-      expect(blocks.length).toBe(4);
-      expect(blocks[0].paragraph?.blocks[0].text?.externalDocumentId).toBe(
-        EXTERNAL_ID_PREFIX + EXTERNAL_ID,
-      );
-      expect(blocks[1].list?.blocks[0].blocks[0].text?.externalDocumentId).toBe(
-        EXTERNAL_ID_PREFIX + EXTERNAL_ID,
-      );
-      expect(blocks[2].paragraph?.blocks[0].image?.externalDocumentId).toBe(
-        EXTERNAL_ID_PREFIX + EXTERNAL_ID,
-      );
+      verifyDocumentLinks(result, undefined, EXTERNAL_ID_PREFIX + EXTERNAL_ID);
     });
   });
+
+  function verifyDocumentLinks(
+    result: Document,
+    expectedHyperlink: string | undefined,
+    expectedDocumentId: string | undefined,
+  ): void {
+    const blocks = result.published?.variations[0].body?.blocks ?? [];
+    expect(blocks.length).toBe(4);
+    expect(blocks[0].paragraph?.blocks[0].text?.hyperlink).toBe(
+      expectedHyperlink,
+    );
+    expect(blocks[0].paragraph?.blocks[0].text?.externalDocumentId).toBe(
+      expectedDocumentId,
+    );
+    expect(blocks[1].list?.blocks[0].blocks[0].text?.hyperlink).toBe(
+      expectedHyperlink,
+    );
+    expect(blocks[1].list?.blocks[0].blocks[0].text?.externalDocumentId).toBe(
+      expectedDocumentId,
+    );
+    expect(blocks[2].paragraph?.blocks[0].image?.hyperlink).toBe(
+      expectedHyperlink,
+    );
+    expect(blocks[2].paragraph?.blocks[0].image?.externalDocumentId).toBe(
+      expectedDocumentId,
+    );
+    expect(
+      blocks[3].table?.rows[0].cells[0].blocks[0].list?.blocks[0].blocks[0].text
+        ?.hyperlink,
+    ).toBe(expectedHyperlink);
+    expect(
+      blocks[3].table?.rows[0].cells[0].blocks[0].list?.blocks[0].blocks[0].text
+        ?.externalDocumentId,
+    ).toBe(expectedDocumentId);
+    expect(blocks[3].table?.rows[0].cells[1].blocks[0].image?.hyperlink).toBe(
+      expectedHyperlink,
+    );
+    expect(
+      blocks[3].table?.rows[0].cells[1].blocks[0].image?.externalDocumentId,
+    ).toBe(expectedDocumentId);
+  }
 });

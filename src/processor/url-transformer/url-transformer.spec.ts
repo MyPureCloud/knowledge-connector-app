@@ -7,6 +7,7 @@ import { DestinationAdapter } from '../../adapter/destination-adapter.js';
 import _ from 'lodash';
 import { PipeContext } from '../../pipe/pipe-context.js';
 import { GenesysDestinationAdapter } from '../../genesys/genesys-destination-adapter.js';
+import { ExternalLink } from '../../model/external-link.js';
 
 jest.mock('../../genesys/genesys-destination-adapter.js');
 
@@ -311,6 +312,9 @@ describe('UrlTransformer', () => {
       getDocumentLinkMatcherRegexp: jest.fn<() => RegExp | undefined>(),
 
       getResourceBaseUrl: () => mockGetResourceBaseUrl(),
+
+      constructDocumentLink:
+        jest.fn<(id: string) => Promise<ExternalLink | null>>(),
     };
   }
 });

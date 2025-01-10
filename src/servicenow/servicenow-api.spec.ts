@@ -7,12 +7,16 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fetch, Response } from '../utils/web-client.js';
 import { arraysFromAsync } from '../utils/arrays.js';
 import { ServiceNowContext } from './model/servicenow-context.js';
+import { ServiceNowSingleArticleResponse } from './model/servicenow-single-article-response.js';
 
 jest.mock('../utils/web-client.js');
 
 describe('ServiceNowApi', () => {
   const CATEGORY_ID_1 = '324989582398764';
   const CATEGORY_ID_2 = '56873484398434';
+  const ARTICLE_SYS_ID = '11122233344434341246536356';
+  const OTHER_ARTICLE_SYS_ID = '91122233344434341246536356';
+  const ARTICLE_NUMBER = 'KB111';
 
   const baseUrl: string =
     'https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category';
@@ -24,7 +28,8 @@ describe('ServiceNowApi', () => {
   };
   const testArticle: ServiceNowArticle = {
     link: 'test-link',
-    id: '111',
+    id: 'kb_knowledge:' + ARTICLE_SYS_ID,
+    number: ARTICLE_NUMBER,
     title: 'Test title',
     snippet: 'snippet',
     fields: {
@@ -286,6 +291,56 @@ describe('ServiceNowApi', () => {
             },
           ),
         );
+      });
+    });
+  });
+
+  describe('getArticle', () => {
+    describe('with status ok', () => {
+      beforeEach(async () => {
+        mockApiResponse(200, {
+          result: {
+            sys_id: ARTICLE_SYS_ID,
+            number: ARTICLE_NUMBER,
+          },
+        } as ServiceNowSingleArticleResponse);
+        mockApiResponse(200, {
+          result: {
+            sys_id: OTHER_ARTICLE_SYS_ID,
+            number: ARTICLE_NUMBER,
+          },
+        } as ServiceNowSingleArticleResponse);
+
+        await api.initialize(config, context);
+      });
+
+      it('should fetch article', async () => {
+        const expectedUrl1 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_SYS_ID}`;
+        const expectedUrl2 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_NUMBER}`;
+
+        const actual = await api.getArticle(ARTICLE_SYS_ID);
+
+        expect(fetch).toHaveBeenCalledTimes(2);
+        checkFetchUrl(expectedUrl1);
+        checkFetchUrl(expectedUrl2);
+        expect(actual).toEqual({
+          sys_id: OTHER_ARTICLE_SYS_ID,
+          number: ARTICLE_NUMBER,
+        });
+      });
+    });
+
+    describe('with status error', () => {
+      const ERROR_BODY = '<some><xml></xml></some>';
+
+      beforeEach(() => {
+        mockApiResponse(500, ERROR_BODY);
+      });
+
+      it('should return null', async () => {
+        const actual = await api.getArticle(ARTICLE_NUMBER);
+
+        expect(actual).toEqual(null);
       });
     });
   });

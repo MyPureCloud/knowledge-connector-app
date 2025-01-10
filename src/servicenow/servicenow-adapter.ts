@@ -11,6 +11,7 @@ import { ServiceNowCategory } from './model/servicenow-category.js';
 import { ServiceNowContext } from './model/servicenow-context.js';
 import { AbstractSourceAdapter } from '../adapter/abstract-source-adapter.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
+import { ExternalLink } from '../model/external-link.js';
 
 export class ServiceNowAdapter
   extends AbstractSourceAdapter<unknown, unknown, ServiceNowArticle>
@@ -106,6 +107,24 @@ export class ServiceNowAdapter
     return removeTrailingSlash(
       this.config.relativeLinkBaseUrl || this.api.getInstanceUrl(),
     );
+  }
+
+  public async constructDocumentLink(id: string): Promise<ExternalLink | null> {
+    try {
+      const article = await this.api.getArticle(id);
+
+      if (!article) {
+        return null;
+      }
+
+      return {
+        externalDocumentId: `kb_knowledge:${article.sys_id}`,
+      };
+    } catch (error) {
+      getLogger().error(`Failed to fetch single article ${id}`, error as Error);
+    }
+
+    return null;
   }
 
   private async getAttachmentInfo(

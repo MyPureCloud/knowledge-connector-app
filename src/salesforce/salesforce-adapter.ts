@@ -7,6 +7,7 @@ import { SalesforceArticleDetails } from './model/salesforce-article-details.js'
 import { SalesforceContext } from './model/salesforce-context.js';
 import { AbstractSourceAdapter } from '../adapter/abstract-source-adapter.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
+import { ExternalLink } from '../model/external-link.js';
 
 export class SalesforceAdapter
   extends AbstractSourceAdapter<
@@ -74,5 +75,11 @@ export class SalesforceAdapter
     return removeTrailingSlash(
       this.config.relativeLinkBaseUrl || this.api.getInstanceUrl(),
     );
+  }
+
+  public async constructDocumentLink(
+    _id: string,
+  ): Promise<ExternalLink | null> {
+    return null;
   }
 }

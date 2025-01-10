@@ -293,9 +293,14 @@ export class Pipe {
         `Pipe load next item with externalId: ${item.externalId}`,
       ); // TODO
       try {
-        item = await this.executeRunnable<T>(item, this.processorList, method);
+        item = await this.executeRunnable<T>(
+          item,
+          this.processorList,
+          method,
+          true,
+        );
 
-        await this.executeRunnable<T>(item, this.aggregatorList, method);
+        await this.executeRunnable<T>(item, this.aggregatorList, method, true);
 
         processedItems.push(item);
       } catch (error) {
@@ -316,9 +321,14 @@ export class Pipe {
       let item = unprocessedItems.shift();
 
       try {
-        item = await this.executeRunnable<T>(item!, this.processorList, method);
+        item = await this.executeRunnable<T>(
+          item!,
+          this.processorList,
+          method,
+          false,
+        );
 
-        await this.executeRunnable<T>(item, this.aggregatorList, method);
+        await this.executeRunnable<T>(item, this.aggregatorList, method, false);
 
         processedItems.push(item);
       } catch (error) {
@@ -347,13 +357,14 @@ export class Pipe {
     item: T,
     runnableList: Runnable<unknown, unknown, unknown>[],
     method: Methods,
+    firstTry: boolean,
   ): Promise<T> {
     for (const runnable of runnableList) {
-      const fn: (item: T) => Promise<T> = runnable[method].bind(runnable) as (
-        item: T,
-      ) => Promise<T>;
+      const fn: (item: T, firstTry: boolean) => Promise<T> = runnable[
+        method
+      ].bind(runnable) as (item: T, firstTry: boolean) => Promise<T>;
 
-      item = await fn(item);
+      item = await fn(item, firstTry);
     }
     return item;
   }

@@ -12,12 +12,14 @@ import { Category, Label } from '../../model';
 import { Processor } from '../processor.js';
 import { PipeContext } from '../../pipe/pipe-context.js';
 import { DocumentLinkError } from './document-link-error.js';
+import { ExternalLink } from '../../model/external-link.js';
 
 export class DocumentLinkProcessor implements Processor {
   private config: DocumentLinkProcessorConfig = {};
   private context?: PipeContext;
   private externalIdPrefix: string = '';
   private regexp: RegExp | undefined;
+  private sourceAdapter: SourceAdapter<unknown, unknown, unknown> | null = null;
 
   public async initialize(
     config: DocumentLinkProcessorConfig,
@@ -28,6 +30,7 @@ export class DocumentLinkProcessor implements Processor {
     context: PipeContext,
   ): Promise<void> {
     this.config = config;
+    this.sourceAdapter = adapters.sourceAdapter;
     this.context = context;
     this.externalIdPrefix = config.externalIdPrefix || '';
     this.regexp = adapters.sourceAdapter.getDocumentLinkMatcherRegexp();
@@ -41,7 +44,10 @@ export class DocumentLinkProcessor implements Processor {
     return item;
   }
 
-  public async runOnDocument(item: Document): Promise<Document> {
+  public async runOnDocument(
+    item: Document,
+    firstTry: boolean = true,
+  ): Promise<Document> {
     if (this.config.updateDocumentLinks !== 'true') {
       return item;
     }
@@ -54,13 +60,13 @@ export class DocumentLinkProcessor implements Processor {
       return item;
     }
 
-    [
+    for (const variation of [
       ...(item.published?.variations || []),
       ...(item.draft?.variations || []),
-    ].forEach((variation) => {
-      extractLinkBlocksFromVariation(variation).forEach((block) => {
+    ]) {
+      for (const block of extractLinkBlocksFromVariation(variation)) {
         if (!block.hyperlink) {
-          return;
+          continue;
         }
 
         const documentId = extractDocumentIdFromUrl(
@@ -69,29 +75,69 @@ export class DocumentLinkProcessor implements Processor {
         );
 
         if (!documentId) {
-          return;
+          continue;
         }
 
-        const externalLink = articleLookupTable[documentId];
+        let externalLink: ExternalLink | null | undefined = this.lookup(
+          documentId,
+          articleLookupTable,
+          firstTry,
+          block.hyperlink,
+          item.externalId,
+        );
 
         if (!externalLink) {
-          throw new DocumentLinkError('Cannot resolve link', {
-            link: block.hyperlink,
-            articleId: item.externalId,
-          });
+          externalLink = await this.fetchDocumentInfoFromSource(
+            documentId,
+            articleLookupTable,
+          );
         }
 
-        delete block.hyperlink;
-        block.externalDocumentId =
-          this.externalIdPrefix + externalLink.externalDocumentId;
-        block.externalVariationName = externalLink.externalVariationName;
-      });
-    });
+        if (externalLink) {
+          delete block.hyperlink;
+          block.externalDocumentId =
+            this.externalIdPrefix + externalLink.externalDocumentId;
+          block.externalVariationName = externalLink.externalVariationName;
+        }
+      }
+    }
 
     return item;
   }
 
   public getPriority(): number {
     return 60;
+  }
+
+  private lookup(
+    linkedId: string,
+    lookupTable: Record<string, ExternalLink>,
+    firstTry: boolean,
+    hyperlink: string,
+    articleId: string | null,
+  ): ExternalLink {
+    const externalLink = lookupTable[linkedId];
+
+    if (!externalLink && firstTry) {
+      throw new DocumentLinkError('Cannot resolve link', {
+        link: hyperlink,
+        articleId,
+      });
+    }
+
+    return externalLink;
+  }
+
+  private async fetchDocumentInfoFromSource(
+    documentId: string,
+    lookupTable: Record<string, ExternalLink>,
+  ): Promise<ExternalLink | null> {
+    const externalLink =
+      await this.sourceAdapter!.constructDocumentLink(documentId);
+    if (!externalLink || !lookupTable[externalLink.externalDocumentId]) {
+      return null;
+    }
+
+    return externalLink;
   }
 }

@@ -1,4 +1,4 @@
 export interface ExternalLink {
-  externalDocumentId?: string;
+  externalDocumentId: string;
   externalVariationName?: string;
 }

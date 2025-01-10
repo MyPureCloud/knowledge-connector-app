@@ -71,7 +71,7 @@ export class GenesysLoader extends AbstractLoader<GenesysContext> {
       ...(article.draft?.variations || []),
     ].forEach((variation) => {
       this.context!.articleLookupTable[`${article.id}#${variation.id}`] = {
-        externalDocumentId: article.id ?? undefined,
+        externalDocumentId: article.id!,
         externalVariationName: variation.name,
       };
     });
