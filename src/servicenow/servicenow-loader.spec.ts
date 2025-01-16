@@ -4,7 +4,7 @@ import { ServiceNowAdapter } from './servicenow-adapter.js';
 import { ServiceNowLoader } from './servicenow-loader.js';
 import { Adapter } from '../adapter/adapter.js';
 import { ServiceNowArticle } from './model/servicenow-article.js';
-import { Image } from '../model';
+import { Document, Image } from '../model';
 import {
   generateNormalizedCategory,
   generateRawDocument,
@@ -43,15 +43,18 @@ describe('ServiceNowLoader', () => {
     PARENT_CATEGORY_NAME,
     PARENT_CATEGORY_EXTERNAL_ID,
   );
-  const DOCUMENT = generateRawDocument(
-    '<p>article body</p>',
-    {
-      id: null,
-      name: CATEGORY_NAME,
-    },
-    null,
-    'kb_knowledge:0d7094289f011200550bf7b6077fcffc',
-  );
+  const DOCUMENT: Document = {
+    ...generateRawDocument(
+      '<p>article body</p>',
+      {
+        id: null,
+        name: CATEGORY_NAME,
+      },
+      null,
+      'article-number',
+    ),
+    externalIdAlternatives: ['kb_knowledge:0d7094289f011200550bf7b6077fcffc'],
+  };
 
   let config: ServiceNowConfig;
   let adapter: ServiceNowAdapter;
@@ -96,6 +99,30 @@ describe('ServiceNowLoader', () => {
       const { value } = await loader.documentIterator().next();
 
       expect(value).toEqual(DOCUMENT);
+      expect(
+        context.articleLookupTable[
+          'kb_knowledge:0d7094289f011200550bf7b6077fcffc'
+        ],
+      ).toEqual({
+        externalDocumentId: 'article-number',
+        externalDocumentIdAlternatives: [
+          'kb_knowledge:0d7094289f011200550bf7b6077fcffc',
+        ],
+      });
+      expect(context.articleLookupTable['article-number']).toEqual({
+        externalDocumentId: 'article-number',
+        externalDocumentIdAlternatives: [
+          'kb_knowledge:0d7094289f011200550bf7b6077fcffc',
+        ],
+      });
+      expect(
+        context.articleLookupTable['0d7094289f011200550bf7b6077fcffc'],
+      ).toEqual({
+        externalDocumentId: 'article-number',
+        externalDocumentIdAlternatives: [
+          'kb_knowledge:0d7094289f011200550bf7b6077fcffc',
+        ],
+      });
     });
 
     describe('when categories excluded', () => {

@@ -97,7 +97,15 @@ export class DocumentLinkProcessor implements Processor {
           delete block.hyperlink;
           block.externalDocumentId =
             this.externalIdPrefix + externalLink.externalDocumentId;
-          block.externalVariationName = externalLink.externalVariationName;
+          if (externalLink.externalDocumentIdAlternatives?.length) {
+            block.externalDocumentIdAlternatives =
+              externalLink.externalDocumentIdAlternatives.map(
+                (id) => `${this.externalIdPrefix}${id}`,
+              );
+          }
+          if (externalLink.externalVariationName) {
+            block.externalVariationName = externalLink.externalVariationName;
+          }
         }
       }
     }

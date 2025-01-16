@@ -15,7 +15,6 @@ describe('ServiceNowApi', () => {
   const CATEGORY_ID_1 = '324989582398764';
   const CATEGORY_ID_2 = '56873484398434';
   const ARTICLE_SYS_ID = '11122233344434341246536356';
-  const OTHER_ARTICLE_SYS_ID = '91122233344434341246536356';
   const ARTICLE_NUMBER = 'KB111';
 
   const baseUrl: string =
@@ -304,27 +303,19 @@ describe('ServiceNowApi', () => {
             number: ARTICLE_NUMBER,
           },
         } as ServiceNowSingleArticleResponse);
-        mockApiResponse(200, {
-          result: {
-            sys_id: OTHER_ARTICLE_SYS_ID,
-            number: ARTICLE_NUMBER,
-          },
-        } as ServiceNowSingleArticleResponse);
 
         await api.initialize(config, context);
       });
 
       it('should fetch article', async () => {
         const expectedUrl1 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_SYS_ID}`;
-        const expectedUrl2 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_NUMBER}`;
 
         const actual = await api.getArticle(ARTICLE_SYS_ID);
 
-        expect(fetch).toHaveBeenCalledTimes(2);
+        expect(fetch).toHaveBeenCalledTimes(1);
         checkFetchUrl(expectedUrl1);
-        checkFetchUrl(expectedUrl2);
         expect(actual).toEqual({
-          sys_id: OTHER_ARTICLE_SYS_ID,
+          sys_id: ARTICLE_SYS_ID,
           number: ARTICLE_NUMBER,
         });
       });

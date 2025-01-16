@@ -12,6 +12,7 @@ import { ServiceNowContext } from './model/servicenow-context.js';
 import { AbstractSourceAdapter } from '../adapter/abstract-source-adapter.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 import { ExternalLink } from '../model/external-link.js';
+import { ServiceNowSingleArticle } from './model/servicenow-single-article-response.js';
 
 export class ServiceNowAdapter
   extends AbstractSourceAdapter<unknown, unknown, ServiceNowArticle>
@@ -111,20 +112,34 @@ export class ServiceNowAdapter
 
   public async constructDocumentLink(id: string): Promise<ExternalLink | null> {
     try {
-      const article = await this.api.getArticle(id);
+      const article = await this.getVisibleArticle(id);
 
       if (!article) {
         return null;
       }
 
       return {
-        externalDocumentId: `kb_knowledge:${article.sys_id}`,
+        externalDocumentId: `${article.number}`,
+        externalDocumentIdAlternatives: [`kb_knowledge:${article.sys_id}`],
       };
     } catch (error) {
       getLogger().error(`Failed to fetch single article ${id}`, error as Error);
     }
 
     return null;
+  }
+
+  private async getVisibleArticle(
+    id: string,
+  ): Promise<ServiceNowSingleArticle | null> {
+    const article = await this.api.getArticle(id);
+
+    if (!article || article.number === id) {
+      // Article not found or the given id is already an article's "number"
+      return article;
+    }
+
+    return this.api.getArticle(article.number);
   }
 
   private async getAttachmentInfo(

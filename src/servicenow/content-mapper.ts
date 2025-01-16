@@ -41,6 +41,7 @@ export function articleMapper(
 ): Document[] {
   const {
     id,
+    number,
     title,
     fields: {
       text: { value: body },
@@ -67,7 +68,8 @@ export function articleMapper(
   return [
     {
       id: null,
-      externalId: String(id),
+      externalId: `${number}`,
+      externalIdAlternatives: [`${id}`],
       externalUrl: configuration.buildExternalUrls
         ? buildExternalUrl(configuration.baseUrl, article.number)
         : null,

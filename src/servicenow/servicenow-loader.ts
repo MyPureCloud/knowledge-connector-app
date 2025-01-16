@@ -88,15 +88,20 @@ export class ServiceNowLoader extends AbstractLoader<ServiceNowContext> {
   }
 
   private addArticleToLookupTable(article: ServiceNowArticle): void {
-    this.context!.articleLookupTable[article.number] = {
-      externalDocumentId: article.id,
+    const articleLookupTable = this.context!.articleLookupTable;
+
+    articleLookupTable[article.number] = {
+      externalDocumentId: `${article.number}`,
+      externalDocumentIdAlternatives: [`${article.id}`],
     };
-    this.context!.articleLookupTable[article.id] = {
-      externalDocumentId: article.id,
+    articleLookupTable[article.id] = {
+      externalDocumentId: `${article.number}`,
+      externalDocumentIdAlternatives: [`${article.id}`],
     };
     if (article.id?.includes(':')) {
-      this.context!.articleLookupTable[article.id.split(':')[1]] = {
-        externalDocumentId: article.id,
+      articleLookupTable[article.id.split(':')[1]] = {
+        externalDocumentId: `${article.number}`,
+        externalDocumentIdAlternatives: [`${article.id}`],
       };
     }
   }

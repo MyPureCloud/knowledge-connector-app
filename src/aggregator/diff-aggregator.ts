@@ -15,6 +15,8 @@ import { DiffAggregatorConfig } from './diff-aggregator-config.js';
 import { Identifiable } from '../model/identifiable.js';
 import { PipeContext } from '../pipe/pipe-context.js';
 
+const HELPER_PROPERTIES = ['externalIdAlternatives'];
+
 /**
  * The DiffAggregator transforms the ExternalContent into ImportableContents,
  * and filters out entities that have not been changed since last run.
@@ -97,7 +99,7 @@ export class DiffAggregator implements Aggregator {
     const index = unprocessedStoredItems.findIndex(
       (currentItem) =>
         currentItem &&
-        currentItem.externalId === normalizedCollectedItem.externalId,
+        this.isSameByExternalId(normalizedCollectedItem, currentItem),
     );
     if (index > -1) {
       const [storedItem] = unprocessedStoredItems.splice(index, 1);
@@ -113,7 +115,7 @@ export class DiffAggregator implements Aggregator {
         result.updated.push(normalizedCollectedItem);
       }
       result.deleted = result.deleted.filter(
-        (i: T) => i.externalId !== normalizedCollectedItem.externalId,
+        (i: T) => !this.isSameByExternalId(normalizedCollectedItem, i),
       );
     } else {
       result.created.push(normalizedCollectedItem);
@@ -125,11 +127,18 @@ export class DiffAggregator implements Aggregator {
     allCategories: Category[],
     allLabels: Label[],
   ): Document {
-    const { externalId, externalUrl, published, draft } = document;
+    const {
+      externalId,
+      externalIdAlternatives,
+      externalUrl,
+      published,
+      draft,
+    } = document;
 
     return {
       id: null,
       externalId: externalId || null,
+      externalIdAlternatives: externalIdAlternatives || null,
       externalUrl: externalUrl || null,
       published: published
         ? this.normalizeDocumentVersion(published, allCategories, allLabels)
@@ -193,7 +202,8 @@ export class DiffAggregator implements Aggregator {
 
     const category = allCategories
       .filter(
-        (c) => c.externalId === this.getPrefixedExternalId(categoryReference),
+        (c) =>
+          c.externalId === this.getItemPrefixedExternalId(categoryReference),
       )
       .shift();
 
@@ -227,7 +237,7 @@ export class DiffAggregator implements Aggregator {
   ): LabelReference {
     const label = allLabels
       .filter(
-        (c) => c.externalId === this.getPrefixedExternalId(labelReference),
+        (c) => c.externalId === this.getItemPrefixedExternalId(labelReference),
       )
       .shift();
 
@@ -244,14 +254,21 @@ export class DiffAggregator implements Aggregator {
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private isEqualCustomizer(c: any, s: any): boolean | undefined {
+  private isEqualCustomizer(c: unknown, s: unknown): boolean | undefined {
     if (_.isString(c) && c === GeneratedValue.COLOR) {
       return true; // always accept stored value if collected value is generated
     }
 
     if (_.isArray(c) && _.isArray(s) && c.length && _.isString(c[0])) {
       return _.isEqual(c.sort(), s.sort());
+    }
+
+    if (this.hasHelperProperty(c)) {
+      return _.isEqualWith(
+        this.objectWithoutHelperProperties(c as object),
+        this.objectWithoutHelperProperties(s as object),
+        (c, s) => this.isEqualCustomizer(c, s),
+      );
     }
   }
 
@@ -266,7 +283,43 @@ export class DiffAggregator implements Aggregator {
     });
   }
 
-  private getPrefixedExternalId(item: Identifiable): string {
-    return this.externalIdPrefix + item.id;
+  private isSameByExternalId(
+    collectedItem: ExternalIdentifiable,
+    storedItem: ExternalIdentifiable,
+  ): boolean {
+    return [
+      this.getPrefixedId(collectedItem.externalId),
+      ...(collectedItem.externalIdAlternatives?.length
+        ? this.getPrefixedAlternativeIds(collectedItem.externalIdAlternatives)
+        : []),
+    ]
+      .filter((id) => !!id)
+      .includes(storedItem.externalId);
+  }
+
+  private getItemPrefixedExternalId(item: Identifiable): string | null {
+    return this.getPrefixedId(item.id);
+  }
+
+  private getPrefixedId(id: string | null | undefined): string | null {
+    if (!id) {
+      return null;
+    }
+    return this.externalIdPrefix + id;
+  }
+
+  private getPrefixedAlternativeIds(ids: string[]): string[] {
+    return ids.filter((id) => !!id).map((id) => this.getPrefixedId(id)!);
+  }
+
+  private hasHelperProperty(a: unknown): boolean {
+    return (
+      _.isPlainObject(a) &&
+      _.intersection(Object.keys(a as object), HELPER_PROPERTIES).length > 0
+    );
+  }
+
+  private objectWithoutHelperProperties(obj: object): object {
+    return _.omit(obj, HELPER_PROPERTIES);
   }
 }

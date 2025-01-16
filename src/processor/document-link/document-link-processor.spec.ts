@@ -17,10 +17,12 @@ import {
 import { Category, Label } from '../../model';
 import { PipeContext } from '../../pipe/pipe-context.js';
 import { ExternalLink } from '../../model/external-link.js';
+import { LinkBlock } from '../../model/link-block.js';
 
 describe('DocumentLinkProcessor', function () {
   const EXTERNAL_ID = 'some-external-id';
   const OTHER_EXTERNAL_ID = 'other-external-id';
+  const EXTERNAL_ID_ALTERNATIVE = 'external-id-alternative';
   const EXTERNAL_ID_PREFIX = 'external-id-prefix-';
 
   let linkProcessor: DocumentLinkProcessor;
@@ -86,7 +88,10 @@ describe('DocumentLinkProcessor', function () {
     beforeEach(async () => {
       context = {
         articleLookupTable: {
-          [LINKED_ARTICLE_ID]: { externalDocumentId: EXTERNAL_ID },
+          [LINKED_ARTICLE_ID]: {
+            externalDocumentId: EXTERNAL_ID,
+            externalDocumentIdAlternatives: [EXTERNAL_ID_ALTERNATIVE],
+          },
         },
         imageLookupTable: {},
       } as unknown as PipeContext;
@@ -103,7 +108,9 @@ describe('DocumentLinkProcessor', function () {
         generateDocumentWithLinkedDocuments('1'),
       );
 
-      verifyDocumentLinks(result, undefined, EXTERNAL_ID);
+      verifyDocumentLinks(result, undefined, EXTERNAL_ID, [
+        EXTERNAL_ID_ALTERNATIVE,
+      ]);
     });
   });
 
@@ -111,7 +118,10 @@ describe('DocumentLinkProcessor', function () {
     beforeEach(async () => {
       context = {
         articleLookupTable: {
-          [OTHER_EXTERNAL_ID]: { externalDocumentId: OTHER_EXTERNAL_ID },
+          [OTHER_EXTERNAL_ID]: {
+            externalDocumentId: OTHER_EXTERNAL_ID,
+            externalDocumentIdAlternatives: [EXTERNAL_ID_ALTERNATIVE],
+          },
         },
         imageLookupTable: {},
       } as unknown as PipeContext;
@@ -126,14 +136,19 @@ describe('DocumentLinkProcessor', function () {
     it('should fetch linked article data from source', async function () {
       sourceAdapter.constructDocumentLink = jest
         .fn<(id: string) => Promise<ExternalLink | null>>()
-        .mockResolvedValue({ externalDocumentId: OTHER_EXTERNAL_ID });
+        .mockResolvedValue({
+          externalDocumentId: OTHER_EXTERNAL_ID,
+          externalDocumentIdAlternatives: [EXTERNAL_ID_ALTERNATIVE],
+        });
 
       const result = await linkProcessor.runOnDocument(
         generateDocumentWithLinkedDocuments('1'),
         false,
       );
 
-      verifyDocumentLinks(result, undefined, OTHER_EXTERNAL_ID);
+      verifyDocumentLinks(result, undefined, OTHER_EXTERNAL_ID, [
+        EXTERNAL_ID_ALTERNATIVE,
+      ]);
     });
 
     describe('when source fetch fails', () => {
@@ -149,7 +164,7 @@ describe('DocumentLinkProcessor', function () {
           false,
         );
 
-        verifyDocumentLinks(result, ARTICLE_LINK, undefined);
+        verifyDocumentLinks(result, ARTICLE_LINK, undefined, undefined);
       });
     });
   });
@@ -172,7 +187,12 @@ describe('DocumentLinkProcessor', function () {
         generateDocumentWithLinkedDocuments('1'),
       );
 
-      verifyDocumentLinks(result, undefined, EXTERNAL_ID_PREFIX + EXTERNAL_ID);
+      verifyDocumentLinks(
+        result,
+        undefined,
+        EXTERNAL_ID_PREFIX + EXTERNAL_ID,
+        undefined,
+      );
     });
   });
 
@@ -180,6 +200,7 @@ describe('DocumentLinkProcessor', function () {
     result: Document,
     expectedHyperlink: string | undefined,
     expectedDocumentId: string | undefined,
+    expectedDocumentIdAlternatives: string[] | undefined,
   ): void {
     const blocks = result.published?.variations[0].body?.blocks ?? [];
     expect(blocks.length).toBe(4);
@@ -189,18 +210,30 @@ describe('DocumentLinkProcessor', function () {
     expect(blocks[0].paragraph?.blocks[0].text?.externalDocumentId).toBe(
       expectedDocumentId,
     );
+    expect(
+      (blocks[0].paragraph?.blocks[0].text as LinkBlock)
+        .externalDocumentIdAlternatives,
+    ).toEqual(expectedDocumentIdAlternatives);
     expect(blocks[1].list?.blocks[0].blocks[0].text?.hyperlink).toBe(
       expectedHyperlink,
     );
     expect(blocks[1].list?.blocks[0].blocks[0].text?.externalDocumentId).toBe(
       expectedDocumentId,
     );
+    expect(
+      (blocks[1].list?.blocks[0].blocks[0].text as LinkBlock)
+        .externalDocumentIdAlternatives,
+    ).toEqual(expectedDocumentIdAlternatives);
     expect(blocks[2].paragraph?.blocks[0].image?.hyperlink).toBe(
       expectedHyperlink,
     );
     expect(blocks[2].paragraph?.blocks[0].image?.externalDocumentId).toBe(
       expectedDocumentId,
     );
+    expect(
+      (blocks[2].paragraph?.blocks[0].image as LinkBlock)
+        .externalDocumentIdAlternatives,
+    ).toEqual(expectedDocumentIdAlternatives);
     expect(
       blocks[3].table?.rows[0].cells[0].blocks[0].list?.blocks[0].blocks[0].text
         ?.hyperlink,
@@ -209,11 +242,21 @@ describe('DocumentLinkProcessor', function () {
       blocks[3].table?.rows[0].cells[0].blocks[0].list?.blocks[0].blocks[0].text
         ?.externalDocumentId,
     ).toBe(expectedDocumentId);
+    expect(
+      (
+        blocks[3].table?.rows[0].cells[0].blocks[0].list?.blocks[0].blocks[0]
+          .text as LinkBlock
+      ).externalDocumentIdAlternatives,
+    ).toEqual(expectedDocumentIdAlternatives);
     expect(blocks[3].table?.rows[0].cells[1].blocks[0].image?.hyperlink).toBe(
       expectedHyperlink,
     );
     expect(
       blocks[3].table?.rows[0].cells[1].blocks[0].image?.externalDocumentId,
     ).toBe(expectedDocumentId);
+    expect(
+      (blocks[3].table?.rows[0].cells[1].blocks[0].image as LinkBlock)
+        .externalDocumentIdAlternatives,
+    ).toEqual(expectedDocumentIdAlternatives);
   }
 });

@@ -20,6 +20,8 @@ import { PipeContext } from '../pipe/pipe-context.js';
 jest.mock('../genesys/genesys-destination-adapter.js');
 
 describe('DiffAggregator', () => {
+  const ALTERNATIVE_EXTERNAL_ID = 'alternative-external-id';
+
   let sourceAdapter: SourceAdapter<Category, Label, Document>;
   let destinationAdapter: GenesysDestinationAdapter;
   let adapters: AdapterPair<Adapter, DestinationAdapter>;
@@ -180,6 +182,37 @@ describe('DiffAggregator', () => {
           );
 
           verifyGroups(context.syncableContents.documents, 0, 0, 0);
+        });
+      });
+
+      describe('when article has alternative externalId', () => {
+        it('should update article with the alternative externalId', async () => {
+          const doc = {
+            ...generateNormalizedDocument(
+              '-1',
+              'document-id-1',
+              undefined,
+              null,
+              undefined,
+              ALTERNATIVE_EXTERNAL_ID,
+            ),
+            externalIdAlternatives: ['article-external-id-1'],
+          };
+
+          await aggregator.runOnDocument(doc);
+
+          verifyGroups(context.syncableContents.documents, 0, 1, 1);
+        });
+
+        it('should not update article if only the alternative externalId is the difference', async () => {
+          const doc = {
+            ...generateNormalizedDocument('-1', 'document-id-1'),
+            externalIdAlternatives: [ALTERNATIVE_EXTERNAL_ID],
+          };
+
+          await aggregator.runOnDocument(doc);
+
+          verifyGroups(context.syncableContents.documents, 0, 0, 1);
         });
       });
     });
