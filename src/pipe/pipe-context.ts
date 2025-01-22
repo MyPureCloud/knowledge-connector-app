@@ -8,7 +8,7 @@ import {
   SyncableContents,
 } from '../model';
 import { ExternalLink } from '../model/external-link.js';
-import { FailedEntity } from '../model/failed-entity.js';
+import { FailedItems } from '../model/failed-items.js';
 
 export interface PipeContext extends Context {
   pipe: {
@@ -22,11 +22,7 @@ export interface PipeContext extends Context {
       labels: Label[];
       documents: Document[];
     };
-    failedItems: {
-      categories: FailedEntity<Category>[];
-      labels: FailedEntity<Label>[];
-      documents: FailedEntity<Document>[];
-    };
+    failedItems: FailedItems;
   };
   storedContent?: {
     documents: Document[];

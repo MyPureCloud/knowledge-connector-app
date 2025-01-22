@@ -15,6 +15,7 @@ import { ExternalIdentifiable } from '../model';
 import { ConfigurerError } from '../aggregator/errors/configurer-error.js';
 import { isFromSameSource } from '../utils/source-matcher.js';
 import { PipeContext } from '../pipe/pipe-context.js';
+import { FailedItems } from '../model/failed-items.js';
 
 /**
  * DiffUploader collects all the new and changed entities into a JSON format and uploads it to Genesys Knowledge's import API
@@ -41,7 +42,10 @@ export class DiffUploader implements Uploader {
     this.allowPruneAllEntities = this.config.allowPruneAllEntities === 'true';
   }
 
-  public async run(importableContents: SyncableContents): Promise<void> {
+  public async run(
+    importableContents: SyncableContents,
+    failedItems: FailedItems,
+  ): Promise<void> {
     validateNonNull(
       this.config?.genesysKnowledgeBaseId,
       'Missing Genesys Knowledge Base Id',
@@ -64,7 +68,10 @@ export class DiffUploader implements Uploader {
       importableContents.documents,
       this.context?.storedContent?.documents || [],
     );
-    const data: SyncModel = this.constructSyncModel(importableContents);
+    const data: SyncModel = this.constructSyncModel(
+      importableContents,
+      failedItems,
+    );
 
     this.logStatistics(importableContents);
 
@@ -77,6 +84,7 @@ export class DiffUploader implements Uploader {
 
   protected constructSyncModel(
     importableContents: SyncableContents,
+    failedItems: FailedItems,
   ): SyncModel {
     return {
       version: 3,
@@ -87,15 +95,21 @@ export class DiffUploader implements Uploader {
         categories: [
           ...importableContents.categories.created,
           ...importableContents.categories.updated,
-        ].map(generatedValueResolver),
+        ]
+          .map(generatedValueResolver)
+          .concat(failedItems.categories),
         labels: [
           ...importableContents.labels.created,
           ...importableContents.labels.updated,
-        ].map(generatedValueResolver),
+        ]
+          .map(generatedValueResolver)
+          .concat(failedItems.labels),
         documents: [
           ...importableContents.documents.created,
           ...importableContents.documents.updated,
-        ].map(generatedValueResolver),
+        ]
+          .map(generatedValueResolver)
+          .concat(failedItems.documents),
       },
       deleteAction: {
         documents: importableContents.documents.deleted

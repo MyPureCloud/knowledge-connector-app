@@ -20,6 +20,10 @@ export abstract class ErrorBase extends Error {
     this.messageParams = messageParams;
   }
 
+  public getCode(): string {
+    return this.code;
+  }
+
   public toString = (): string => {
     return JSON.stringify({
       code: this.code,

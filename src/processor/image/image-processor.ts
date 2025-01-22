@@ -31,6 +31,7 @@ import { Context } from '../../context/context.js';
 import { catcher } from '../../utils/catch-error-helper.js';
 import { Interrupted } from '../../utils/errors/interrupted.js';
 import { FileTypeNotSupportedError } from '../../genesys/errors/file-type-not-supported-error.js';
+import { ApiError } from '../../adapter/errors/api-error.js';
 
 export class ImageProcessor implements Processor {
   private config: ImageConfig = {};
@@ -141,10 +142,20 @@ export class ImageProcessor implements Processor {
     getLogger().debug(
       'Processing image block with URL ' + imageBlock.image.url,
     );
-    const image = await this.fetchImage(articleId, imageBlock.image.url);
+    let image;
+    try {
+      image = await this.fetchImage(articleId, imageBlock.image.url);
+    } catch (error) {
+      return await catcher<void>()
+        .on(ApiError, (error) => {
+          getLogger().info(error.message);
+          this.processImageBlockWithoutUpload(imageBlock);
+        })
+        .with(error);
+    }
 
     if (!image) {
-      getLogger().debug(
+      getLogger().info(
         `Cannot fetch image [${imageBlock.image.url}] for article [${articleId}]`,
       );
       this.processImageBlockWithoutUpload(imageBlock);
@@ -163,17 +174,14 @@ export class ImageProcessor implements Processor {
       } catch (error) {
         await catcher<void>()
           .rethrow(Interrupted)
-          .on(FileTypeNotSupportedError, () => {
-            getLogger().warn(
-              `Not supported file type ${image.url}`,
-              error as Error,
-            );
+          .on(FileTypeNotSupportedError, (error) => {
+            getLogger().warn(`Not supported file type ${image.url}`, error);
             this.processImageBlockWithoutUpload(imageBlock);
           })
           .any((error: Error) => {
-            getLogger().error(
+            getLogger().warn(
               `Cannot upload image ${image.url} - ${error}`,
-              error as Error,
+              error,
             );
             this.processImageBlockWithoutUpload(imageBlock);
           })
@@ -284,7 +292,7 @@ export class ImageProcessor implements Processor {
           .any((error) => {
             getLogger().warn(
               `Unable to fetch image [${url}] directly - ${error}`,
-              error as Error,
+              error,
             );
             return null;
           })

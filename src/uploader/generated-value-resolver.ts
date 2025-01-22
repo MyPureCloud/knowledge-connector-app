@@ -4,7 +4,7 @@ import { getGeneratedValue } from '../utils/value-generators.js';
 export function generatedValueResolver<T extends object>(entity: T): T {
   (Object.keys(entity) as (keyof typeof entity)[]).forEach((key) => {
     if (entity[key] === GeneratedValue.COLOR) {
-      entity[key] = getGeneratedValue(GeneratedValue.COLOR);
+      entity[key] = getGeneratedValue(GeneratedValue.COLOR) as T[keyof T];
     }
   });
   return entity;

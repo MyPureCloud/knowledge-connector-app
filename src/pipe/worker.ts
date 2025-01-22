@@ -10,7 +10,7 @@ import { Interrupted } from '../utils/errors/interrupted.js';
 import _ from 'lodash';
 import { ErrorBasePublic } from '../utils/errors/error-base-public.js';
 import { ErrorCodes } from '../utils/errors/error-codes.js';
-import { FailedEntity } from '../model/failed-entity.js';
+import { EntityWithMetadata } from '../model/entity-with-metadata.js';
 
 export type Method<T> = (
   runnable: Runnable<unknown, unknown, unknown>,
@@ -25,7 +25,7 @@ export class Worker<T extends ExternalIdentifiable> {
   private executeMethod: Method<T> | null = null;
   private processedItemList: T[] | null = null;
   private unprocessedItemList: T[] | null = null;
-  private failedItemList: FailedEntity<T>[] | null = null;
+  private failedItemList: EntityWithMetadata<T>[] | null = null;
 
   public iterators(iterators: () => AsyncGenerator<T, void, void>[]): this {
     this.itemIterators = iterators;
@@ -52,7 +52,7 @@ export class Worker<T extends ExternalIdentifiable> {
     return this;
   }
 
-  public failedItems(failedItems: FailedEntity<T>[]): this {
+  public failedItems(failedItems: EntityWithMetadata<T>[]): this {
     this.failedItemList = failedItems;
     return this;
   }
@@ -110,8 +110,8 @@ export class Worker<T extends ExternalIdentifiable> {
     aggregators: Aggregator[],
     processedItems: T[],
     unprocessedItems: T[],
-    failedItems: FailedEntity<T>[],
-  ) {
+    failedItems: EntityWithMetadata<T>[],
+  ): Promise<void> {
     for await (const item of this.consumeIterators()) {
       getLogger().info(
         `Worker load next item with externalId: ${item.externalId}`,
@@ -139,7 +139,7 @@ export class Worker<T extends ExternalIdentifiable> {
             throw error;
           })
           .on(TransformationError, () => {
-            unprocessedItems.unshift(item);
+            unprocessedItems.push(item);
           })
           .any(() => {
             failedItems.push(this.generateFailedEntity(item, error as Error));
@@ -155,18 +155,21 @@ export class Worker<T extends ExternalIdentifiable> {
     method: Method<T>,
     aggregators: Aggregator[],
     processedItems: T[],
-    failedItems: FailedEntity<T>[],
-  ) {
+    failedItems: EntityWithMetadata<T>[],
+  ): Promise<void> {
     getLogger().debug(
       `Processing ${unprocessedItems.length} postponed items in worker`,
     );
     while (unprocessedItems.length > 0) {
       const item = unprocessedItems.shift()!;
+      getLogger().info(
+        `Worker load next postponed item with externalId: ${item.externalId}`,
+      );
 
       try {
         const unprocessedItem = _.cloneDeep(item);
         const processedItem = await this.executeRunnable<T>(
-          unprocessedItem!,
+          unprocessedItem,
           processors,
           method,
           false,
@@ -219,7 +222,7 @@ export class Worker<T extends ExternalIdentifiable> {
     return item;
   }
 
-  private generateFailedEntity(item: T, error: Error): FailedEntity<T> {
+  private generateFailedEntity(item: T, error: Error): EntityWithMetadata<T> {
     if (error instanceof ErrorBasePublic) {
       return {
         ...item,

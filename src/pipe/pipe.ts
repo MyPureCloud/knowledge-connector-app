@@ -22,6 +22,7 @@ import { TimerConfig } from './timer-config.js';
 import { Interrupted } from '../utils/errors/interrupted.js';
 import { Worker } from './worker.js';
 import { runtime } from '../utils/runtime.js';
+import { FailedItems } from '../model/failed-items.js';
 import { catcher } from '../utils/catch-error-helper.js';
 
 /**
@@ -203,7 +204,10 @@ export class Pipe {
     context: PipeContext,
   ): Promise<void> {
     await this.initTasks(this.uploaderList, config, context);
-    await this.executeUploaders(context.syncableContents);
+    await this.executeUploaders(
+      context.syncableContents,
+      context.pipe.failedItems,
+    );
   }
 
   private async processDocuments(context: PipeContext): Promise<void> {
@@ -285,11 +289,12 @@ export class Pipe {
 
   private async executeUploaders(
     importableContents: SyncableContents,
+    failedItems: FailedItems,
   ): Promise<void> {
     for (const uploader of this.uploaderList) {
       await this.execute(
         uploader,
-        (item) => uploader.run(item),
+        (item) => uploader.run(item, failedItems),
         importableContents,
       );
     }
