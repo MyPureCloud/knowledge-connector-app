@@ -17,7 +17,7 @@ import { ZendeskLabel } from './model/zendesk-label.js';
 import { ZendeskArticle } from './model/zendesk-article.js';
 
 /**
- * ZendeskLoader is a specific {@Link Loader} implementation for fetching data from Zendesk's API
+ * ZendeskLoader is a specific {@Link Loader} implementation for fetching data from Zendesk API
  */
 export class ZendeskLoader extends AbstractLoader<ZendeskContext> {
   private adapter?: ZendeskAdapter;
@@ -59,7 +59,11 @@ export class ZendeskLoader extends AbstractLoader<ZendeskContext> {
 
     yield* this.loadItems<ZendeskLabel, Label>(
       this.adapter!.labelIterator(),
-      labelMapper,
+      (item: ZendeskLabel): Label[] => {
+        this.addLabelToLookupTable(item);
+
+        return labelMapper(item);
+      },
       this.context!.adapter.unprocessedItems.labels,
     );
   }
@@ -84,6 +88,24 @@ export class ZendeskLoader extends AbstractLoader<ZendeskContext> {
   }
 
   private addCategoryToLookupTable(item: ZendeskSection) {
-    this.context!.categoryLookupTable[String(item.id)] = item;
+    const { id, name } = item;
+
+    this.context!.categoryLookupTable[`${id}`] = {
+      id,
+      externalId: id,
+      name,
+    };
+  }
+
+  private addLabelToLookupTable(item: ZendeskSection) {
+    const { id, name } = item;
+
+    const labelReference = {
+      id: null,
+      externalId: id,
+      name,
+    };
+    this.context!.labelLookupTable[id] = labelReference;
+    this.context!.labelLookupTable[name] = labelReference;
   }
 }

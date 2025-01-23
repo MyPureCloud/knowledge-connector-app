@@ -17,6 +17,7 @@ import { Document } from '../model/document.js';
 import { ExternalIdentifiable } from '../model/external-identifiable.js';
 import { PipeContext } from '../pipe/pipe-context.js';
 import { MissingReferenceError } from '../utils/errors/missing-reference-error.js';
+import { NamedEntity } from '../model';
 
 jest.mock('../genesys/genesys-destination-adapter.js');
 
@@ -95,7 +96,8 @@ describe('DiffAggregator', () => {
                 undefined,
                 undefined,
                 {
-                  id: 'missing-id',
+                  id: null,
+                  externalId: 'missing-id',
                   name: 'missing-entity',
                 },
               ),
@@ -106,18 +108,18 @@ describe('DiffAggregator', () => {
 
       describe('when parent exists', () => {
         it('should resolve reference', async () => {
-          context.pipe.processedItems.categories.push(
-            generateNormalizedCategory(
-              '',
-              undefined,
-              'parent-category-name',
-              'parent-category-id',
-            ),
+          const parent = generateNormalizedCategory(
+            '',
+            null,
+            'parent-category-name',
+            'parent-category-id',
           );
+          prepareForProcessing(parent, context.categoryLookupTable);
 
           await aggregator.runOnCategory(
             generateNormalizedCategory('-1', undefined, undefined, undefined, {
-              id: 'parent-category-id',
+              id: null,
+              externalId: 'parent-category-id',
               name: 'parent-category-name',
             }),
           );
@@ -129,6 +131,7 @@ describe('DiffAggregator', () => {
             name: 'category-name-1',
             parentCategory: {
               id: null,
+              externalId: null,
               name: 'parent-category-name',
             },
           });
@@ -136,7 +139,6 @@ describe('DiffAggregator', () => {
 
         it('should resolve reference with externalIdPrefix', async () => {
           const externalIdPrefix = 'external-id-prefix-';
-
           await aggregator.initialize(
             {
               protectedFields: 'published.alternatives',
@@ -146,18 +148,18 @@ describe('DiffAggregator', () => {
             context,
           );
 
-          context.pipe.processedItems.categories.push(
-            generateNormalizedCategory(
-              '',
-              undefined,
-              'parent-category-name',
-              `${externalIdPrefix}parent-category-id`,
-            ),
+          const parent = generateNormalizedCategory(
+            '',
+            undefined,
+            'parent-category-name',
+            `parent-category-id`,
           );
+          prepareForProcessing(parent, context.categoryLookupTable);
 
           await aggregator.runOnCategory(
             generateNormalizedCategory('-1', undefined, undefined, undefined, {
-              id: 'parent-category-id',
+              id: null,
+              externalId: 'parent-category-id',
               name: 'parent-category-name',
             }),
           );
@@ -169,6 +171,7 @@ describe('DiffAggregator', () => {
             name: 'category-name-1',
             parentCategory: {
               id: null,
+              externalId: null,
               name: 'parent-category-name',
             },
           });
@@ -417,6 +420,8 @@ describe('DiffAggregator', () => {
           deleted: [],
         },
       },
+      categoryLookupTable: {},
+      labelLookupTable: {},
       articleLookupTable: {},
     };
   }
@@ -434,5 +439,12 @@ describe('DiffAggregator', () => {
     context.syncableContents.categories.deleted = [...categories];
     context.syncableContents.labels.deleted = [...labels];
     context.syncableContents.documents.deleted = [...documents];
+  }
+
+  function prepareForProcessing<T extends NamedEntity>(
+    item: T,
+    lookupTable: Record<string, T>,
+  ): void {
+    lookupTable[item.externalId!] = item;
   }
 });

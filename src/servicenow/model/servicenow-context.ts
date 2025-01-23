@@ -4,7 +4,6 @@ import { AdapterContext } from '../../adapter/adapter-context.js';
 
 export interface ServiceNowContext
   extends AdapterContext<ServiceNowCategory, unknown, ServiceNowArticle> {
-  categoryLookupTable: Record<string, ServiceNowCategory>;
   api?: ServiceNowApiContext;
 }
 

@@ -1,5 +1,5 @@
-import { Identifiable } from './identifiable.js';
-
-export interface CategoryReference extends Identifiable {
+export interface CategoryReference {
+  id: string | null;
+  externalId: string | null;
   name: string | null;
 }

@@ -8,7 +8,6 @@ import { ZendeskArticleAttachment } from './zendest-article-attachment.js';
 
 export interface ZendeskContext
   extends AdapterContext<ZendeskCategory, ZendeskLabel, ZendeskArticle> {
-  categoryLookupTable: Record<string, ZendeskCategory>;
   api?: ZendeskApiContext;
 }
 

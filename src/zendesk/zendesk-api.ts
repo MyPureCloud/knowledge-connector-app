@@ -12,12 +12,12 @@ import {
   verifyResponseStatus,
 } from '../utils/web-client.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
-import { setIfMissing } from '../utils/objects';
+import { setIfMissing } from '../utils/objects.js';
 import {
   ZendeskApiContext,
   ZendeskContext,
   ZendeskSectionContext,
-} from './model/zendesk-context';
+} from './model/zendesk-context.js';
 import { Pager } from '../utils/pager.js';
 
 export class ZendeskApi {

@@ -71,7 +71,30 @@ export class Worker<T extends ExternalIdentifiable> {
       this.unprocessedItemList,
       'UnprocessedItems list missing',
     );
+    await this.firstTry(
+      processors,
+      method,
+      aggregators,
+      processedItems,
+      unprocessedItems,
+    );
 
+    await this.secondTry(
+      unprocessedItems,
+      processors,
+      method,
+      aggregators,
+      processedItems,
+    );
+  }
+
+  private async firstTry(
+    processors: Processor[],
+    method: Method<T>,
+    aggregators: Aggregator[],
+    processedItems: T[],
+    unprocessedItems: T[],
+  ) {
     for await (const item of this.consumeIterators()) {
       getLogger().info(
         `Worker load next item with externalId: ${item.externalId}`,
@@ -105,7 +128,15 @@ export class Worker<T extends ExternalIdentifiable> {
           .with(error);
       }
     }
+  }
 
+  private async secondTry(
+    unprocessedItems: T[],
+    processors: Processor[],
+    method: Method<T>,
+    aggregators: Aggregator[],
+    processedItems: T[],
+  ) {
     getLogger().debug(
       `Processing ${unprocessedItems.length} postponed items in worker`,
     );

@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { ServiceNowAdapter } from './servicenow-adapter';
-import { ServiceNowContext } from './model/servicenow-context';
-import { ServiceNowConfig } from './model/servicenow-config';
-import { ServiceNowCategory } from './model/servicenow-category';
-import { ServiceNowArticle } from './model/servicenow-article';
-import { ServiceNowSingleArticle } from './model/servicenow-single-article-response';
+import { ServiceNowAdapter } from './servicenow-adapter.js';
+import { ServiceNowContext } from './model/servicenow-context.js';
+import { ServiceNowConfig } from './model/servicenow-config.js';
+import { ServiceNowCategory } from './model/servicenow-category.js';
+import { ServiceNowArticle } from './model/servicenow-article.js';
+import { ServiceNowSingleArticle } from './model/servicenow-single-article-response.js';
 
 const mockCategoryIterator =
   jest.fn<() => AsyncGenerator<ServiceNowCategory, void, void>>();
@@ -43,6 +43,7 @@ describe('ServiceNowAdapter', () => {
       },
       articleLookupTable: {},
       categoryLookupTable: {},
+      labelLookupTable: {},
     };
 
     mockArticleIterator.mockImplementation(articleIterator);

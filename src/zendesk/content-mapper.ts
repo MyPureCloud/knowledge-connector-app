@@ -6,6 +6,7 @@ import { ZendeskSection } from './model/zendesk-section.js';
 import { Document, DocumentVersion } from '../model/document.js';
 import { GeneratedValue } from '../utils/generated-value.js';
 import { ZendeskContext } from './model/zendesk-context.js';
+import { LabelReference } from '../model';
 
 export function categoryMapper(
   category: ZendeskSection,
@@ -29,11 +30,12 @@ export function categoryMapper(
   return [
     {
       id: null,
-      externalId: String(id),
+      externalId: `${id}`,
       name,
       parentCategory: parentCategory
         ? {
             id: null,
+            externalId: parentCategory.externalId,
             name: parentCategory.name,
           }
         : null,
@@ -67,7 +69,8 @@ export function articleMapper(
   const category =
     fetchCategories && section_id
       ? {
-          id: categoryId,
+          id: null,
+          externalId: categoryId,
           name: context.categoryLookupTable[categoryId]?.name || categoryId,
         }
       : null;
@@ -84,10 +87,9 @@ export function articleMapper(
     ],
     category,
     labels: fetchLabels
-      ? label_names?.map((label) => ({
-          id: null,
-          name: String(label),
-        })) || null
+      ? label_names
+          ?.map((name) => mapLabelName(name, context.labelLookupTable))
+          .filter((l) => !!l) || null
       : null,
   };
 
@@ -100,4 +102,16 @@ export function articleMapper(
       draft: draft ? documentVersion : null,
     },
   ];
+}
+
+function mapLabelName(
+  name: string,
+  lookupTable: Record<string, LabelReference>,
+): LabelReference | null {
+  const label = lookupTable[name];
+  if (label) {
+    return label;
+  }
+
+  return null;
 }

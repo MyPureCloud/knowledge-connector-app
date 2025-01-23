@@ -34,6 +34,7 @@ describe('ServiceNowLoader', () => {
     CATEGORY_EXTERNAL_ID,
     {
       id: null,
+      externalId: PARENT_CATEGORY_EXTERNAL_ID,
       name: PARENT_CATEGORY_NAME,
     },
   );
@@ -48,6 +49,7 @@ describe('ServiceNowLoader', () => {
       '<p>article body</p>',
       {
         id: null,
+        externalId: CATEGORY_EXTERNAL_ID,
         name: CATEGORY_NAME,
       },
       null,
@@ -193,7 +195,14 @@ describe('ServiceNowLoader', () => {
         },
       },
       articleLookupTable: {},
-      categoryLookupTable: {},
+      categoryLookupTable: {
+        [CATEGORY_EXTERNAL_ID]: {
+          id: null,
+          name: CATEGORY_NAME,
+          externalId: CATEGORY_EXTERNAL_ID,
+        },
+      },
+      labelLookupTable: {},
     };
   }
 });

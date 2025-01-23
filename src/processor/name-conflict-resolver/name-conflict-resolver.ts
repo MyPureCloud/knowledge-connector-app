@@ -16,7 +16,7 @@ export class NameConflictResolver implements Processor {
     context: PipeContext,
   ): Promise<void> {
     this.context = context;
-    this.nameConflictSuffix = config.nameConflictSuffix || null;
+    this.nameConflictSuffix = config.nameConflictSuffix ?? null;
   }
 
   public async runOnCategory(item: Category): Promise<Category> {
@@ -25,7 +25,7 @@ export class NameConflictResolver implements Processor {
       ...(this.context!.storedContent?.categories || []),
     ];
 
-    this.validateName(item, allItems);
+    this.validateName(item, allItems, this.context!.categoryLookupTable);
 
     return item;
   }
@@ -36,7 +36,7 @@ export class NameConflictResolver implements Processor {
       ...(this.context!.storedContent?.labels || []),
     ];
 
-    this.validateName(item, allItems);
+    this.validateName(item, allItems, this.context!.labelLookupTable);
 
     return item;
   }
@@ -49,15 +49,20 @@ export class NameConflictResolver implements Processor {
     return 0;
   }
 
-  private validateName<T extends NamedEntity>(item: T, allItems: T[]): void {
+  private validateName<T extends NamedEntity>(
+    item: T,
+    allItems: T[],
+    lookupTable: Record<string, T>,
+  ): void {
     if (this.hasNameConflict(item, allItems)) {
-      this.resolveNameConflict(item, allItems);
+      this.resolveNameConflict(item, allItems, lookupTable);
     }
   }
 
   private resolveNameConflict<T extends NamedEntity>(
     item: T,
     allItems: T[],
+    lookupTable: Record<string, T>,
   ): void {
     validateNonNull(
       this.nameConflictSuffix,
@@ -67,6 +72,8 @@ export class NameConflictResolver implements Processor {
     while (this.hasNameConflict(item, allItems)) {
       item.name += this.nameConflictSuffix!;
     }
+
+    lookupTable[item.externalId!].name = item.name;
   }
 
   private hasNameConflict<T extends NamedEntity>(

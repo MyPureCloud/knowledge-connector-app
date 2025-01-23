@@ -61,7 +61,7 @@ export class ServiceNowLoader extends AbstractLoader<ServiceNowContext> {
       (item: ServiceNowArticle): Document[] => {
         this.addArticleToLookupTable(item);
 
-        return articleMapper(item, this.getConfiguration());
+        return articleMapper(item, this.getConfiguration(), this.context!);
       },
       this.context!.adapter.unprocessedItems.articles,
     );
@@ -84,7 +84,13 @@ export class ServiceNowLoader extends AbstractLoader<ServiceNowContext> {
   }
 
   private addCategoryToLookupTable(category: ServiceNowCategory): void {
-    this.context!.categoryLookupTable[category.sys_id] = category;
+    const { sys_id: id, full_category: name } = category;
+
+    this.context!.categoryLookupTable[category.sys_id] = {
+      id: null,
+      externalId: id,
+      name,
+    };
   }
 
   private addArticleToLookupTable(article: ServiceNowArticle): void {

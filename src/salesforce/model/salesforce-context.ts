@@ -1,6 +1,5 @@
 import { SalesforceCategoryGroup } from './salesforce-category-group.js';
 import { SalesforceArticleDetails } from './salesforce-article-details.js';
-import { Label } from '../../model';
 import { AdapterContext } from '../../adapter/adapter-context.js';
 import { SalesforceArticle } from './salesforce-article.js';
 import { SalesforceEntityTypes } from './salesforce-entity-types.js';
@@ -11,7 +10,6 @@ export interface SalesforceContext
     unknown,
     SalesforceArticleDetails
   > {
-  labelLookupTable: Record<string, Label>;
   api?: SalesforceApiContext;
 }
 

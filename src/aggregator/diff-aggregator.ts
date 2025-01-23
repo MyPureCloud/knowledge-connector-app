@@ -12,7 +12,6 @@ import { LabelReference } from '../model/label-reference.js';
 import { GeneratedValue } from '../utils/generated-value.js';
 import { DestinationAdapter } from '../adapter/destination-adapter.js';
 import { DiffAggregatorConfig } from './diff-aggregator-config.js';
-import { Identifiable } from '../model/identifiable.js';
 import { PipeContext } from '../pipe/pipe-context.js';
 import { MissingReferenceError } from '../utils/errors/missing-reference-error.js';
 
@@ -35,7 +34,7 @@ export class DiffAggregator implements Aggregator {
   ): Promise<void> {
     this.context = context;
 
-    this.protectedFields = (config.protectedFields || '').split(',');
+    this.protectedFields = (config.protectedFields ?? '').split(',');
     this.externalIdPrefix = config.externalIdPrefix ?? '';
   }
 
@@ -43,17 +42,10 @@ export class DiffAggregator implements Aggregator {
     const { categories: storedCategories = [] } =
       this.context!.storedContent || {};
 
-    const { categories: collectedCategories = [] } =
-      this.context!.pipe.processedItems || {};
-
     this.collectModifiedItem(
       content,
       storedCategories,
-      (category: Category) =>
-        this.normalizeCategory(category, [
-          ...collectedCategories,
-          ...storedCategories,
-        ]),
+      (category: Category) => this.normalizeCategory(category),
       this.context!.syncableContents.categories,
     );
   }
@@ -70,26 +62,13 @@ export class DiffAggregator implements Aggregator {
   }
 
   public async runOnDocument(content: Document): Promise<void> {
-    const {
-      categories: storedCategories = [],
-      labels: storedLabels = [],
-      documents: storedDocuments = [],
-    } = this.context!.storedContent || {};
-
-    const {
-      categories: collectedCategories = [],
-      labels: collectedLabels = [],
-    } = this.context!.pipe.processedItems || {};
+    const { documents: storedDocuments = [] } =
+      this.context!.storedContent || {};
 
     this.collectModifiedItem(
       content,
       storedDocuments,
-      (doc) =>
-        this.normalizeDocument(
-          doc,
-          [...collectedCategories, ...storedCategories],
-          [...collectedLabels, ...storedLabels],
-        ),
+      (doc) => this.normalizeDocument(doc),
       this.context!.syncableContents.documents,
     );
   }
@@ -129,11 +108,7 @@ export class DiffAggregator implements Aggregator {
     }
   }
 
-  private normalizeDocument(
-    document: Document,
-    allCategories: Category[],
-    allLabels: Label[],
-  ): Document {
+  private normalizeDocument(document: Document): Document {
     const {
       externalId,
       externalIdAlternatives,
@@ -147,19 +122,13 @@ export class DiffAggregator implements Aggregator {
       externalId: externalId || null,
       externalIdAlternatives: externalIdAlternatives || null,
       externalUrl: externalUrl || null,
-      published: published
-        ? this.normalizeDocumentVersion(published, allCategories, allLabels)
-        : null,
-      draft: draft
-        ? this.normalizeDocumentVersion(draft, allCategories, allLabels)
-        : null,
+      published: published ? this.normalizeDocumentVersion(published) : null,
+      draft: draft ? this.normalizeDocumentVersion(draft) : null,
     };
   }
 
   private normalizeDocumentVersion(
     documentVersion: DocumentVersion,
-    allCategories: Category[],
-    allLabels: Label[],
   ): DocumentVersion {
     const { title, alternatives, visible, category, labels, variations } =
       documentVersion;
@@ -167,11 +136,9 @@ export class DiffAggregator implements Aggregator {
       title: title ? title.trim() : title,
       alternatives: alternatives ?? null,
       visible,
-      category: category
-        ? this.normalizeCategoryReference(category, allCategories)
-        : null,
+      category: category ? this.normalizeCategoryReference(category) : null,
       labels: labels?.length
-        ? labels.map((l) => this.normalizeLabelReference(l, allLabels))
+        ? labels.map((l) => this.normalizeLabelReference(l)).filter((l) => !!l)
         : null,
       variations: variations.map(this.normalizeVariation),
     };
@@ -187,46 +154,40 @@ export class DiffAggregator implements Aggregator {
     };
   }
 
-  private normalizeCategory(
-    category: Category,
-    allCategories: Category[],
-  ): Category {
+  private normalizeCategory(category: Category): Category {
     const { externalId, name, parentCategory } = category;
 
     return {
       id: null,
-      externalId: externalId || null,
+      externalId: externalId ?? null,
       name,
-      parentCategory: this.normalizeCategoryReference(
-        parentCategory,
-        allCategories,
-      ),
+      parentCategory: this.normalizeCategoryReference(parentCategory),
     };
   }
 
   private normalizeCategoryReference(
     categoryReference: CategoryReference | null,
-    allCategories: Category[],
   ): CategoryReference | null {
     if (!categoryReference) {
       return null;
     }
 
-    const category = allCategories
-      .filter(
-        (c) =>
-          c.externalId === this.getItemPrefixedExternalId(categoryReference),
-      )
-      .shift();
+    if (!categoryReference.externalId && categoryReference.name) {
+      const { name } = this.getFinalVersionByName(
+        categoryReference.name,
+        this.context!.categoryLookupTable,
+      );
 
-    if (!category) {
-      throw new MissingReferenceError('Category', categoryReference.id);
+      return { id: null, externalId: null, name };
     }
 
-    return {
-      id: null,
-      name: category.name,
-    };
+    const { name } = this.getFinalVersion(
+      categoryReference.externalId!,
+      this.context!.categoryLookupTable,
+      'Category',
+    );
+
+    return { id: null, externalId: null, name };
   }
 
   private normalizeLabel(label: Label): Label {
@@ -234,7 +195,7 @@ export class DiffAggregator implements Aggregator {
 
     return {
       id: null,
-      externalId: externalId || null,
+      externalId: externalId ?? null,
       name,
       color,
     };
@@ -242,21 +203,30 @@ export class DiffAggregator implements Aggregator {
 
   private normalizeLabelReference(
     labelReference: LabelReference,
-    allLabels: Label[],
-  ): LabelReference {
-    const label = allLabels
-      .filter(
-        (c) => c.externalId === this.getItemPrefixedExternalId(labelReference),
-      )
-      .shift();
-
-    if (!label) {
-      throw new MissingReferenceError('Label', labelReference.id);
+  ): LabelReference | null {
+    if (!labelReference) {
+      return null;
     }
+
+    if (!labelReference.externalId && labelReference.name) {
+      const { name } = this.getFinalVersionByName(
+        labelReference.name,
+        this.context!.labelLookupTable,
+      );
+
+      return { id: null, externalId: null, name };
+    }
+
+    const { name } = this.getFinalVersion(
+      labelReference.externalId!,
+      this.context!.labelLookupTable,
+      'Label',
+    );
 
     return {
       id: null,
-      name: label.name,
+      externalId: null,
+      name,
     };
   }
 
@@ -294,17 +264,13 @@ export class DiffAggregator implements Aggregator {
     storedItem: ExternalIdentifiable,
   ): boolean {
     return [
-      this.getPrefixedId(collectedItem.externalId),
+      collectedItem.externalId,
       ...(collectedItem.externalIdAlternatives?.length
         ? this.getPrefixedAlternativeIds(collectedItem.externalIdAlternatives)
         : []),
     ]
       .filter((id) => !!id)
       .includes(storedItem.externalId);
-  }
-
-  private getItemPrefixedExternalId(item: Identifiable): string | null {
-    return this.getPrefixedId(item.id);
   }
 
   private getPrefixedId(id: string | null | undefined): string | null {
@@ -327,5 +293,43 @@ export class DiffAggregator implements Aggregator {
 
   private objectWithoutHelperProperties(obj: object): object {
     return _.omit(obj, HELPER_PROPERTIES);
+  }
+
+  private getExternalIdWithoutPrefix(externalId: string): string {
+    if (externalId.startsWith(this.externalIdPrefix)) {
+      return externalId.substring(this.externalIdPrefix.length);
+    }
+    return externalId;
+  }
+
+  private getFinalVersion<R extends CategoryReference | LabelReference>(
+    externalId: string,
+    lookupTable: Record<string, R>,
+    entityType: 'Category' | 'Label' | 'Document',
+  ): R {
+    const item = lookupTable[externalId];
+
+    if (!item) {
+      throw new MissingReferenceError(entityType, externalId);
+    }
+
+    return item;
+  }
+
+  private getFinalVersionByName<R extends CategoryReference | LabelReference>(
+    name: string,
+    lookupTable: Record<string, R>,
+  ): R {
+    const item = Object.values(lookupTable).find((item) => item.name === name);
+
+    if (!item) {
+      return {
+        id: null,
+        externalId: null,
+        name,
+      } as R;
+    }
+
+    return item;
   }
 }

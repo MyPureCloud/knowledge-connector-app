@@ -232,6 +232,7 @@ describe('SalesforceApi', () => {
       },
       labelLookupTable: {},
       articleLookupTable: {},
+      categoryLookupTable: {},
     };
   }
 

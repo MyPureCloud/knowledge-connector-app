@@ -24,91 +24,122 @@ describe('NameConflictResolver', () => {
     adapters = {} as AdapterPair<Adapter, Adapter>;
 
     processor = new NameConflictResolver();
-  });
 
-  describe('runOnCategory', () => {
-    beforeEach(() => {
-      context = {
-        pipe: {
-          processedItems: {
-            categories: [],
-            labels: [],
-            documents: [],
-          },
-          unprocessedItems: {
-            categories: [],
-            labels: [],
-            documents: [],
-          },
-        },
-        storedContent: {
+    context = {
+      pipe: {
+        processedItems: {
           categories: [],
           labels: [],
           documents: [],
         },
-      } as unknown as PipeContext;
+        unprocessedItems: {
+          categories: [],
+          labels: [],
+          documents: [],
+        },
+      },
+      storedContent: {
+        categories: [],
+        labels: [],
+        documents: [],
+      },
+      categoryLookupTable: {},
+      labelLookupTable: {},
+    } as unknown as PipeContext;
 
-      processor.initialize(config, adapters, context);
-    });
+    processor.initialize(config, adapters, context);
+  });
 
+  describe('runOnCategory', () => {
     describe('when there is a name conflict with category', () => {
       it('should alter entity name with suffix', async () => {
-        context.pipe.processedItems.categories.push(
-          generateNormalizedCategory(
-            '-not-2',
-            'category-id-not-2',
-            'category-name-2',
-          ),
+        const otherItem = generateNormalizedCategory(
+          '-not-2',
+          'category-id-not-2',
+          'category-name-2',
+        );
+        prepareProcessedItem(
+          otherItem,
+          context.categoryLookupTable,
+          context.pipe.processedItems.categories,
         );
 
-        const actual = await processor.runOnCategory(
-          generateNormalizedCategory('-2', 'category-id-2'),
-        );
+        const newItem = generateNormalizedCategory('-2', 'category-id-2');
+        prepareForProcessing(newItem, context.categoryLookupTable);
 
-        expectExternalEntity(actual, {
-          id: null,
-          name: 'category-name-2-suffix',
-          externalId: 'category-external-id-2',
-        });
+        const actual = await processor.runOnCategory(newItem);
+
+        expectExternalEntity(
+          actual,
+          {
+            id: null,
+            name: 'category-name-2-suffix',
+            externalId: 'category-external-id-2',
+          },
+          context.categoryLookupTable,
+        );
       });
 
       describe('when still conflicting', () => {
         it('should alter entity name twice', async () => {
-          context.pipe.processedItems.categories.push(
+          prepareProcessedItem(
             generateNormalizedCategory('-1'),
+            context.categoryLookupTable,
+            context.pipe.processedItems.categories,
+          );
+          prepareProcessedItem(
             generateNormalizedCategory('-2'),
+            context.categoryLookupTable,
+            context.pipe.processedItems.categories,
+          );
+          prepareProcessedItem(
             generateNormalizedCategory('-3'),
+            context.categoryLookupTable,
+            context.pipe.processedItems.categories,
           );
 
-          let actual = await processor.runOnCategory(
-            generateNormalizedCategory(
-              '-not-2-the-second',
-              null,
-              'category-name-2',
-            ),
+          const newItem = generateNormalizedCategory(
+            '-not-2-the-second',
+            null,
+            'category-name-2',
+          );
+          prepareForProcessing(newItem, context.categoryLookupTable);
+
+          let actual = await processor.runOnCategory(newItem);
+
+          expectExternalEntity(
+            actual,
+            {
+              id: null,
+              name: 'category-name-2-suffix',
+              externalId: 'category-external-id-not-2-the-second',
+            },
+            context.categoryLookupTable,
+          );
+          prepareProcessedItem(
+            newItem,
+            context.categoryLookupTable,
+            context.pipe.processedItems.categories,
           );
 
-          expectExternalEntity(actual, {
-            id: null,
-            name: 'category-name-2-suffix',
-            externalId: 'category-external-id-not-2-the-second',
-          });
-
-          context.pipe.processedItems.categories.push(actual);
-
-          actual = await processor.runOnCategory(
-            generateNormalizedCategory(
-              '-not-2-the-third',
-              null,
-              'category-name-2',
-            ),
+          const moreItem = generateNormalizedCategory(
+            '-not-2-the-third',
+            null,
+            'category-name-2',
           );
+          prepareForProcessing(moreItem, context.categoryLookupTable);
 
-          expectExternalEntity(actual, {
-            id: null,
-            name: 'category-name-2-suffix-suffix',
-            externalId: 'category-external-id-not-2-the-third',
-          });
+          actual = await processor.runOnCategory(moreItem);
+
+          expectExternalEntity(
+            actual,
+            {
+              id: null,
+              name: 'category-name-2-suffix-suffix',
+              externalId: 'category-external-id-not-2-the-third',
+            },
+            context.categoryLookupTable,
+          );
         });
       });
     });
@@ -140,86 +171,111 @@ describe('NameConflictResolver', () => {
   });
 
   describe('runOnLabel', () => {
-    beforeEach(() => {
-      context = {
-        pipe: {
-          processedItems: {
-            categories: [],
-            labels: [],
-            documents: [],
-          },
-          unprocessedItems: {
-            categories: [],
-            labels: [],
-            documents: [],
-          },
-        },
-        storedContent: {
-          categories: [],
-          labels: [],
-          documents: [],
-        },
-      } as unknown as PipeContext;
-
-      processor.initialize(config, adapters, context);
-    });
-
     describe('when there is a name conflict', () => {
       it('should alter entity name with suffix', async () => {
-        context.pipe.processedItems.labels.push(
+        prepareProcessedItem(
           generateNormalizedLabel('-not-2', 'label-id-not-2', 'label-name-2'),
+          context.labelLookupTable,
+          context.pipe.processedItems.labels,
         );
 
-        const actual = await processor.runOnLabel(
-          generateNormalizedLabel('-2', 'category-id-2'),
-        );
+        const newItem = generateNormalizedLabel('-2', 'label-id-2');
+        prepareForProcessing(newItem, context.labelLookupTable);
 
-        expectExternalEntity(actual, {
-          id: null,
-          name: 'label-name-2-suffix',
-          externalId: 'label-external-id-2',
-        });
+        const actual = await processor.runOnLabel(newItem);
+
+        expectExternalEntity(
+          actual,
+          {
+            id: null,
+            name: 'label-name-2-suffix',
+            externalId: 'label-external-id-2',
+          },
+          context.labelLookupTable,
+        );
       });
 
       describe('when still conflicting', () => {
         it('should alter entity name twice', async () => {
-          context.pipe.processedItems.labels.push(
+          prepareProcessedItem(
             generateNormalizedLabel('-1'),
+            context.labelLookupTable,
+            context.pipe.processedItems.labels,
+          );
+          prepareProcessedItem(
             generateNormalizedLabel('-2'),
+            context.labelLookupTable,
+            context.pipe.processedItems.labels,
+          );
+          prepareProcessedItem(
             generateNormalizedLabel('-3'),
+            context.labelLookupTable,
+            context.pipe.processedItems.labels,
           );
 
-          let actual = await processor.runOnLabel(
-            generateNormalizedLabel('-not-2-the-second', null, 'label-name-2'),
+          const newItem = generateNormalizedLabel(
+            '-not-2-the-second',
+            null,
+            'label-name-2',
+          );
+          prepareForProcessing(newItem, context.labelLookupTable);
+
+          let actual = await processor.runOnLabel(newItem);
+
+          expectExternalEntity(
+            actual,
+            {
+              id: null,
+              name: 'label-name-2-suffix',
+              externalId: 'label-external-id-not-2-the-second',
+            },
+            context.labelLookupTable,
           );
 
-          expectExternalEntity(actual, {
-            id: null,
-            name: 'label-name-2-suffix',
-            externalId: 'label-external-id-not-2-the-second',
-          });
-
-          context.pipe.processedItems.labels.push(actual);
-
-          actual = await processor.runOnLabel(
-            generateNormalizedLabel('-not-2-the-third', null, 'label-name-2'),
+          prepareProcessedItem(
+            actual,
+            context.labelLookupTable,
+            context.pipe.processedItems.labels,
           );
 
-          expectExternalEntity(actual, {
-            id: null,
-            name: 'label-name-2-suffix-suffix',
-            externalId: 'label-external-id-not-2-the-third',
-          });
+          const moreItem = generateNormalizedLabel(
+            '-not-2-the-third',
+            null,
+            'label-name-2',
+          );
+          prepareForProcessing(moreItem, context.labelLookupTable);
+
+          actual = await processor.runOnLabel(moreItem);
+
+          expectExternalEntity(
+            actual,
+            {
+              id: null,
+              name: 'label-name-2-suffix-suffix',
+              externalId: 'label-external-id-not-2-the-third',
+            },
+            context.labelLookupTable,
+          );
         });
       });
     });
 
     describe('when no suffix is configured', () => {
       beforeEach(() => {
-        context.pipe.processedItems.labels.push(
+        prepareProcessedItem(
           generateNormalizedLabel('-1'),
+          context.labelLookupTable,
+          context.pipe.processedItems.labels,
+        );
+        prepareProcessedItem(
           generateNormalizedLabel('-2'),
+          context.labelLookupTable,
+          context.pipe.processedItems.labels,
+        );
+        prepareProcessedItem(
           generateNormalizedLabel('-3'),
+          context.labelLookupTable,
+          context.pipe.processedItems.labels,
         );
 
         processor.initialize({}, adapters, context);
@@ -240,9 +296,10 @@ describe('NameConflictResolver', () => {
     });
   });
 
-  function expectExternalEntity(
+  function expectExternalEntity<T extends NamedEntity>(
     actual: NamedEntity | null,
     expected: NamedEntity,
+    lookupTable: Record<string, T>,
   ): void {
     const { externalId, name } = actual!;
     expect({
@@ -250,5 +307,23 @@ describe('NameConflictResolver', () => {
       name,
       externalId,
     }).toStrictEqual(expected);
+
+    expect(lookupTable[externalId!].name).toBe(name);
+  }
+
+  function prepareProcessedItem<T extends NamedEntity>(
+    item: T,
+    lookupTable: Record<string, T>,
+    processedItemList: T[],
+  ): void {
+    processedItemList.push(item);
+    lookupTable[item.externalId!] = item;
+  }
+
+  function prepareForProcessing<T extends NamedEntity>(
+    item: T,
+    lookupTable: Record<string, T>,
+  ): void {
+    lookupTable[item.externalId!] = item;
   }
 });

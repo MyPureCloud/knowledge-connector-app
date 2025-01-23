@@ -130,6 +130,7 @@ describe('contentMapper', () => {
       },
       articleLookupTable: {},
       labelLookupTable: {},
+      categoryLookupTable: {},
     };
   }
 });

@@ -1,7 +1,12 @@
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
 import { Document } from '../model/document.js';
-import { Context, SyncableContents } from '../model';
+import {
+  CategoryReference,
+  Context,
+  LabelReference,
+  SyncableContents,
+} from '../model';
 import { ExternalLink } from '../model/external-link.js';
 
 export interface PipeContext extends Context {
@@ -23,5 +28,7 @@ export interface PipeContext extends Context {
     labels: Label[];
   };
   syncableContents: SyncableContents;
+  categoryLookupTable: Record<string, CategoryReference>;
+  labelLookupTable: Record<string, LabelReference>;
   articleLookupTable: Record<string, ExternalLink>;
 }

@@ -5,6 +5,7 @@ import { CategoryReference } from '../model/category-reference.js';
 import { ServiceNowCategory } from './model/servicenow-category.js';
 import { ServiceNowContext } from './model/servicenow-context.js';
 import { ServiceNowMapperConfiguration } from './model/servicenow-mapper-configuration.js';
+import { MissingReferenceError } from '../utils/errors/missing-reference-error.js';
 
 export function categoryMapper(
   category: ServiceNowCategory,
@@ -16,11 +17,18 @@ export function categoryMapper(
     parent_id: parent,
   } = category;
 
-  const parentCategory =
-    parent && parent.value ? context.categoryLookupTable[parent.value] : null;
-  if (parentCategory === undefined) {
-    // Parent is not yet processed
-    return [];
+  let parentCategory: CategoryReference | null;
+  if (
+    !parent?.value ||
+    parent?.link.includes(`api/now/table/kb_knowledge_base/${parent?.value}`)
+  ) {
+    parentCategory = null;
+  } else {
+    parentCategory = context.categoryLookupTable[parent.value];
+    if (!parentCategory) {
+      // Parent is not yet processed
+      return [];
+    }
   }
 
   return [
@@ -28,9 +36,7 @@ export function categoryMapper(
       id: null,
       name,
       externalId,
-      parentCategory: parentCategory
-        ? { id: null, name: parentCategory.full_category }
-        : null,
+      parentCategory: parentCategory,
     },
   ];
 }
@@ -38,7 +44,10 @@ export function categoryMapper(
 export function articleMapper(
   article: ServiceNowArticle,
   configuration: ServiceNowMapperConfiguration,
+  context: ServiceNowContext,
 ): Document[] {
+  const { categoryLookupTable } = context;
+
   const {
     id,
     number,
@@ -60,7 +69,7 @@ export function articleMapper(
       },
     ],
     category: configuration.fetchCategories
-      ? getCategoryReference(article)
+      ? getCategoryReference(article, categoryLookupTable)
       : null,
     labels: null,
   };
@@ -81,12 +90,21 @@ export function articleMapper(
 
 function getCategoryReference(
   article: ServiceNowArticle,
+  categoryLookupTable: Record<string, CategoryReference>,
 ): CategoryReference | null {
   if (!article.fields.kb_category?.value) {
     return null;
   }
 
-  return { id: null, name: article.fields.kb_category?.display_value };
+  const category = categoryLookupTable[article.fields.kb_category.value];
+  if (!category) {
+    throw new MissingReferenceError(
+      'Category',
+      article.fields.kb_category?.value,
+    );
+  }
+
+  return category;
 }
 
 function buildExternalUrl(

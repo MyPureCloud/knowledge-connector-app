@@ -389,6 +389,7 @@ describe('ServiceNowApi', () => {
       },
       articleLookupTable: {},
       categoryLookupTable: {},
+      labelLookupTable: {},
     };
   }
 

@@ -37,12 +37,14 @@ describe('ZendeskLoader', () => {
   const DOCUMENT = generateRawDocument(
     'article-body',
     {
-      id: CATEGORY_EXTERNAL_ID,
+      id: null,
+      externalId: CATEGORY_EXTERNAL_ID,
       name: CATEGORY_NAME,
     },
     [
       {
         id: null,
+        externalId: 'label-external-id',
         name: 'label-name',
       },
     ],
@@ -88,6 +90,7 @@ describe('ZendeskLoader', () => {
 
     it('should map articles', async () => {
       await loader.categoryIterator().next();
+      await loader.labelIterator().next();
       const { value } = await loader.documentIterator().next();
       expect(value).toEqual(DOCUMENT);
     });
@@ -175,6 +178,7 @@ describe('ZendeskLoader', () => {
       },
       articleLookupTable: {},
       categoryLookupTable: {},
+      labelLookupTable: {},
     };
   }
 });

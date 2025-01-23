@@ -27,6 +27,7 @@ describe('SalesforceLoader', () => {
     [
       {
         id: null,
+        externalId: 'category-url',
         name: 'category-group-label/category-label',
       },
     ],
@@ -161,6 +162,7 @@ describe('SalesforceLoader', () => {
       },
       articleLookupTable: {},
       labelLookupTable: {},
+      categoryLookupTable: {},
     };
   }
 });

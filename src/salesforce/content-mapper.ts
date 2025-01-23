@@ -40,7 +40,7 @@ export function articleMapper(
           category.url,
           context.labelLookupTable,
         )?.name;
-        return { id: null, name: name! };
+        return { id: null, externalId: category.url, name: name! };
       }),
     );
   }
@@ -134,8 +134,8 @@ function buildExternalUrl(
 
 function getLabelByExternalId(
   externalId: string,
-  labels: Record<string, Label>,
-): Label | null {
+  labels: Record<string, LabelReference>,
+): LabelReference | null {
   return labels[externalId] || null;
 }
 

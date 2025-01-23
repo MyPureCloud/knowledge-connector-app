@@ -364,19 +364,6 @@ export class Pipe {
       ...(context.storedContent.documents || []),
     ];
 
-    context.pipe = {
-      processedItems: {
-        categories: [],
-        labels: [],
-        documents: [],
-      },
-      unprocessedItems: {
-        categories: [],
-        labels: [],
-        documents: [],
-      },
-    };
-
     return context;
   }
 
@@ -436,6 +423,8 @@ export class Pipe {
           deleted: [],
         },
       },
+      categoryLookupTable: {},
+      labelLookupTable: {},
       articleLookupTable: {},
     };
   }

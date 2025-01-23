@@ -67,7 +67,7 @@ export class ServiceNowApi {
       yield item;
     }
 
-    this.apiContext.articles.done = true;
+    this.apiContext.categories.done = true;
   }
 
   public async *articleIterator(): AsyncGenerator<
