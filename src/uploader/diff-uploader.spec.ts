@@ -15,6 +15,7 @@ import {
 import { MockInstance } from 'jest-mock';
 import { ConfigurerError } from '../aggregator/errors/configurer-error.js';
 
+jest.mock('../utils/package-version.js');
 jest.mock('../genesys/genesys-destination-adapter.js');
 
 describe('DiffUploader', () => {

@@ -12,6 +12,7 @@ import { cloneDeep } from 'lodash';
 import { DocumentBodyBlock } from 'knowledge-html-converter';
 import { PipeContext } from '../../pipe/pipe-context.js';
 
+jest.mock('../../utils/package-version.js');
 jest.mock('../../genesys/genesys-destination-adapter.js');
 jest.mock('knowledge-html-converter', () => {
   return {

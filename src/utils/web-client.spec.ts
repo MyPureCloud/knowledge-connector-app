@@ -1,8 +1,17 @@
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
 import { fetch, fetchImage, readResponse, Response } from './web-client.js';
 import { ApiError } from '../adapter/errors/api-error.js';
 import { Interrupted } from './errors/interrupted.js';
 import { runtime } from './runtime.js';
+
+jest.mock('./package-version.js');
 
 describe('WebClient', () => {
   const URL = 'https://some-random-url.genesys.com';

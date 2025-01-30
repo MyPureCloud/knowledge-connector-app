@@ -11,6 +11,7 @@ import { ServiceNowCategory } from './model/servicenow-category.js';
 import { ServiceNowCategoryResponse } from './model/servicenow-category-response.js';
 import { ServiceNowSingleArticleResponse } from './model/servicenow-single-article-response.js';
 
+jest.mock('../utils/package-version.js');
 jest.mock('../utils/web-client.js');
 
 describe('ServiceNowApi', () => {

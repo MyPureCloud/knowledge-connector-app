@@ -15,6 +15,7 @@ import { Document } from '../../model/document.js';
 import { cloneDeep } from 'lodash';
 import { PipeContext } from '../../pipe/pipe-context.js';
 
+jest.mock('../../utils/package-version.js');
 jest.mock('../../utils/web-client.js');
 jest.mock('../../genesys/genesys-destination-adapter.js');
 

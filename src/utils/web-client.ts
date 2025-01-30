@@ -8,13 +8,12 @@ import {
 } from 'undici';
 import { DownloadError } from './errors/download-error.js';
 import { ApiError } from '../adapter/errors/api-error.js';
-import { readFileSync } from 'node:fs';
 import { runtime } from './runtime.js';
+import { getPackageVersion } from './package-version.js';
 
 export { Response, RequestInit, HeadersInit } from 'undici';
 
-const packageVersion = process.env.npm_package_version ||
-    JSON.parse(readFileSync(new URL('../../package.json', import.meta.url)).toString()).version || 'no version';
+const packageVersion = getPackageVersion();
 const nodeVersion = process.version;
 
 /**
@@ -64,7 +63,10 @@ export async function fetch(
   runtime.check();
 
   const headers = new Headers(init?.headers);
-  headers.set('User-Agent', `knowledge-connector-app/${packageVersion} (node.js ${nodeVersion})`);
+  headers.set(
+    'User-Agent',
+    `knowledge-connector-app/${packageVersion} (node.js ${nodeVersion})`,
+  );
 
   const updatedInit = {
     ...init,

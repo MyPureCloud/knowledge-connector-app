@@ -9,6 +9,7 @@ import { arraysFromAsync } from '../utils/arrays.js';
 import { SalesforceArticle } from './model/salesforce-article.js';
 import { Interrupted } from '../utils/errors/interrupted.js';
 
+jest.mock('../utils/package-version.js');
 jest.mock('../utils/web-client.js');
 
 describe('SalesforceApi', () => {
