@@ -5,13 +5,13 @@ import { parseConfig } from './utils/config-parser.js';
 import winston from 'winston';
 import { setLogger } from './utils/logger.js';
 
+const config = parseConfig();
+
 const logger = winston.createLogger({
   transports: [new winston.transports.Console()],
-  level: 'info',
+  level: config['logLevel'] ?? 'info',
 });
 setLogger(logger);
-
-const config = parseConfig();
 
 loadConfigurer(config)
   .then((configurer) => {
