@@ -206,6 +206,13 @@ BUILD_EXTERNAL_URLS=
 ATTACHMENT_DOMAIN_ALLOW_LIST=
 ```
 
+#### Log level
+
+```
+# Set log level Values: 'info' or 'debug'. Default 'info'.
+LOG_LEVEL=
+```
+
 ### Installation
 
 1. Install dependencies `npm install`
