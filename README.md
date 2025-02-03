@@ -209,7 +209,7 @@ ATTACHMENT_DOMAIN_ALLOW_LIST=
 #### Log level
 
 ```
-# Set log level (default: info), accaptable values: info, debug
+# Set log level Values: 'info' or 'debug'. Default 'info'.
 LOG_LEVEL=
 ```
 
