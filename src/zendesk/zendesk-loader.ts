@@ -1,74 +1,111 @@
 import { ZendeskAdapter } from './zendesk-adapter.js';
-import { ExternalContent } from '../model/external-content.js';
-import { contentMapper } from './content-mapper.js';
 import { ZendeskConfig } from './model/zendesk-config.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Adapter } from '../adapter/adapter.js';
-import { validateNonNull } from '../utils/validate-non-null.js';
-import { getLogger } from '../utils/logger.js';
 import { AbstractLoader } from '../pipe/abstract-loader.js';
-import { ZendeskArticle } from './model/zendesk-article.js';
-import { ZendeskCategory } from './model/zendesk-category.js';
+import { ZendeskContext } from './model/zendesk-context.js';
+import {
+  articleMapper,
+  categoryMapper,
+  labelMapper,
+} from './content-mapper.js';
+import { Document } from '../model/document.js';
+import { Category } from '../model/category.js';
+import { Label } from '../model/label.js';
+import { ZendeskSection } from './model/zendesk-section.js';
 import { ZendeskLabel } from './model/zendesk-label.js';
+import { ZendeskArticle } from './model/zendesk-article.js';
 
 /**
- * ZendeskLoader is a specific {@Link Loader} implementation for fetching data from Zendesk's API
+ * ZendeskLoader is a specific {@Link Loader} implementation for fetching data from Zendesk API
  */
-export class ZendeskLoader extends AbstractLoader {
+export class ZendeskLoader extends AbstractLoader<ZendeskContext> {
   private adapter?: ZendeskAdapter;
 
   public async initialize(
     _config: ZendeskConfig,
     adapters: AdapterPair<ZendeskAdapter, Adapter>,
+    context: ZendeskContext,
   ): Promise<void> {
-    await super.initialize(_config, adapters);
+    await super.initialize(_config, adapters, context);
 
     this.adapter = adapters.sourceAdapter;
+
+    if (!this.context!.categoryLookupTable) {
+      this.context!.categoryLookupTable = {};
+    }
   }
 
-  public async run(_input?: ExternalContent): Promise<ExternalContent> {
-    validateNonNull(this.adapter, 'Missing source adapter');
+  public async *categoryIterator(): AsyncGenerator<Category, void, void> {
+    if (!this.shouldLoadCategories()) {
+      return;
+    }
 
-    getLogger().info('Fetching data...');
-    const [categories, labels, articles] = await Promise.all([
-      this.loadCategories(),
-      this.loadLabels(),
-      this.loadArticles(),
-    ]);
+    yield* this.loadItems<ZendeskSection, Category>(
+      this.adapter!.categoryIterator(),
+      (item: ZendeskSection): Category[] => {
+        this.addCategoryToLookupTable(item);
 
-    const data = contentMapper(
-      categories,
-      labels,
-      articles,
-      this.shouldLoadCategories(),
-      this.shouldLoadLabels(),
+        return categoryMapper(item, this.context!);
+      },
+      this.context!.adapter.unprocessedItems.categories,
     );
-
-    getLogger().info('Categories loaded: ' + data.categories.length);
-    getLogger().info('Labels loaded: ' + data.labels.length);
-    getLogger().info('Documents loaded: ' + data.documents.length);
-
-    return data;
   }
 
-  private async loadArticles(): Promise<ZendeskArticle[]> {
-    if (this.shouldLoadArticles()) {
-      return this.adapter!.getAllArticles();
+  public async *labelIterator(): AsyncGenerator<Label, void, void> {
+    if (!this.shouldLoadLabels()) {
+      return;
     }
-    return [];
+
+    yield* this.loadItems<ZendeskLabel, Label>(
+      this.adapter!.labelIterator(),
+      (item: ZendeskLabel): Label[] => {
+        this.addLabelToLookupTable(item);
+
+        return labelMapper(item);
+      },
+      this.context!.adapter.unprocessedItems.labels,
+    );
   }
 
-  private async loadCategories(): Promise<ZendeskCategory[]> {
-    if (this.shouldLoadCategories()) {
-      return this.adapter!.getAllCategories();
+  public async *documentIterator(): AsyncGenerator<Document, void, void> {
+    if (!this.shouldLoadArticles()) {
+      return;
     }
-    return [];
+
+    yield* this.loadItems<ZendeskArticle, Document>(
+      this.adapter!.articleIterator(),
+      (item: ZendeskArticle): Document[] => {
+        return articleMapper(
+          item,
+          this.context!,
+          this.shouldLoadCategories(),
+          this.shouldLoadLabels(),
+        );
+      },
+      this.context!.adapter.unprocessedItems.articles,
+    );
   }
 
-  private async loadLabels(): Promise<ZendeskLabel[]> {
-    if (this.shouldLoadLabels()) {
-      return this.adapter!.getAllLabels();
-    }
-    return [];
+  private addCategoryToLookupTable(item: ZendeskSection) {
+    const { id, name } = item;
+
+    this.context!.categoryLookupTable[`${id}`] = {
+      id,
+      externalId: id,
+      name,
+    };
+  }
+
+  private addLabelToLookupTable(item: ZendeskSection) {
+    const { id, name } = item;
+
+    const labelReference = {
+      id: null,
+      externalId: id,
+      name,
+    };
+    this.context!.labelLookupTable[id] = labelReference;
+    this.context!.labelLookupTable[name] = labelReference;
   }
 }

@@ -9,6 +9,7 @@ import { DiffUploader } from '../uploader/diff-uploader.js';
 import { ServiceNowAdapter } from './servicenow-adapter.js';
 import { ServiceNowLoader } from './servicenow-loader.js';
 import { UrlTransformer } from '../processor/url-transformer/url-transformer.js';
+import { NameConflictResolver } from '../processor/name-conflict-resolver/name-conflict-resolver.js';
 
 export const configurer: Configurer = (pipe: Pipe): void => {
   pipe
@@ -20,6 +21,7 @@ export const configurer: Configurer = (pipe: Pipe): void => {
       new UrlTransformer(),
       new PrefixExternalId(),
       new DocumentLinkProcessor(),
+      new NameConflictResolver(),
     )
     .aggregator(new DiffAggregator())
     .uploaders(new DiffUploader());

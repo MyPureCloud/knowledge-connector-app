@@ -2,5 +2,6 @@ export { AttachmentDomainValidator } from './attachment-domain-validator/attachm
 export { DocumentLinkProcessor } from './document-link/document-link-processor.js';
 export { HtmlTransformer } from './html-transformer/html-transformer.js';
 export { ImageProcessor } from './image/image-processor.js';
+export { NameConflictResolver } from './name-conflict-resolver/name-conflict-resolver.js';
 export { PrefixExternalId } from './prefix-external-id/prefix-external-id.js';
 export { UrlTransformer } from './url-transformer/url-transformer.js';

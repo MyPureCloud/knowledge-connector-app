@@ -1,31 +1,21 @@
 import { Aggregator } from './aggregator.js';
-import { ExternalContent } from '../model/external-content.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
 import { Adapter } from '../adapter/adapter.js';
-import {
-  ImportableContent,
-  SyncableContents,
-} from '../model/syncable-contents.js';
-import { validateNonNull } from '../utils/validate-non-null.js';
+import { ImportableContent } from '../model/syncable-contents.js';
 import _ from 'lodash';
 import { ExternalIdentifiable } from '../model/external-identifiable.js';
-import {
-  Document,
-  DocumentVersion,
-  Variation,
-} from '../model/sync-export-model.js';
+import { Document, DocumentVersion, Variation } from '../model/document.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
 import { CategoryReference } from '../model/category-reference.js';
 import { LabelReference } from '../model/label-reference.js';
 import { GeneratedValue } from '../utils/generated-value.js';
 import { DestinationAdapter } from '../adapter/destination-adapter.js';
-import { NamedEntity } from '../model/named-entity.js';
 import { DiffAggregatorConfig } from './diff-aggregator-config.js';
-import { extractLinkBlocksFromVariation } from '../utils/link-object-extractor.js';
-import { getLogger } from '../utils/logger.js';
-import { ConfigurerError } from './errors/configurer-error.js';
-import { Identifiable } from '../model/identifiable.js';
+import { PipeContext } from '../pipe/pipe-context.js';
+import { MissingReferenceError } from '../utils/errors/missing-reference-error.js';
+
+const HELPER_PROPERTIES = ['externalIdAlternatives'];
 
 /**
  * The DiffAggregator transforms the ExternalContent into ImportableContents,
@@ -33,163 +23,112 @@ import { Identifiable } from '../model/identifiable.js';
  * It detects changes by fetching the current state of the destination system and compare the two based on 'externalId'.
  */
 export class DiffAggregator implements Aggregator {
-  private config: DiffAggregatorConfig = {};
-  private adapter?: DestinationAdapter;
-  private allowPruneAllEntities: boolean = false;
+  private context?: PipeContext;
+  private protectedFields: string[] = [];
+  private externalIdPrefix: string = '';
 
   public async initialize(
     config: DiffAggregatorConfig,
-    adapters: AdapterPair<Adapter, DestinationAdapter>,
+    _adapters: AdapterPair<Adapter, DestinationAdapter>,
+    context: PipeContext,
   ): Promise<void> {
-    this.config = config;
-    this.adapter = adapters.destinationAdapter;
+    this.context = context;
 
-    this.allowPruneAllEntities = config.allowPruneAllEntities === 'true';
+    this.protectedFields = (config.protectedFields ?? '').split(',');
+    this.externalIdPrefix = config.externalIdPrefix ?? '';
   }
 
-  public async run(
-    externalContent: ExternalContent,
-  ): Promise<SyncableContents> {
-    validateNonNull(this.adapter, 'Missing destination adapter');
+  public async runOnCategory(content: Category): Promise<void> {
+    const { categories: storedCategories = [] } =
+      this.context!.storedContent || {};
 
-    const exportResult = await this.adapter!.exportAllEntities();
-    const {
-      categories: storedCategories = [],
-      labels: storedLabels = [],
-      documents: storedDocuments = [],
-    } = this.removeGeneratedContent(exportResult.importAction);
-    const {
-      categories: collectedCategories = [],
-      labels: collectedLabels = [],
-      documents: collectedDocuments = [],
-    } = externalContent;
-
-    this.resolveNameConflicts(collectedCategories, storedCategories);
-    this.resolveNameConflicts(collectedLabels, storedLabels);
-
-    const categories = this.collectModifiedItems(
-      collectedCategories,
+    this.collectModifiedItem(
+      content,
       storedCategories,
-      this.normalizeCategory.bind(this),
+      (category: Category) => this.normalizeCategory(category),
+      this.context!.syncableContents.categories,
     );
+  }
 
-    const labels = this.collectModifiedItems(
-      collectedLabels,
+  public async runOnLabel(content: Label): Promise<void> {
+    const { labels: storedLabels = [] } = this.context!.storedContent || {};
+
+    this.collectModifiedItem(
+      content,
       storedLabels,
       this.normalizeLabel.bind(this),
+      this.context!.syncableContents.labels,
     );
-
-    const documents = this.collectModifiedItems(
-      collectedDocuments,
-      storedDocuments,
-      (doc) =>
-        this.normalizeDocument(
-          doc,
-          [...collectedCategories, ...storedCategories],
-          [...collectedLabels, ...storedLabels],
-        ),
-    );
-
-    return {
-      categories,
-      labels,
-      documents,
-    };
   }
 
-  private collectModifiedItems<T extends ExternalIdentifiable>(
-    collectedItems: T[],
+  public async runOnDocument(content: Document): Promise<void> {
+    const { documents: storedDocuments = [] } =
+      this.context!.storedContent || {};
+
+    this.collectModifiedItem(
+      content,
+      storedDocuments,
+      (doc) => this.normalizeDocument(doc),
+      this.context!.syncableContents.documents,
+    );
+  }
+
+  private collectModifiedItem<T extends ExternalIdentifiable>(
+    collectedItem: T,
     storedItems: T[],
     normalizer: (item: T) => T,
-  ): ImportableContent<T> {
+    result: ImportableContent<T>,
+  ): void {
     const unprocessedStoredItems = [...storedItems];
 
-    const result: ImportableContent<T> = {
-      created: [],
-      updated: [],
-      deleted: [],
-    };
+    const normalizedCollectedItem = normalizer(collectedItem);
+    const index = unprocessedStoredItems.findIndex(
+      (currentItem) =>
+        currentItem &&
+        this.isSameByExternalId(normalizedCollectedItem, currentItem),
+    );
+    if (index > -1) {
+      const [storedItem] = unprocessedStoredItems.splice(index, 1);
+      const normalizedStoredItem = normalizer(storedItem);
 
-    collectedItems.forEach((collectedItem: T): void => {
-      const normalizedCollectedItem = normalizer(collectedItem);
-      const index = unprocessedStoredItems.findIndex(
-        (currentItem) =>
-          currentItem &&
-          currentItem.externalId === normalizedCollectedItem.externalId,
-      );
-      if (index > -1) {
-        const [storedItem] = unprocessedStoredItems.splice(index, 1);
-        const normalizedStoredItem = normalizer(storedItem);
+      this.copyProtectedContent(normalizedStoredItem, normalizedCollectedItem);
 
-        this.copyProtectedContent(
-          normalizedStoredItem,
-          normalizedCollectedItem,
-        );
-
-        if (
-          !_.isEqualWith(
-            normalizedCollectedItem,
-            normalizedStoredItem,
-            (c, s) => this.isEqualCustomizer(c, s),
-          )
-        ) {
-          result.updated.push(normalizedCollectedItem);
-        }
-      } else {
-        result.created.push(normalizedCollectedItem);
+      if (
+        !_.isEqualWith(normalizedCollectedItem, normalizedStoredItem, (c, s) =>
+          this.isEqualCustomizer(c, s),
+        )
+      ) {
+        result.updated.push(normalizedCollectedItem);
       }
-    });
-
-    const prefix = this.config.externalIdPrefix;
-    const sourceId = this.getSourceId();
-    result.deleted = unprocessedStoredItems.filter((item: T) =>
-      this.isFromSameSource(item, prefix, sourceId),
-    );
-
-    const storedItemsFromSameSource = storedItems.filter((item: T) =>
-      this.isFromSameSource(item, prefix, sourceId),
-    );
-    if (
-      result.deleted.length > 0 &&
-      result.deleted.length === storedItemsFromSameSource.length &&
-      result.created.length === 0 &&
-      !this.allowPruneAllEntities
-    ) {
-      getLogger().error(
-        'Prune all entities are not allowed. This protection can be disabled with ALLOW_PRUNE_ALL_ENTITIES=true in the configuration.',
+      result.deleted = result.deleted.filter(
+        (i: T) => !this.isSameByExternalId(normalizedCollectedItem, i),
       );
-      throw new ConfigurerError('Prune all entities are not allowed', {
-        cause: 'prune.all.entities',
-      });
+    } else {
+      result.created.push(normalizedCollectedItem);
     }
-
-    return result;
   }
 
-  private normalizeDocument(
-    document: Document,
-    allCategories: Category[],
-    allLabels: Label[],
-  ): Document {
-    const { externalId, externalUrl, published, draft } = document;
+  private normalizeDocument(document: Document): Document {
+    const {
+      externalId,
+      externalIdAlternatives,
+      externalUrl,
+      published,
+      draft,
+    } = document;
 
     return {
       id: null,
       externalId: externalId || null,
+      externalIdAlternatives: externalIdAlternatives || null,
       externalUrl: externalUrl || null,
-      published: published
-        ? this.normalizeDocumentVersion(published, allCategories, allLabels)
-        : null,
-      draft: draft
-        ? this.normalizeDocumentVersion(draft, allCategories, allLabels)
-        : null,
+      published: published ? this.normalizeDocumentVersion(published) : null,
+      draft: draft ? this.normalizeDocumentVersion(draft) : null,
     };
   }
 
   private normalizeDocumentVersion(
     documentVersion: DocumentVersion,
-    allCategories: Category[],
-    allLabels: Label[],
   ): DocumentVersion {
     const { title, alternatives, visible, category, labels, variations } =
       documentVersion;
@@ -197,13 +136,10 @@ export class DiffAggregator implements Aggregator {
       title: title ? title.trim() : title,
       alternatives: alternatives ?? null,
       visible,
-      category: category
-        ? this.normalizeCategoryReference(category, allCategories)
+      category: category ? this.normalizeCategoryReference(category) : null,
+      labels: labels?.length
+        ? labels.map((l) => this.normalizeLabelReference(l)).filter((l) => !!l)
         : null,
-      labels:
-        labels && labels.length
-          ? labels.map((l) => this.normalizeLabelReference(l, allLabels))
-          : null,
       variations: variations.map(this.normalizeVariation),
     };
   }
@@ -223,37 +159,35 @@ export class DiffAggregator implements Aggregator {
 
     return {
       id: null,
-      externalId: externalId || null,
+      externalId: externalId ?? null,
       name,
-      parentCategory: this.normalizeCategoryReference(parentCategory, []),
+      parentCategory: this.normalizeCategoryReference(parentCategory),
     };
   }
 
   private normalizeCategoryReference(
     categoryReference: CategoryReference | null,
-    allCategories: Category[],
   ): CategoryReference | null {
     if (!categoryReference) {
       return null;
     }
 
-    const category = allCategories
-      .filter(
-        (c) => c.externalId === this.getPrefixedExternalId(categoryReference),
-      )
-      .shift();
+    if (!categoryReference.externalId && categoryReference.name) {
+      const { name } = this.getFinalVersionByName(
+        categoryReference.name,
+        this.context!.categoryLookupTable,
+      );
 
-    if (!category) {
-      return {
-        id: null,
-        name: categoryReference.name,
-      };
+      return { id: null, externalId: null, name };
     }
 
-    return {
-      id: null,
-      name: category.name,
-    };
+    const { name } = this.getFinalVersion(
+      categoryReference.externalId!,
+      this.context!.categoryLookupTable,
+      'Category',
+    );
+
+    return { id: null, externalId: null, name };
   }
 
   private normalizeLabel(label: Label): Label {
@@ -261,7 +195,7 @@ export class DiffAggregator implements Aggregator {
 
     return {
       id: null,
-      externalId: externalId || null,
+      externalId: externalId ?? null,
       name,
       color,
     };
@@ -269,29 +203,34 @@ export class DiffAggregator implements Aggregator {
 
   private normalizeLabelReference(
     labelReference: LabelReference,
-    allLabels: Label[],
-  ): LabelReference {
-    const label = allLabels
-      .filter(
-        (c) => c.externalId === this.getPrefixedExternalId(labelReference),
-      )
-      .shift();
-
-    if (!label) {
-      return {
-        id: null,
-        name: labelReference.name,
-      };
+  ): LabelReference | null {
+    if (!labelReference) {
+      return null;
     }
+
+    if (!labelReference.externalId && labelReference.name) {
+      const { name } = this.getFinalVersionByName(
+        labelReference.name,
+        this.context!.labelLookupTable,
+      );
+
+      return { id: null, externalId: null, name };
+    }
+
+    const { name } = this.getFinalVersion(
+      labelReference.externalId!,
+      this.context!.labelLookupTable,
+      'Label',
+    );
 
     return {
       id: null,
-      name: label.name,
+      externalId: null,
+      name,
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private isEqualCustomizer(c: any, s: any): boolean | undefined {
+  private isEqualCustomizer(c: unknown, s: unknown): boolean | undefined {
     if (_.isString(c) && c === GeneratedValue.COLOR) {
       return true; // always accept stored value if collected value is generated
     }
@@ -299,120 +238,98 @@ export class DiffAggregator implements Aggregator {
     if (_.isArray(c) && _.isArray(s) && c.length && _.isString(c[0])) {
       return _.isEqual(c.sort(), s.sort());
     }
+
+    if (this.hasHelperProperty(c)) {
+      return _.isEqualWith(
+        this.objectWithoutHelperProperties(c as object),
+        this.objectWithoutHelperProperties(s as object),
+        (c, s) => this.isEqualCustomizer(c, s),
+      );
+    }
   }
 
   private copyProtectedContent<T extends object>(
     source: T,
     destination: T,
   ): void {
-    if (!this.config.protectedFields) {
-      return;
-    }
-    const fieldPaths = this.config.protectedFields.split(',');
-    fieldPaths.forEach((path) => {
+    this.protectedFields.forEach((path) => {
       if (_.has(source, path)) {
         _.set(destination, path, _.get(source, path));
       }
     });
   }
 
-  private removeGeneratedContent(content: ExternalContent): ExternalContent {
-    content.documents?.forEach((document) => {
-      [
-        ...(document.published?.variations ?? []),
-        ...(document.draft?.variations ?? []),
-      ].forEach((variation) =>
-        extractLinkBlocksFromVariation(variation).forEach((block) => {
-          if (block.externalDocumentId) {
-            delete block.hyperlink;
-          }
-        }),
-      );
-    });
-
-    return content;
-  }
-
-  private resolveNameConflicts<T extends NamedEntity>(
-    collectedItems: T[],
-    storedItems: T[],
-  ): void {
-    const processedItems = [...storedItems];
-    collectedItems.forEach((collectedItem: T): void => {
-      if (this.hasNameConflict(collectedItem, processedItems)) {
-        this.resolveNameConflict(collectedItem, processedItems);
-      }
-      processedItems.push(collectedItem);
-    });
-  }
-
-  private resolveNameConflict<T extends NamedEntity>(
-    collectedItem: T,
-    processedItems: T[],
-  ): void {
-    validateNonNull(
-      this.config.nameConflictSuffix,
-      `Name conflict found "${collectedItem.name}". Try to use "NAME_CONFLICT_SUFFIX" variable`,
-    );
-
-    collectedItem.name += this.config.nameConflictSuffix!;
-
-    if (this.hasNameConflict(collectedItem, processedItems)) {
-      this.resolveNameConflict(collectedItem, processedItems);
-    }
-  }
-
-  private hasNameConflict<T extends NamedEntity>(
-    collectedItem: T,
-    storedItems: T[],
+  private isSameByExternalId(
+    collectedItem: ExternalIdentifiable,
+    storedItem: ExternalIdentifiable,
   ): boolean {
-    return !!storedItems.find(
-      (currentItem) =>
-        currentItem &&
-        currentItem.name?.toLowerCase() === collectedItem.name?.toLowerCase() &&
-        currentItem.externalId !== collectedItem.externalId,
+    return [
+      collectedItem.externalId,
+      ...(collectedItem.externalIdAlternatives?.length
+        ? this.getPrefixedAlternativeIds(collectedItem.externalIdAlternatives)
+        : []),
+    ]
+      .filter((id) => !!id)
+      .includes(storedItem.externalId);
+  }
+
+  private getPrefixedId(id: string | null | undefined): string | null {
+    if (!id) {
+      return null;
+    }
+    return this.externalIdPrefix + id;
+  }
+
+  private getPrefixedAlternativeIds(ids: string[]): string[] {
+    return ids.filter((id) => !!id).map((id) => this.getPrefixedId(id)!);
+  }
+
+  private hasHelperProperty(a: unknown): boolean {
+    return (
+      _.isPlainObject(a) &&
+      _.intersection(Object.keys(a as object), HELPER_PROPERTIES).length > 0
     );
   }
 
-  private isFromSameSource(
-    item: ExternalIdentifiable,
-    prefix: string | undefined,
-    sourceId: string | null,
-  ): boolean {
-    if (sourceId) {
-      return this.isSourceIdMatch(item, sourceId);
+  private objectWithoutHelperProperties(obj: object): object {
+    return _.omit(obj, HELPER_PROPERTIES);
+  }
+
+  private getExternalIdWithoutPrefix(externalId: string): string {
+    if (externalId.startsWith(this.externalIdPrefix)) {
+      return externalId.substring(this.externalIdPrefix.length);
+    }
+    return externalId;
+  }
+
+  private getFinalVersion<R extends CategoryReference | LabelReference>(
+    externalId: string,
+    lookupTable: Record<string, R>,
+    entityType: 'Category' | 'Label' | 'Document',
+  ): R {
+    const item = lookupTable[externalId];
+
+    if (!item) {
+      throw new MissingReferenceError(entityType, externalId);
     }
 
-    if (prefix) {
-      return this.isExternalIdPrefixMatch(item, prefix);
+    return item;
+  }
+
+  private getFinalVersionByName<R extends CategoryReference | LabelReference>(
+    name: string,
+    lookupTable: Record<string, R>,
+  ): R {
+    const item = Object.values(lookupTable).find((item) => item.name === name);
+
+    if (!item) {
+      return {
+        id: null,
+        externalId: null,
+        name,
+      } as R;
     }
 
-    return this.hasExternalId(item);
-  }
-
-  private isSourceIdMatch(
-    item: ExternalIdentifiable,
-    sourceId: string | null,
-  ): boolean {
-    return item.sourceId === sourceId;
-  }
-
-  private isExternalIdPrefixMatch(
-    item: ExternalIdentifiable,
-    prefix: string,
-  ): boolean {
-    return !!item?.externalId && item.externalId.startsWith(prefix);
-  }
-
-  private hasExternalId(item: ExternalIdentifiable): boolean {
-    return !!item?.externalId;
-  }
-
-  private getSourceId(): string | null {
-    return this.config.genesysSourceId || null;
-  }
-
-  private getPrefixedExternalId(item: Identifiable) {
-    return (this.config.externalIdPrefix || '') + item.id;
+    return item;
   }
 }

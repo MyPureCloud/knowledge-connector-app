@@ -15,6 +15,7 @@ import { GenesysApi } from './genesys-api.js';
 import { GenesysDestinationConfig } from './model/genesys-destination-config.js';
 import { fetch } from '../utils/web-client.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
+import { getLogger } from '../utils/logger.js';
 
 export class GenesysDestinationApi extends GenesysApi {
   protected config: GenesysDestinationConfig = {};
@@ -89,10 +90,14 @@ export class GenesysDestinationApi extends GenesysApi {
   public async upload(
     uploadUrl: UploadAssetResponse,
     blob: Blob,
+    contentType: string,
   ): Promise<void> {
     const response = await fetch(uploadUrl.url, {
       method: 'PUT',
-      headers: uploadUrl.headers,
+      headers: {
+        ...uploadUrl.headers,
+        'Content-Type': contentType,
+      },
       body: blob,
     });
     await this.verifyResponse(response, uploadUrl.url);
@@ -116,6 +121,7 @@ export class GenesysDestinationApi extends GenesysApi {
     fileName: string,
     data: Blob,
   ): Promise<DocumentUploadResponse> {
+    getLogger().debug(`Request signed URL for upload`);
     const { url, headers, uploadKey } =
       await this.fetch<DocumentUploadResponse>(
         `/api/v2/knowledge/documentuploads`,
@@ -129,6 +135,7 @@ export class GenesysDestinationApi extends GenesysApi {
 
     validateNonNull(url, 'Missing URL to upload to');
 
+    getLogger().debug(`Uploading data (size: ${data.size})`);
     const response = await fetch(url!, {
       method: 'PUT',
       headers,

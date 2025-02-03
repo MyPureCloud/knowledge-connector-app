@@ -1,129 +1,46 @@
-import { ExternalContent } from '../model/external-content.js';
-import { Document, DocumentVersion } from '../model/sync-export-model.js';
+import { Document, DocumentVersion } from '../model/document.js';
 import { SalesforceCategory } from './model/salesforce-category.js';
 import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
 import { SalesforceArticleLayoutItem } from './model/salesforce-article-layout-item.js';
 import { GeneratedValue } from '../utils/generated-value.js';
 import { LabelReference } from '../model/label-reference.js';
-import { ExternalLink } from '../model/external-link.js';
-import { SalesforceConfig } from './model/salesforce-config.js';
-import { LANGUAGE_MAPPING } from './salesforce-language-mapping.js';
-import { validateNonNull } from '../utils/validate-non-null.js';
+import { Label } from '../model';
+import { SalesforceMapperConfiguration } from './model/salesforce-mapper-configuration.js';
+import { URLSearchParams } from 'url';
+import { SalesforceContext } from './model/salesforce-context.js';
+import { getLogger } from '../utils/logger.js';
 
 const EXCLUDED_FIELD_NAMES = ['Title', 'UrlName'];
 const EXCLUDED_FIELD_TYPES = ['DATE_TIME', 'LOOKUP', 'CHECKBOX'];
 
-export function contentMapper(
-  categoryGroups: SalesforceCategoryGroup[],
-  articles: SalesforceArticleDetails[],
-  config: SalesforceConfig,
-  fetchCategories: boolean,
-  buildExternalUrls: boolean,
-  baseUrl: string,
-): ExternalContent {
-  validateNonNull(
-    config.salesforceLanguageCode,
-    'Missing SALESFORCE_LANGUAGE_CODE from config',
-  );
-
-  let sfLanguageCode = config.salesforceLanguageCode!;
-  if (sfLanguageCode.length > 2) {
-    sfLanguageCode = LANGUAGE_MAPPING[sfLanguageCode] ?? sfLanguageCode;
-  }
-
-  const lightningLanguageCode = sfLanguageCode
-    .replace('-', '_')
-    .replace(/_([a-z]{2})$/, (_, p1) => `_${p1.toUpperCase()}`);
-
-  const labelsMapping = buildIdAndNameMapping(categoryGroups);
-  const contentFields = (
-    config.salesforceArticleContentFields?.split(',') || []
-  )
-    .map((f) => f.trim())
-    .filter((f) => f.length > 0);
-
-  return {
-    labels: Array.from(labelsMapping, ([key, value]) => ({
-      id: null,
-      externalId: key,
-      name: value,
-      color: GeneratedValue.COLOR,
-    })),
-    categories: [],
-    documents: articles
-      ? articles.map((a) =>
-          articleMapper(
-            a,
-            labelsMapping,
-            contentFields,
-            fetchCategories,
-            buildExternalUrls,
-            baseUrl,
-            lightningLanguageCode,
-          ),
-        )
-      : [],
-    articleLookupTable: buildArticleLookupTable(articles),
-  };
-}
-
-function buildIdAndNameMapping(
-  categoryGroups: SalesforceCategoryGroup[],
-): Map<string, string> {
-  const mapping = new Map<string, string>();
-  categoryGroups.forEach((categoryGroup) =>
-    labelMapper(categoryGroup, mapping),
-  );
-
-  return mapping;
-}
-
 // Due to structural differences, Salesforce categories will be mapped to labels
-function labelMapper(
+export function categoryMapper(
   categoryGroup: SalesforceCategoryGroup,
-  labels: Map<string, string>,
-): Map<string, string> {
-  categoryGroup.topCategories.forEach((category) =>
-    labelFlatter(categoryGroup.label, category, labels),
-  );
-
-  return labels;
-}
-
-function labelFlatter(
-  ancestry: string,
-  category: SalesforceCategory,
-  labels: Map<string, string>,
-) {
-  const name = `${ancestry}/${category.label}`;
-  labels.set(category.url, name);
-  if (!category.childCategories || category.childCategories.length == 0) {
-    return;
-  }
-
-  category.childCategories.forEach((child) =>
-    labelFlatter(name, child, labels),
+): Label[] {
+  return categoryGroup.topCategories.flatMap((category) =>
+    categoryFlatter(categoryGroup.label, category),
   );
 }
 
-function articleMapper(
+export function articleMapper(
   article: SalesforceArticleDetails,
-  labelIdAndNameMapping: Map<string, string>,
-  salesforceArticleContentFields: string[],
-  fetchCategories: boolean,
-  buildExternalUrls: boolean,
-  baseUrl?: string,
-  language?: string,
-): Document {
+  context: SalesforceContext,
+  configuration: SalesforceMapperConfiguration,
+): Document[] {
   const { id, title, categoryGroups, layoutItems } = article;
 
+  replaceImageUrls(layoutItems);
+
   let labels: LabelReference[] | null = null;
-  if (fetchCategories) {
+  if (configuration.fetchLabels) {
     labels = categoryGroups.flatMap((categoryGroup) =>
       categoryGroup.selectedCategories.map((category) => {
-        const name = labelIdAndNameMapping.get(category.url);
-        return { id: null, name: name! };
+        const name = getLabelByExternalId(
+          category.url,
+          context.labelLookupTable,
+        )?.name;
+        return { id: null, externalId: category.url, name: name! };
       }),
     );
   }
@@ -134,23 +51,51 @@ function articleMapper(
     title,
     variations: [
       {
-        rawHtml: buildArticleBody(layoutItems, salesforceArticleContentFields),
+        rawHtml: buildArticleBody(layoutItems, configuration.contentFields),
         body: null,
       },
     ],
     category: null,
-    labels: labels,
+    labels,
   };
 
-  return {
-    id: null,
-    externalId: String(id),
-    externalUrl: buildExternalUrls
-      ? buildExternalUrl(baseUrl, language, article.urlName)
-      : null,
-    published: documentVersion,
-    draft: null,
-  };
+  return [
+    {
+      id: null,
+      externalId: String(id),
+      externalUrl: configuration.buildExternalUrls
+        ? buildExternalUrl(
+            configuration.baseUrl,
+            configuration.languageCode,
+            article.urlName,
+          )
+        : null,
+      published: documentVersion,
+      draft: null,
+    },
+  ];
+}
+
+function categoryFlatter(
+  ancestry: string,
+  category: SalesforceCategory,
+): Label[] {
+  const name = `${ancestry}/${category.label}`;
+  const labels: Label[] = [
+    {
+      id: null,
+      externalId: category.url,
+      name,
+      color: GeneratedValue.COLOR,
+    },
+  ];
+  if (category.childCategories && category.childCategories.length > 0) {
+    category.childCategories.forEach((child) =>
+      labels.push(...categoryFlatter(name, child)),
+    );
+  }
+
+  return labels;
 }
 
 function buildArticleBody(
@@ -167,25 +112,12 @@ function buildArticleBody(
 function filterField(
   item: SalesforceArticleLayoutItem,
   contentFields: string[],
-) {
+): boolean {
   return (
     (contentFields.length === 0 || contentFields.includes(item.name)) &&
     !EXCLUDED_FIELD_TYPES.includes(item.type) &&
     !EXCLUDED_FIELD_NAMES.includes(item.name)
   );
-}
-
-function buildArticleLookupTable(articles: SalesforceArticleDetails[]) {
-  const lookupTable: Map<string, ExternalLink> = new Map<
-    string,
-    ExternalLink
-  >();
-  articles.forEach((article) => {
-    if (article.urlName) {
-      lookupTable.set(article.urlName, { externalDocumentId: article.id });
-    }
-  });
-  return lookupTable;
 }
 
 function buildExternalUrl(
@@ -198,4 +130,49 @@ function buildExternalUrl(
   }
 
   return `${baseUrl}/articles/${language}/Knowledge/${urlName}`;
+}
+
+function getLabelByExternalId(
+  externalId: string,
+  labels: Record<string, LabelReference>,
+): LabelReference | null {
+  return labels[externalId] || null;
+}
+
+function replaceImageUrls(layoutItems: SalesforceArticleLayoutItem[]): void {
+  layoutItems.forEach((item) => {
+    if (item.type !== 'RICH_TEXT_AREA') {
+      return;
+    }
+
+    const htmlString = item.value;
+    const regex = /<img[^>]+?src="([^"]+)"/g;
+    let match;
+    while ((match = regex.exec(htmlString)) !== null) {
+      const imageUrl = match[1];
+      const replacedImgUrl = processImageUrl(imageUrl, item.name);
+      item.value = item.value.replace(imageUrl, replacedImgUrl);
+    }
+  });
+}
+
+function processImageUrl(url: string, fieldType: string): string {
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url.replace(/&amp;/g, '&'));
+  } catch (error) {
+    getLogger().debug(`Cannot process image URL ${url} - ${error}`);
+    // Invalid URL, treat it as relative
+    return url;
+  }
+
+  const searchParams = new URLSearchParams(parsedUrl.search);
+  const eid = searchParams.get('eid');
+  const refid = searchParams.get('refid');
+
+  if (eid == null || refid == null) {
+    return url;
+  }
+
+  return `/${eid}/richTextImageFields/${fieldType}/${refid}`;
 }

@@ -1,11 +1,9 @@
-import { Processor } from '../processor.js';
-import { ExternalContent } from '../../model/external-content.js';
 import { createHash } from 'crypto';
 import { Image } from '../../model/image.js';
 import { AdapterPair } from '../../adapter/adapter-pair.js';
 import { ImageSourceAdapter } from '../../adapter/image-source-adapter.js';
 import { validateNonNull } from '../../utils/validate-non-null.js';
-import { Document, Variation } from '../../model/sync-export-model.js';
+import { Document, Variation } from '../../model/document.js';
 import {
   DocumentBodyBlock,
   DocumentBodyImageBlock,
@@ -27,6 +25,11 @@ import { getLogger } from '../../utils/logger.js';
 import { AttachmentDomainNotAllowedError } from '../attachment-domain-validator/attachment-domain-not-allowed-error.js';
 import { removeTrailingSlash } from '../../utils/remove-trailing-slash.js';
 import { isRelativeUrl } from '../../utils/links.js';
+import { Category, Label } from '../../model';
+import { Processor } from '../processor.js';
+import { Context } from '../../context/context.js';
+import { catcher } from '../../utils/catch-error-helper.js';
+import { Interrupted } from '../../utils/errors/interrupted.js';
 
 export class ImageProcessor implements Processor {
   private config: ImageConfig = {};
@@ -40,6 +43,7 @@ export class ImageProcessor implements Processor {
   public async initialize(
     config: ImageConfig,
     adapters: AdapterPair<ImageSourceAdapter, DestinationAdapter>,
+    _context: Context,
   ): Promise<void> {
     this.config = config;
     this.adapter = adapters.sourceAdapter;
@@ -49,14 +53,27 @@ export class ImageProcessor implements Processor {
       this.config.allowImageFromFilesystem === 'true';
     if (this.config?.relativeImageBaseUrl) {
       this.relativeImageBaseUrl = removeTrailingSlash(
-        config.relativeImageBaseUrl || '',
+        config.relativeImageBaseUrl ?? '',
       );
     } else if (this.config?.useResourceBaseUrl === 'true') {
       this.relativeImageBaseUrl = adapters.sourceAdapter.getResourceBaseUrl();
     }
   }
 
-  public async run(content: ExternalContent): Promise<ExternalContent> {
+  public async runOnCategory(item: Category): Promise<Category> {
+    return item;
+  }
+
+  public async runOnLabel(item: Label): Promise<Label> {
+    return item;
+  }
+
+  /**
+   * Run the processor on a document
+   * @param item
+   * @throws ApiError
+   */
+  public async runOnDocument(item: Document): Promise<Document> {
     validateNonNull(this.adapter, 'Missing source adapter');
     validateNonNull(this.genesysAdapter, 'Missing destination adapter');
 
@@ -68,16 +85,19 @@ export class ImageProcessor implements Processor {
 
     this.uploadedImageCount = 0;
 
-    for (const document of content.documents) {
-      for (const variation of [
-        ...(document.published?.variations || []),
-        ...(document.draft?.variations || []),
-      ]) {
-        await this.processArticle(document, variation);
-      }
+    for (const variation of [
+      ...(item.published?.variations || []),
+      ...(item.draft?.variations || []),
+    ]) {
+      await this.processArticle(item, variation);
     }
+
     getLogger().info(`Images uploaded: ${this.uploadedImageCount}`);
-    return Promise.resolve(content);
+    return item;
+  }
+
+  public getPriority(): number {
+    return 0;
   }
 
   private async processArticle(
@@ -140,8 +160,13 @@ export class ImageProcessor implements Processor {
           this.uploadedImageCount++;
         }
       } catch (error) {
-        getLogger().error(`Cannot upload image ${image.url} - ${error}`);
-        this.processImageBlockWithoutUpload(imageBlock);
+        await catcher<void>()
+          .rethrow(Interrupted)
+          .any((error: Error) => {
+            getLogger().error(`Cannot upload image ${image.url} - ${error}`);
+            this.processImageBlockWithoutUpload(imageBlock);
+          })
+          .with(error);
         return;
       }
     }
@@ -211,11 +236,12 @@ export class ImageProcessor implements Processor {
     try {
       image = await this.adapter!.getAttachment(articleId, url);
     } catch (error) {
-      if (error instanceof AttachmentDomainNotAllowedError) {
-        getLogger().debug(error.message);
-        return null;
-      }
-      throw error;
+      return await catcher<null>()
+        .on(AttachmentDomainNotAllowedError, (error) => {
+          getLogger().debug(error.message);
+          return null;
+        })
+        .with(error);
     }
 
     if (!image) {
@@ -242,8 +268,15 @@ export class ImageProcessor implements Processor {
       try {
         image = await this.downloadImage(url);
       } catch (error) {
-        getLogger().warn(`Unable to fetch image [${url}] directly - ${error}`);
-        return null;
+        return await catcher<null>()
+          .rethrow(Interrupted)
+          .any((error) => {
+            getLogger().warn(
+              `Unable to fetch image [${url}] directly - ${error}`,
+            );
+            return null;
+          })
+          .with(error);
       }
     }
 

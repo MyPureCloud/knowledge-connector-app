@@ -12,31 +12,39 @@ import {
   generateNormalizedLabel,
   generateRawDocument,
 } from '../tests/utils/entity-generators.js';
-import { ExternalLink } from '../model/external-link.js';
+import { ZendeskContext } from './model/zendesk-context.js';
 
-const mockGetAllArticles = jest.fn<() => Promise<ZendeskArticle[]>>();
 const mockGetAttachment =
   jest.fn<(articleId: string | null, url: string) => Promise<Image | null>>();
-const mockGetAllCategories = jest.fn<() => Promise<ZendeskCategory[]>>();
-const mockGetAllLabels = jest.fn<() => Promise<ZendeskLabel[]>>();
+const mockCategoryIterator =
+  jest.fn<() => AsyncGenerator<ZendeskCategory, void, void>>();
+const mockLabelIterator =
+  jest.fn<() => AsyncGenerator<ZendeskLabel, void, void>>();
+const mockArticleIterator =
+  jest.fn<() => AsyncGenerator<ZendeskArticle, void, void>>();
+
+const CATEGORY_EXTERNAL_ID = 'category-external-id';
+const CATEGORY_NAME = 'category-name';
 
 describe('ZendeskLoader', () => {
   const LABEL = generateNormalizedLabel('', null, 'label-name');
   const CATEGORY = generateNormalizedCategory(
     '',
     null,
-    'category-name',
-    'category-external-id',
+    CATEGORY_NAME,
+    CATEGORY_EXTERNAL_ID,
   );
   const DOCUMENT = generateRawDocument(
     'article-body',
     {
-      id: 'category-external-id',
-      name: 'category-name',
+      id: null,
+      externalId: CATEGORY_EXTERNAL_ID,
+      name: CATEGORY_NAME,
     },
     [
       {
         id: null,
+        externalId: 'label-external-id',
         name: 'label-name',
       },
     ],
@@ -45,42 +53,46 @@ describe('ZendeskLoader', () => {
   let config: ZendeskConfig;
   let adapter: ZendeskAdapter;
   let loader: ZendeskLoader;
+  let context: ZendeskContext;
 
   beforeEach(async () => {
     config = {};
     adapter = new ZendeskAdapter();
     loader = new ZendeskLoader();
+    context = buildContext();
 
-    mockGetAllArticles.mockResolvedValueOnce([generateLoadedArticle()]);
-    mockGetAllCategories.mockResolvedValueOnce([generateLoadedCategory()]);
-    mockGetAllLabels.mockResolvedValueOnce([generateLoadedLabel()]);
+    mockArticleIterator.mockImplementation(articleIterator);
+    mockCategoryIterator.mockImplementation(categoryIterator);
+    mockLabelIterator.mockImplementation(labelIterator);
   });
 
   describe('run', () => {
     beforeEach(async () => {
-      await loader.initialize(config, {
-        sourceAdapter: adapter,
-        destinationAdapter: {} as Adapter,
-      });
+      await loader.initialize(
+        config,
+        {
+          sourceAdapter: adapter,
+          destinationAdapter: {} as Adapter,
+        },
+        context,
+      );
     });
 
-    it('should fetch articles, categories and labels', async () => {
-      await loader.run();
-
-      expect(mockGetAllArticles).toHaveBeenCalled();
-      expect(mockGetAllCategories).toHaveBeenCalled();
-      expect(mockGetAllLabels).toHaveBeenCalled();
+    it('should map label', async () => {
+      const { value: result } = await loader.labelIterator().next();
+      expect(result).toEqual(LABEL);
     });
 
-    it('should map entities', async () => {
-      const result = await loader.run();
+    it('should map category', async () => {
+      const { value: result } = await loader.categoryIterator().next();
+      expect(result).toEqual(CATEGORY);
+    });
 
-      expect(result).toEqual({
-        labels: [LABEL],
-        documents: [DOCUMENT],
-        categories: [CATEGORY],
-        articleLookupTable: new Map<string, ExternalLink>(),
-      });
+    it('should map articles', async () => {
+      await loader.categoryIterator().next();
+      await loader.labelIterator().next();
+      const { value } = await loader.documentIterator().next();
+      expect(value).toEqual(DOCUMENT);
     });
 
     describe('when categories excluded', () => {
@@ -91,26 +103,13 @@ describe('ZendeskLoader', () => {
             sourceAdapter: adapter,
             destinationAdapter: {} as Adapter,
           },
+          context,
         );
       });
 
       it('should leave categories empty', async () => {
-        const result = await loader.run();
-
-        expect(result).toEqual({
-          labels: [LABEL],
-          documents: [
-            generateRawDocument('article-body', null, [
-              {
-                id: null,
-                name: 'label-name',
-              },
-            ]),
-          ],
-          categories: [],
-          articleLookupTable: new Map<string, ExternalLink>(),
-        });
-        expect(mockGetAllCategories).not.toHaveBeenCalled();
+        const { value: result } = await loader.categoryIterator().next();
+        expect(result).toBeUndefined();
       });
     });
 
@@ -122,28 +121,13 @@ describe('ZendeskLoader', () => {
             sourceAdapter: adapter,
             destinationAdapter: {} as Adapter,
           },
+          context,
         );
       });
 
       it('should leave labels empty', async () => {
-        const result = await loader.run();
-
-        expect(result).toEqual({
-          labels: [],
-          documents: [
-            generateRawDocument(
-              'article-body',
-              {
-                id: 'category-external-id',
-                name: 'category-name',
-              },
-              null,
-            ),
-          ],
-          categories: [CATEGORY],
-          articleLookupTable: new Map<string, ExternalLink>(),
-        });
-        expect(mockGetAllLabels).not.toHaveBeenCalled();
+        const { value: result } = await loader.labelIterator().next();
+        expect(result).toBeUndefined();
       });
     });
 
@@ -155,22 +139,48 @@ describe('ZendeskLoader', () => {
             sourceAdapter: adapter,
             destinationAdapter: {} as Adapter,
           },
+          context,
         );
       });
 
       it('should leave documents empty', async () => {
-        const result = await loader.run();
-
-        expect(result).toEqual({
-          labels: [LABEL],
-          documents: [],
-          categories: [CATEGORY],
-          articleLookupTable: new Map<string, ExternalLink>(),
-        });
-        expect(mockGetAllArticles).not.toHaveBeenCalled();
+        const { value: result } = await loader.documentIterator().next();
+        expect(result).toBeUndefined();
       });
     });
   });
+
+  function buildContext(): ZendeskContext {
+    return {
+      adapter: {
+        unprocessedItems: {
+          categories: [],
+          labels: [],
+          articles: [],
+        },
+      },
+      syncableContents: {
+        categories: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+        labels: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+        documents: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+      },
+      articleLookupTable: {},
+      categoryLookupTable: {},
+      labelLookupTable: {},
+    };
+  }
 });
 
 jest.mock('./zendesk-adapter.js', () => {
@@ -178,15 +188,19 @@ jest.mock('./zendesk-adapter.js', () => {
     ZendeskAdapter: jest.fn().mockImplementation(() => {
       return {
         initialise: jest.fn<(config: ZendeskConfig) => Promise<void>>(),
-        getAllArticles: () => mockGetAllArticles(),
+        categoryIterator: () => mockCategoryIterator(),
+        labelIterator: () => mockLabelIterator(),
+        articleIterator: () => mockArticleIterator(),
         getAttachment: (articleId: string | null, url: string) =>
           mockGetAttachment(articleId, url),
-        getAllCategories: () => mockGetAllCategories(),
-        getAllLabels: () => mockGetAllLabels(),
       };
     }),
   };
 });
+
+async function* articleIterator(): AsyncGenerator<ZendeskArticle, void, void> {
+  yield generateLoadedArticle();
+}
 
 function generateLoadedArticle(): ZendeskArticle {
   return {
@@ -194,16 +208,28 @@ function generateLoadedArticle(): ZendeskArticle {
     title: 'article-title',
     body: 'article-body',
     draft: false,
-    section_id: 'category-external-id',
+    section_id: CATEGORY_EXTERNAL_ID,
     label_names: ['label-name'],
   };
 }
 
+async function* categoryIterator(): AsyncGenerator<
+  ZendeskCategory,
+  void,
+  void
+> {
+  yield generateLoadedCategory();
+}
+
 function generateLoadedCategory(): ZendeskCategory {
   return {
-    id: 'category-external-id',
-    name: 'category-name',
+    id: CATEGORY_EXTERNAL_ID,
+    name: CATEGORY_NAME,
   };
+}
+
+async function* labelIterator(): AsyncGenerator<ZendeskLabel, void, void> {
+  yield generateLoadedLabel();
 }
 
 function generateLoadedLabel(): ZendeskLabel {

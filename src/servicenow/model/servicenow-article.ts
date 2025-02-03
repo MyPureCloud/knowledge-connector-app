@@ -3,17 +3,23 @@ export interface ServiceNowArticle {
   id: string;
   title: string;
   snippet: string;
-  number?: string;
+  number: string;
   fields: {
-    category: {
+    category?: {
       name: string;
       value: string;
       display_value: string;
     };
-    topic: {
+    topic?: {
       name: string;
       value: string;
       display_value: string;
+    };
+    kb_category?: {
+      display_value: string;
+      name: string;
+      label: string;
+      value: string;
     };
     text: {
       value: string;

@@ -1,7 +1,7 @@
-import { SourceAdapter } from '../adapter/source-adapter.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
-import { Document, ExportModel } from '../model/sync-export-model.js';
+import { Document } from '../model/document.js';
+import { ExportModel } from '../model/sync-export-model.js';
 import { GenesysSourceConfig } from './model/genesys-source-config.js';
 import { GenesysSourceApi } from './genesys-source-api.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
@@ -12,43 +12,67 @@ import { getLogger } from '../utils/logger.js';
 import { AttachmentDomainValidator } from '../processor/attachment-domain-validator/attachment-domain-validator.js';
 import { AttachmentDomainNotAllowedError } from '../processor/attachment-domain-validator/attachment-domain-not-allowed-error.js';
 import { InvalidExportJobError } from './errors/invalid-export-job-error.js';
+import { GenesysContext } from './model/genesys-context.js';
+import { AbstractSourceAdapter } from '../adapter/abstract-source-adapter.js';
+import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
+import { ExternalLink } from '../model/external-link.js';
 
 /**
- * GenesysSourceAdapter implements {@Link SourceAdapter} to fetch data from Genesys Knowledge's API
+ * GenesysSourceAdapter extends {@Link AbstractSourceAdapter}, implements {@Link ImageSourceAdapter} to fetch data from Genesys Knowledge's API
  */
 export class GenesysSourceAdapter
-  implements SourceAdapter<Category, Label, Document>, ImageSourceAdapter
+  extends AbstractSourceAdapter<Category, Label, Document>
+  implements ImageSourceAdapter
 {
   private static DOCUMENT_LINK_REGEXP =
     /grn:knowledge:::documentVariation\/[0-9a-fA-F-]+\/([0-9a-fA-F-]+)\/([0-9a-fA-F-]+)/;
 
-  private config: GenesysSourceConfig = {};
   private api: GenesysSourceApi;
   private exportedKnowledgeData: ExportModel | null = null;
   private attachmentDomainValidator?: AttachmentDomainValidator;
 
   constructor() {
+    super();
+
     this.api = new GenesysSourceApi();
   }
 
-  public async initialize(config: GenesysSourceConfig): Promise<void> {
-    this.config = config;
+  public async initialize(
+    config: GenesysSourceConfig,
+    context: GenesysContext,
+  ): Promise<void> {
+    await super.initialize(config, context);
+
     await this.api.initialize(config);
 
     this.exportedKnowledgeData = await this.exportAllEntities();
     this.attachmentDomainValidator = new AttachmentDomainValidator(config);
   }
 
-  public async getAllArticles(): Promise<Document[]> {
-    return this.exportedKnowledgeData?.importAction?.documents || [];
+  public async *categoryIterator(): AsyncGenerator<Category, void, void> {
+    if (this.exportedKnowledgeData?.importAction?.categories) {
+      for (const category of this.exportedKnowledgeData.importAction
+        .categories) {
+        yield category;
+      }
+    }
   }
 
-  public async getAllCategories(): Promise<Category[]> {
-    return this.exportedKnowledgeData?.importAction?.categories || [];
+  public async *labelIterator(): AsyncGenerator<Label, void, void> {
+    if (this.exportedKnowledgeData?.importAction?.labels) {
+      for (const label of this.exportedKnowledgeData.importAction.labels) {
+        yield label;
+      }
+    }
   }
 
-  public async getAllLabels(): Promise<Label[]> {
-    return this.exportedKnowledgeData?.importAction?.labels || [];
+  public async *articleIterator(): AsyncGenerator<Document, void, void> {
+    if (this.exportedKnowledgeData?.importAction?.documents) {
+      for (const document of this.exportedKnowledgeData.importAction
+        .documents) {
+        yield document;
+      }
+    }
   }
 
   public getDocumentLinkMatcherRegexp(): RegExp | undefined {
@@ -66,7 +90,13 @@ export class GenesysSourceAdapter
   }
 
   public getResourceBaseUrl(): string {
-    return this.api.getInstanceUrl();
+    return removeTrailingSlash(this.api.getInstanceUrl() || '');
+  }
+
+  public async constructDocumentLink(
+    _id: string,
+  ): Promise<ExternalLink | null> {
+    return null;
   }
 
   private async exportAllEntities(): Promise<ExportModel> {

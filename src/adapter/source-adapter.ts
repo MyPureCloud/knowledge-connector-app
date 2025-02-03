@@ -1,16 +1,19 @@
 import { Adapter } from './adapter.js';
+import { ExternalLink } from '../model/external-link.js';
 
 /**
  * Adapter to connect to source system
  */
 export interface SourceAdapter<C, L, A> extends Adapter {
-  getAllCategories(): Promise<C[]>;
+  categoryIterator(): AsyncGenerator<C, void, void>;
 
-  getAllLabels(): Promise<L[]>;
+  labelIterator(): AsyncGenerator<L, void, void>;
 
-  getAllArticles(): Promise<A[]>;
+  articleIterator(): AsyncGenerator<A, void, void>;
 
   getDocumentLinkMatcherRegexp(): RegExp | undefined;
 
   getResourceBaseUrl(): string;
+
+  constructDocumentLink(id: string): Promise<ExternalLink | null>;
 }

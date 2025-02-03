@@ -12,45 +12,117 @@ import {
   verifyResponseStatus,
 } from '../utils/web-client.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
+import { setIfMissing } from '../utils/objects.js';
+import {
+  ZendeskApiContext,
+  ZendeskContext,
+  ZendeskSectionContext,
+} from './model/zendesk-context.js';
+import { Pager } from '../utils/pager.js';
 
 export class ZendeskApi {
   private config: ZendeskConfig = {};
   private baseUrl: string = '';
+  private apiContext: ZendeskApiContext = {
+    [ZendeskEntityTypes.CATEGORIES]: {
+      done: false,
+      started: false,
+      nextUrl: null,
+      unprocessed: [],
+    },
+    [ZendeskEntityTypes.SECTIONS]: {
+      done: false,
+      started: false,
+      nextUrl: null,
+      unprocessed: [],
+    },
+    [ZendeskEntityTypes.LABELS]: {
+      done: false,
+      started: false,
+      nextUrl: null,
+      unprocessed: [],
+    },
+    [ZendeskEntityTypes.ARTICLES]: {
+      done: false,
+      started: false,
+      nextUrl: null,
+      unprocessed: [],
+    },
+    [ZendeskEntityTypes.ARTICLE_ATTACHMENTS]: {
+      done: false,
+      started: false,
+      nextUrl: null,
+      unprocessed: [],
+    },
+  };
 
-  public initialize(config: ZendeskConfig): Promise<void> {
+  public async initialize(
+    config: ZendeskConfig,
+    context: ZendeskContext,
+  ): Promise<void> {
     this.config = config;
     this.baseUrl = removeTrailingSlash(config.zendeskBaseUrl || '');
-    return Promise.resolve(undefined);
+
+    this.apiContext = setIfMissing(context, 'api', this.apiContext);
   }
 
-  public fetchAllArticles(): Promise<ZendeskArticle[]> {
-    return this.get<ZendeskArticle>(
-      `/api/v2/help_center/${this.config.zendeskLocale}/articles`,
-      ZendeskEntityTypes.ARTICLES,
-    );
+  public async *categoryIterator(): AsyncGenerator<ZendeskSection, void, void> {
+    if (!this.apiContext[ZendeskEntityTypes.CATEGORIES].done) {
+      for await (const item of this.getAllPages<ZendeskSection>(
+        `/api/v2/help_center/${this.config.zendeskLocale}/categories`,
+        ZendeskEntityTypes.CATEGORIES,
+        this.apiContext[ZendeskEntityTypes.CATEGORIES],
+      )) {
+        yield item;
+      }
+    }
+
+    if (!this.apiContext[ZendeskEntityTypes.SECTIONS].done) {
+      for await (const item of this.getAllPages<ZendeskSection>(
+        `/api/v2/help_center/${this.config.zendeskLocale}/sections`,
+        ZendeskEntityTypes.SECTIONS,
+        this.apiContext[ZendeskEntityTypes.SECTIONS],
+      )) {
+        yield item;
+      }
+    }
   }
 
-  public async fetchAllCategories(): Promise<ZendeskSection[]> {
-    const [categories, sections] = await Promise.all([
-      this.fetchCategories(),
-      this.fetchSections(),
-    ]);
-    return categories.concat(sections);
-  }
+  public async *labelIterator(): AsyncGenerator<ZendeskLabel, void, void> {
+    if (this.apiContext[ZendeskEntityTypes.LABELS].done) {
+      return;
+    }
 
-  public fetchAllLabels(): Promise<ZendeskLabel[]> {
-    return this.get<ZendeskLabel>(
+    yield* this.getAllPages<ZendeskLabel>(
       `/api/v2/help_center/articles/labels`,
       ZendeskEntityTypes.LABELS,
+      this.apiContext[ZendeskEntityTypes.LABELS],
     );
   }
 
-  public fetchAttachmentInfoListForArticle(
+  public async *articleIterator(): AsyncGenerator<ZendeskArticle, void, void> {
+    if (this.apiContext[ZendeskEntityTypes.ARTICLES].done) {
+      return;
+    }
+
+    yield* this.getAllPages<ZendeskArticle>(
+      `/api/v2/help_center/${this.config.zendeskLocale}/articles`,
+      ZendeskEntityTypes.ARTICLES,
+      this.apiContext[ZendeskEntityTypes.ARTICLES],
+    );
+  }
+
+  public async *attachmentInfoListForArticleIterator(
     articleId: string,
-  ): Promise<ZendeskArticleAttachment[]> {
-    return this.get<ZendeskArticleAttachment>(
+  ): AsyncGenerator<ZendeskArticleAttachment, void, void> {
+    if (this.apiContext[ZendeskEntityTypes.ARTICLE_ATTACHMENTS].done) {
+      return;
+    }
+
+    yield* this.getAllPages<ZendeskArticleAttachment>(
       `/api/v2/help_center/${this.config.zendeskLocale}/articles/${articleId}/attachments/inline`,
       ZendeskEntityTypes.ARTICLE_ATTACHMENTS,
+      this.apiContext[ZendeskEntityTypes.ARTICLE_ATTACHMENTS],
     );
   }
 
@@ -64,42 +136,52 @@ export class ZendeskApi {
   }
 
   public getInstanceUrl(): string {
-    return removeTrailingSlash(this.config.relativeLinkBaseUrl || this.config.zendeskBaseUrl || '');
+    return removeTrailingSlash(this.config.zendeskBaseUrl || '');
   }
 
-  private fetchCategories(): Promise<ZendeskSection[]> {
-    return this.get<ZendeskSection>(
-      `/api/v2/help_center/${this.config.zendeskLocale}/categories`,
-      ZendeskEntityTypes.CATEGORIES,
-    );
-  }
-
-  private fetchSections(): Promise<ZendeskSection[]> {
-    return this.get<ZendeskSection>(
-      `/api/v2/help_center/${this.config.zendeskLocale}/sections`,
-      ZendeskEntityTypes.SECTIONS,
-    );
-  }
-
-  private get<T>(endpoint: string, property: ZendeskEntityTypes): Promise<T[]> {
-    return this.getPage(`${this.baseUrl}${endpoint}`, property);
-  }
-
-  private async getPage<T>(
-    url: string,
+  private async *getAllPages<T>(
+    endpoint: string,
     property: ZendeskEntityTypes,
-  ): Promise<T[]> {
+    context: ZendeskSectionContext<T>,
+  ): AsyncGenerator<T, void, void> {
+    if (!context.started) {
+      context.nextUrl = `${this.baseUrl}${endpoint}`;
+      context.started = true;
+    }
+
+    const pager = new Pager<T>(context.unprocessed, () =>
+      this.fetchNextPage(property, context),
+    );
+
+    for await (const item of pager.fetch()) {
+      yield item;
+    }
+
+    context.done = true;
+  }
+
+  private async fetchNextPage<T>(
+    property: ZendeskEntityTypes,
+    context: ZendeskSectionContext<T>,
+  ): Promise<T[] | null> {
+    if (!context.nextUrl) {
+      return null;
+    }
+    const url = context.nextUrl;
+
+    const headers = this.buildHeaders();
     const response = await fetch(url, {
-      headers: this.buildHeaders(),
+      headers,
     });
 
-    const json = await readResponse<ZendeskResponse>(url, response);
-    let list = json[property] as T[];
-    if (json.next_page) {
-      const tail = await this.getPage<T>(json.next_page, property);
-      list = list.concat(tail);
-    }
-    return list;
+    const json: ZendeskResponse = await readResponse<ZendeskResponse>(
+      url,
+      response,
+    );
+
+    context.nextUrl = json.next_page ? json.next_page : null;
+
+    return json[property] as T[];
   }
 
   private buildHeaders(): HeadersInit {

@@ -1,4 +1,4 @@
-import { Variation } from '../model/sync-export-model.js';
+import { Variation } from '../model/document.js';
 import { LinkBlock } from '../model/link-block.js';
 import {
   DocumentBodyBlock,
@@ -16,13 +16,11 @@ import {
   DocumentTableContentBlock,
   DocumentText,
 } from 'knowledge-html-converter';
-import { ExternalLink } from '../model/external-link.js';
 
 export function extractDocumentIdFromUrl(
-  articleLookupTable: Map<string, ExternalLink>,
   hyperlink: string,
   regexp: RegExp | undefined,
-): ExternalLink | undefined {
+): string | undefined {
   if (!regexp) {
     return undefined;
   }
@@ -31,8 +29,7 @@ export function extractDocumentIdFromUrl(
   if (!match || !match[1]) {
     return undefined;
   }
-  const key = match.slice(1).join('#');
-  return articleLookupTable.get(key);
+  return match.slice(1).join('#');
 }
 
 export function extractLinkBlocksFromVariation(

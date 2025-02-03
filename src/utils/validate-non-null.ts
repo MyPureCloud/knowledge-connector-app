@@ -4,10 +4,14 @@ import { ValidationError } from './errors/validation-error.js';
  * Throw validation error when the given variable has no value
  * @param value
  * @param message
+ * @returns value
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function validateNonNull(value: any, message: string): void {
+export function validateNonNull<T>(
+  value: T | undefined | null,
+  message: string,
+): T {
   if (!value) {
     throw new ValidationError(message, {});
   }
+  return value as T;
 }

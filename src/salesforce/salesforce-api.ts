@@ -14,63 +14,129 @@ import { LANGUAGE_MAPPING } from './salesforce-language-mapping.js';
 import { InvalidCredentialsError } from '../adapter/errors/invalid-credentials-error.js';
 import { ApiError } from '../adapter/errors/api-error.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
+import {
+  SalesforceApiContext,
+  SalesforceContext,
+  SalesforceSectionContext,
+} from './model/salesforce-context.js';
+import { setIfMissing } from '../utils/objects.js';
+import { Pager } from '../utils/pager.js';
+import { catcher } from '../utils/catch-error-helper.js';
+import { Interrupted } from '../utils/errors/interrupted.js';
 
 export class SalesforceApi {
   private config: SalesforceConfig = {};
   private bearerToken: string = '';
   private instanceUrl: string = '';
+  private apiContext: SalesforceApiContext = {
+    [SalesforceEntityTypes.CATEGORY_GROUPS]: {
+      done: false,
+      started: false,
+      nextUrl: '',
+      unprocessed: [],
+    },
+    [SalesforceEntityTypes.ARTICLES]: {
+      done: false,
+      started: false,
+      nextUrl: '',
+      unprocessed: [],
+    },
+  };
 
-  public async initialize(config: SalesforceConfig): Promise<void> {
-    this.config = config;
-    this.instanceUrl = config.salesforceBaseUrl || '';
-    this.bearerToken = await this.authenticate();
-  }
-
-  public async fetchAllArticles(): Promise<SalesforceArticleDetails[]> {
-    const filters = this.constructFilters();
-
-    const articleInfos = await this.get<SalesforceArticle>(
-      `/services/data/${this.config.salesforceApiVersion}/support/knowledgeArticles?${filters}`,
-      SalesforceEntityTypes.ARTICLES,
-    );
-
-    // Article listing does not contain the body, so fetching them one by one is necessary
-    const articlePromises = articleInfos.map((articleInfo) =>
-      this.fetchArticleDetails(articleInfo.id),
-    );
-
-    return Promise.all(articlePromises);
-  }
-
-  public async fetchAllCategories(): Promise<SalesforceCategoryGroup[]> {
-    const categoryGroups = await this.fetchCategoryGroups();
-
-    for (const categoryGroup of categoryGroups) {
-      for (const topCategory of categoryGroup.topCategories) {
-        await this.fillCategoryAncestry(categoryGroup.name, topCategory);
-      }
-    }
-
-    return categoryGroups;
-  }
-
-  private async fillCategoryAncestry(
-    categoryGroup: string,
-    category: SalesforceCategory,
+  public async initialize(
+    config: SalesforceConfig,
+    context: SalesforceContext,
   ): Promise<void> {
-    const response = await this.fetchCategory(categoryGroup, category.name);
-    category.childCategories = response.childCategories;
+    this.config = config;
+    this.instanceUrl = removeTrailingSlash(config.salesforceBaseUrl || '');
+    this.bearerToken = await this.authenticate();
 
-    if (
-      category.childCategories == null ||
-      category.childCategories.length == 0
-    ) {
+    this.apiContext = setIfMissing(context, 'api', this.apiContext);
+  }
+
+  public async *articleIterator(): AsyncGenerator<
+    SalesforceArticleDetails,
+    void,
+    void
+  > {
+    if (this.apiContext[SalesforceEntityTypes.ARTICLES].done) {
       return;
     }
 
-    for (const child of category.childCategories) {
-      await this.fillCategoryAncestry(categoryGroup, child);
+    const filters = this.constructFilters();
+    const articlesContext = this.apiContext[SalesforceEntityTypes.ARTICLES];
+
+    const articleInfos = this.getAllPages<SalesforceArticle>(
+      `/services/data/${this.config.salesforceApiVersion}/support/knowledgeArticles?${filters}`,
+      SalesforceEntityTypes.ARTICLES,
+      articlesContext,
+    );
+
+    // Article listing does not contain the body, so fetching them one by one is necessary
+    for await (const articleInfo of articleInfos) {
+      try {
+        yield await this.fetchArticleDetails(articleInfo.id);
+      } catch (error) {
+        await catcher()
+          .on(Interrupted, (error) => {
+            articlesContext.unprocessed.unshift(articleInfo);
+            throw error;
+          })
+          .with(error);
+      }
     }
+  }
+
+  public async *categoryIterator(): AsyncGenerator<
+    SalesforceCategoryGroup,
+    void,
+    void
+  > {
+    if (this.apiContext[SalesforceEntityTypes.CATEGORY_GROUPS].done) {
+      return;
+    }
+
+    for await (const categoryGroup of this.fetchCategoryGroups()) {
+      for (const topCategory of categoryGroup.topCategories) {
+        await this.fillCategoryAncestry(categoryGroup.name, topCategory);
+      }
+      yield categoryGroup;
+    }
+  }
+
+  public getAttachment(
+    articleId: string | null,
+    url: string,
+  ): Promise<Image | null> {
+    return fetchImage(
+      `${this.instanceUrl}/services/data/${this.config.salesforceApiVersion}/sobjects/knowledge__kav${url}`,
+      {
+        Authorization: 'Bearer ' + this.bearerToken,
+      },
+    );
+  }
+
+  public getInstanceUrl(): string {
+    return removeTrailingSlash(this.instanceUrl);
+  }
+
+  private async fillCategoryAncestry(
+    categoryGroupName: string,
+    category: SalesforceCategory,
+  ): Promise<SalesforceCategory> {
+    const response = await this.fetchCategory(categoryGroupName, category.name);
+    category.childCategories = response.childCategories;
+
+    if (
+      category.childCategories != null &&
+      category.childCategories.length > 0
+    ) {
+      for (const child of category.childCategories) {
+        await this.fillCategoryAncestry(categoryGroupName, child);
+      }
+    }
+
+    return category;
   }
 
   private async fetchCategory(
@@ -85,22 +151,15 @@ export class SalesforceApi {
     return readResponse<SalesforceCategory>(url, response);
   }
 
-  public fetchCategoryGroups(): Promise<SalesforceCategoryGroup[]> {
-    return this.get<SalesforceCategoryGroup>(
+  private async *fetchCategoryGroups(): AsyncGenerator<
+    SalesforceCategoryGroup,
+    void,
+    void
+  > {
+    yield* this.getAllPages<SalesforceCategoryGroup>(
       `/services/data/${this.config.salesforceApiVersion}/support/dataCategoryGroups?sObjectName=KnowledgeArticleVersion`,
       SalesforceEntityTypes.CATEGORY_GROUPS,
-    );
-  }
-
-  public getAttachment(
-    articleId: string | null,
-    url: string,
-  ): Promise<Image | null> {
-    return fetchImage(
-      `${this.instanceUrl}/services/data/${this.config.salesforceApiVersion}/sobjects/knowledge__kav${url}`,
-      {
-        Authorization: 'Bearer ' + this.bearerToken,
-      },
+      this.apiContext[SalesforceEntityTypes.CATEGORY_GROUPS],
     );
   }
 
@@ -167,13 +226,9 @@ export class SalesforceApi {
       `Instance URL not found in the response: ${JSON.stringify(data)}`,
     );
 
-    this.instanceUrl = data.instance_url;
+    this.instanceUrl = removeTrailingSlash(data.instance_url);
 
     return data.access_token;
-  }
-
-  public getInstanceUrl(): string {
-    return removeTrailingSlash(this.config.relativeLinkBaseUrl || this.instanceUrl || '');
   }
 
   private async fetchArticleDetails(
@@ -187,50 +242,64 @@ export class SalesforceApi {
     return readResponse<SalesforceArticleDetails>(url, response);
   }
 
-  private get<T>(
+  private async *getAllPages<T>(
     endpoint: string,
     property: SalesforceEntityTypes,
-  ): Promise<T[]> {
-    return this.getPage(`${this.instanceUrl}${endpoint}`, property);
-  }
-
-  private async getPage<T>(
-    url: string,
-    property: SalesforceEntityTypes,
-  ): Promise<T[]> {
-    const response = await fetch(url, {
-      headers: this.buildHeaders(),
-    });
-
-    const json = await readResponse<SalesforceResponse>(url, response);
-    let list = json[property] as T[];
-    if (json.nextPageUrl) {
-      const tail = await this.get<T>(json.nextPageUrl, property);
-      list = list.concat(tail);
+    context: SalesforceSectionContext<T>,
+  ): AsyncGenerator<T, void, void> {
+    if (!context.started) {
+      context.nextUrl = `${this.instanceUrl}${endpoint}`;
+      context.started = true;
     }
 
-    return list;
+    const pager = new Pager<T>(context.unprocessed, () =>
+      this.fetchNextPage(property, context),
+    );
+
+    for await (const item of pager.fetch()) {
+      yield item;
+    }
+
+    context.done = true;
+  }
+
+  private async fetchNextPage<T>(
+    property: SalesforceEntityTypes,
+    context: SalesforceSectionContext<T>,
+  ): Promise<T[] | null> {
+    if (!context.nextUrl) {
+      return null;
+    }
+    const url = context.nextUrl;
+
+    const headers = this.buildHeaders();
+    const response = await fetch(url, {
+      headers,
+    });
+
+    const json: SalesforceResponse = await readResponse<SalesforceResponse>(
+      url,
+      response,
+    );
+
+    context.nextUrl = json.nextPageUrl
+      ? `${this.instanceUrl}${json.nextPageUrl}`
+      : null;
+
+    return json[property] as T[];
   }
 
   private buildHeaders() {
-    validateNonNull(
+    const languageCode = validateNonNull(
       this.config.salesforceLanguageCode,
       'Missing SALESFORCE_LANGUAGE_CODE from config',
     );
 
-    if (this.config.salesforceLanguageCode!.length > 2) {
-      const language =
-        LANGUAGE_MAPPING[this.config.salesforceLanguageCode!] ??
-        this.config.salesforceLanguageCode!;
-      return {
-        Authorization: 'Bearer ' + this.bearerToken,
-        'Accept-Language': language,
-      };
-    }
+    const language = LANGUAGE_MAPPING[languageCode] || languageCode;
 
     return {
       Authorization: 'Bearer ' + this.bearerToken,
-      'Accept-Language': this.config.salesforceLanguageCode!,
+      'Accept-Language': language,
     };
   }
 

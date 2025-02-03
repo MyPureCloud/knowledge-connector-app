@@ -12,7 +12,7 @@ export class GenesysSourceApi extends GenesysApi {
   }
 
   public getInstanceUrl(): string {
-    return removeTrailingSlash(this.config.relativeLinkBaseUrl || '') || this.getBaseUrl();
+    return this.getBaseUrl();
   }
 
   protected getLoginUrl(): string {

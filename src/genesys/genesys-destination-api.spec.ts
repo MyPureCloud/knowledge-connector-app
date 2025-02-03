@@ -6,6 +6,7 @@ import { SearchAssetResponse } from './model/search-asset-response.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { SyncDataResponse } from '../model';
 
+jest.mock('../utils/package-version.js');
 jest.mock('../utils/web-client.js');
 
 describe('GenesysDestinationApi', () => {

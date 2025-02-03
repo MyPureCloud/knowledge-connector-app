@@ -1,19 +1,28 @@
 import { Loader } from './loader.js';
-import { ExternalContent } from '../model/external-content.js';
 import { Processor } from '../processor/processor.js';
 import { Aggregator } from '../aggregator/aggregator.js';
 import { Uploader } from '../uploader/uploader.js';
 import { Config } from '../config.js';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
-import { Adapter } from '../adapter/adapter.js';
 import { SyncableContents } from '../model/syncable-contents.js';
 import wrapFunction from '../utils/wrap-function.js';
 import { Task } from './task.js';
-import { TimerConfig } from './timer-config.js';
 import { Configurer } from './configurer.js';
 import { getLogger } from '../utils/logger.js';
-import { HookCallback, HookEvent } from './hook-callback.js';
+import { HookEvent } from './hook-callback.js';
+import { Category, Document, ExternalContent, Label } from '../model';
+import { SourceAdapter } from '../adapter/source-adapter.js';
+import { DestinationAdapter } from '../adapter/destination-adapter.js';
+import { extractLinkBlocksFromVariation } from '../utils/link-object-extractor.js';
+import { PrefixExternalIdConfig } from '../processor/prefix-external-id/prefix-external-id-config.js';
+import { PipeContext } from './pipe-context.js';
+import { ContextRepository } from '../context/context-repository.js';
+import { TimerConfig } from './timer-config.js';
+import { Interrupted } from '../utils/errors/interrupted.js';
+import { Worker } from './worker.js';
+import { runtime } from '../utils/runtime.js';
+import { catcher } from '../utils/catch-error-helper.js';
 
 /**
  * Pipe is the collection of tasks and adapters which can be executed to do the sync from source to destination.
@@ -25,19 +34,25 @@ import { HookCallback, HookEvent } from './hook-callback.js';
  *    {@link Uploader}
  */
 export class Pipe {
-  private sourceAdapter: Adapter | undefined;
-  private destinationAdapter: Adapter | undefined;
+  private sourceAdapter: SourceAdapter<unknown, unknown, unknown> | undefined;
+  private destinationAdapter: DestinationAdapter | undefined;
   private loaderList: Loader[] = [];
   private processorList: Processor[] = [];
   private aggregatorList: Aggregator[] = [];
   private uploaderList: Uploader[] = [];
-  private hookMap: Map<HookEvent, HookCallback[]> = new Map();
+  private contextRepositoryList: ContextRepository[] = [];
+  private context: PipeContext | null = null;
 
   /**
    * Define source and destination adapters
    * @param {AdapterPair<Adapter, Adapter>} adapters
    */
-  public adapters(adapters: AdapterPair<Adapter, Adapter>) {
+  public adapters(
+    adapters: AdapterPair<
+      SourceAdapter<unknown, unknown, unknown>,
+      DestinationAdapter
+    >,
+  ) {
     this.sourceAdapter = adapters.sourceAdapter;
     this.destinationAdapter = adapters.destinationAdapter;
     return this;
@@ -47,7 +62,7 @@ export class Pipe {
    * Define source adapter
    * @param {Adapter} sourceAdapter
    */
-  public source(sourceAdapter: Adapter) {
+  public source(sourceAdapter: SourceAdapter<unknown, unknown, unknown>) {
     this.sourceAdapter = sourceAdapter;
     return this;
   }
@@ -56,7 +71,7 @@ export class Pipe {
    * Define destination adapter
    * @param {Adapter} destinationAdapter
    */
-  public destination(destinationAdapter: Adapter) {
+  public destination(destinationAdapter: DestinationAdapter) {
     this.destinationAdapter = destinationAdapter;
     return this;
   }
@@ -75,7 +90,15 @@ export class Pipe {
    * @param {Processor[]} processors
    */
   public processors(...processors: Processor[]): Pipe {
-    this.processorList.push(...processors);
+    processors.forEach((p) => {
+      let pos;
+      for (pos = 0; pos < this.processorList.length; pos++) {
+        if (this.processorList[pos].getPriority() < p.getPriority()) {
+          break;
+        }
+      }
+      this.processorList.splice(pos, 0, p);
+    });
     return this;
   }
 
@@ -121,16 +144,16 @@ export class Pipe {
    * @param {Function} callback
    */
   public hooks(eventName: HookEvent, callback: () => Promise<void>): Pipe {
-    let callbacks = this.hookMap.get(eventName);
-    if (!callbacks) {
-      callbacks = [];
-      this.hookMap.set(eventName, callbacks);
-    }
+    runtime.hooks(eventName, callback);
+    return this;
+  }
 
-    callbacks.push({
-      eventName,
-      callback,
-    });
+  /**
+   * Register context repository
+   * @param {ContextRepository} repository
+   */
+  public contextRepository(repository: ContextRepository): Pipe {
+    this.contextRepositoryList = [repository];
     return this;
   }
 
@@ -138,159 +161,271 @@ export class Pipe {
    * Execute the defined tasks
    * @param {Config} config
    */
-  public async start(config: Config): Promise<void> {
+  public async start(config: PrefixExternalIdConfig): Promise<void> {
     const startTime = Date.now();
-    const killTimer = this.startProcessKillTimer(config);
+    this.startProcessKillTimer(config);
 
     try {
       validateNonNull(this.sourceAdapter, 'Missing source adapter');
       validateNonNull(this.destinationAdapter, 'Missing destination adapter');
 
       getLogger().info('Started');
-      await Promise.all([
-        this.sourceAdapter!.initialize(config),
-        this.destinationAdapter!.initialize(config),
-      ]);
 
-      let externalContent = await this.executeLoaders(config);
+      this.context = await this.initialize(config);
 
-      if (!externalContent) {
-        getLogger().warn('Loaders returned no data');
-        return;
-      }
+      await this.processCategories(this.context);
+      await this.processLabels(this.context);
+      await this.processDocuments(this.context);
 
-      externalContent = await this.executeProcessors(config, externalContent);
+      runtime.stopProcessKillTimer(); // Do not stop process in middle of upload
+      await this.uploadResult(config, this.context);
 
-      const importableContents = await this.executeAggregators(
-        config,
-        this.createEmptyImportableContents(),
-        externalContent,
-      );
-
-      await this.executeUploaders(config, importableContents);
+      await this.saveContext();
+    } catch (error) {
+      await catcher()
+        .on(Interrupted, async () => {
+          getLogger().info('Interrupted.');
+          await runtime.triggerEvent(HookEvent.ON_TIMEOUT);
+          await this.saveContext();
+        })
+        .with(error);
+    } finally {
       const endTime = Date.now();
       const duration = endTime - startTime;
       getLogger().info(`Process took ${duration} milliseconds.`);
-    } finally {
-      if (killTimer) {
-        clearTimeout(killTimer);
-      }
+
+      runtime.stopProcessKillTimer();
     }
   }
 
-  private startProcessKillTimer(config: TimerConfig): NodeJS.Timeout | null {
+  private async uploadResult(
+    config: PrefixExternalIdConfig,
+    context: PipeContext,
+  ): Promise<void> {
+    await this.initTasks(this.uploaderList, config, context);
+    await this.executeUploaders(context.syncableContents);
+  }
+
+  private async processDocuments(context: PipeContext): Promise<void> {
+    await new Worker()
+      .iterators(() => this.loaderList.map((l) => l.documentIterator()))
+      .processors(this.processorList)
+      .aggregators(this.aggregatorList)
+      .processedItems(context.pipe.processedItems.documents)
+      .unprocessedItems(context.pipe.unprocessedItems.documents)
+      .method(
+        async (runnable, item, firstTry: boolean) =>
+          (await runnable.runOnDocument(
+            item as Document,
+            firstTry,
+          )) as Document,
+      )
+      .execute();
+  }
+
+  private async processLabels(context: PipeContext): Promise<void> {
+    await new Worker()
+      .iterators(() => this.loaderList.map((l) => l.labelIterator()))
+      .processors(this.processorList)
+      .aggregators(this.aggregatorList)
+      .processedItems(context.pipe.processedItems.labels)
+      .unprocessedItems(context.pipe.unprocessedItems.labels)
+      .method(
+        async (runnable, item, firstTry: boolean) =>
+          (await runnable.runOnLabel(item as Label, firstTry)) as Label,
+      )
+      .execute();
+  }
+
+  private async processCategories(context: PipeContext): Promise<void> {
+    await new Worker()
+      .iterators(() => this.loaderList.map((l) => l.categoryIterator()))
+      .processors(this.processorList)
+      .aggregators(this.aggregatorList)
+      .processedItems(context.pipe.processedItems.categories)
+      .unprocessedItems(context.pipe.unprocessedItems.categories)
+      .method(
+        async (runnable, item, firstTry: boolean) =>
+          (await runnable.runOnCategory(
+            item as Category,
+            firstTry,
+          )) as Category,
+      )
+      .execute();
+  }
+
+  private async initialize(config: PrefixExternalIdConfig) {
+    await this.destinationAdapter!.initialize(config);
+
+    let context = await this.loadContext();
+    if (!context) {
+      context = await this.createContext(this.destinationAdapter!);
+    }
+
+    await this.sourceAdapter!.initialize(config, context!);
+
+    await this.initTasks(this.loaderList, config, context);
+    await this.initTasks(this.processorList, config, context);
+    await this.initTasks(this.aggregatorList, config, context);
+
+    return context;
+  }
+
+  private startProcessKillTimer(config: TimerConfig): void {
     if (!config?.killAfterLongRunningSeconds) {
-      return null;
+      return;
     }
+
     const lifetimeInSeconds = parseInt(config?.killAfterLongRunningSeconds, 10);
-    return setTimeout(
-      () => this.onTimeout(lifetimeInSeconds),
-      lifetimeInSeconds * 1000,
-    );
-  }
-
-  private async onTimeout(lifetimeInSeconds: number): Promise<void> {
-    const hookCallbacks = this.hookMap.get(HookEvent.ON_TIMEOUT);
-    if (hookCallbacks?.length) {
-      for (const hook of hookCallbacks) {
-        try {
-          await hook.callback();
-        } catch (error) {
-          getLogger().error(`Error running ON_TIMEOUT callback - ${error}`);
-        }
-      }
-    }
-
-    getLogger().error(
-      `Connector app did not finish in [${lifetimeInSeconds}] seconds. Killing process`,
-    );
-    process.exit(1);
-  }
-
-  private async executeLoaders(
-    config: Config,
-  ): Promise<ExternalContent | undefined> {
-    let externalContent: ExternalContent | undefined = undefined;
-    for (const loader of this.loaderList) {
-      externalContent = await this.execute(loader, config, externalContent);
-    }
-    return externalContent;
-  }
-
-  private async executeProcessors(
-    config: Config,
-    externalContent: ExternalContent,
-  ): Promise<ExternalContent> {
-    for (const processor of this.processorList) {
-      externalContent = await this.execute(processor, config, externalContent);
-    }
-    return externalContent;
-  }
-
-  private async executeAggregators(
-    config: Config,
-    importableContents: SyncableContents,
-    externalContent: ExternalContent,
-  ): Promise<SyncableContents> {
-    for (const aggregator of this.aggregatorList) {
-      importableContents = await this.execute(
-        aggregator,
-        config,
-        externalContent,
-      );
-    }
-    return importableContents;
+    runtime.setProcessKillTimer(lifetimeInSeconds);
   }
 
   private async executeUploaders(
-    config: Config,
     importableContents: SyncableContents,
   ): Promise<void> {
     for (const uploader of this.uploaderList) {
-      await this.execute(uploader, config, importableContents);
+      await this.execute(
+        uploader,
+        (item) => uploader.run(item),
+        importableContents,
+      );
     }
   }
 
   private async execute<I, O>(
-    task: Task<I, O>,
-    config: Config,
-    externalContent: I,
+    task: Task,
+    method: (item: I) => Promise<O>,
+    item: I,
   ): Promise<O> {
-    getLogger().info(`${task.constructor.name} task running`);
-    await wrapFunction(
-      () =>
-        task.initialize(config, {
-          sourceAdapter: this.sourceAdapter!,
-          destinationAdapter: this.destinationAdapter!,
-        }),
-      `Error initializing ${task.constructor.name}`,
-    );
-
-    const result = await wrapFunction(
-      () => task.run(externalContent),
+    return await wrapFunction(
+      () => method(item),
       `Error executing ${task.constructor.name}`,
     );
-    getLogger().info(`${task.constructor.name} task finished`);
-    return result;
   }
 
-  private createEmptyImportableContents(): SyncableContents {
+  private async initTasks(
+    taskList: Task[],
+    config: Config,
+    context: PipeContext,
+  ): Promise<void> {
+    await Promise.all(taskList.map((t) => this.initTask(t, config, context)));
+  }
+
+  private async initTask(
+    task: Task,
+    config: Config,
+    context: PipeContext,
+  ): Promise<void> {
+    getLogger().info(`${task.constructor.name} task init`);
+    await wrapFunction(
+      () =>
+        task.initialize(
+          config,
+          {
+            sourceAdapter: this.sourceAdapter!,
+            destinationAdapter: this.destinationAdapter!,
+          },
+          context,
+        ),
+      `Error initializing ${task.constructor.name}`,
+    );
+    getLogger().info(`${task.constructor.name} task init finished`);
+  }
+
+  private async loadContext(): Promise<PipeContext | null> {
+    if (this.contextRepositoryList.length > 0) {
+      const [repository] = this.contextRepositoryList;
+
+      if (await repository.exists()) {
+        return await repository.load();
+      }
+    }
+
+    return null;
+  }
+
+  private async createContext(
+    destinationAdapter: DestinationAdapter,
+  ): Promise<PipeContext> {
+    const context = this.initContext();
+
+    const exportResult = await destinationAdapter.exportAllEntities();
+    context.storedContent = this.removeGeneratedContent(
+      exportResult.importAction,
+    );
+
+    context.syncableContents.categories.deleted = [
+      ...(context.storedContent.categories || []),
+    ];
+    context.syncableContents.labels.deleted = [
+      ...(context.storedContent.labels || []),
+    ];
+    context.syncableContents.documents.deleted = [
+      ...(context.storedContent.documents || []),
+    ];
+
+    return context;
+  }
+
+  private async saveContext(): Promise<void> {
+    if (this.contextRepositoryList.length > 0) {
+      getLogger().info('Saving context...');
+      const [repository] = this.contextRepositoryList;
+      await repository.save(this.context!);
+    }
+  }
+
+  private removeGeneratedContent(content: ExternalContent): ExternalContent {
+    content.documents?.forEach((document) => {
+      [
+        ...(document.published?.variations ?? []),
+        ...(document.draft?.variations ?? []),
+      ].forEach((variation) =>
+        extractLinkBlocksFromVariation(variation).forEach((block) => {
+          if (block.externalDocumentId) {
+            delete block.hyperlink;
+          }
+        }),
+      );
+    });
+
+    return content;
+  }
+
+  private initContext(): PipeContext {
     return {
-      categories: {
-        created: [],
-        updated: [],
-        deleted: [],
+      pipe: {
+        processedItems: {
+          categories: [],
+          labels: [],
+          documents: [],
+        },
+        unprocessedItems: {
+          categories: [],
+          labels: [],
+          documents: [],
+        },
       },
-      labels: {
-        created: [],
-        updated: [],
-        deleted: [],
+      syncableContents: {
+        categories: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+        labels: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+        documents: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
       },
-      documents: {
-        created: [],
-        updated: [],
-        deleted: [],
-      },
+      categoryLookupTable: {},
+      labelLookupTable: {},
+      articleLookupTable: {},
     };
   }
 }

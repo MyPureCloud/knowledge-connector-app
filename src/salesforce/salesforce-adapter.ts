@@ -2,14 +2,20 @@ import { SalesforceConfig } from './model/salesforce-config.js';
 import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
 import { Image } from '../model/image.js';
 import { SalesforceApi } from './salesforce-api.js';
-import { SourceAdapter } from '../adapter/source-adapter.js';
 import { ImageSourceAdapter } from '../adapter/image-source-adapter.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
+import { SalesforceContext } from './model/salesforce-context.js';
+import { AbstractSourceAdapter } from '../adapter/abstract-source-adapter.js';
+import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
+import { ExternalLink } from '../model/external-link.js';
 
 export class SalesforceAdapter
-  implements
-    SourceAdapter<SalesforceCategoryGroup, unknown, SalesforceArticleDetails>,
-    ImageSourceAdapter
+  extends AbstractSourceAdapter<
+    SalesforceCategoryGroup,
+    unknown,
+    SalesforceArticleDetails
+  >
+  implements ImageSourceAdapter
 {
   private static URL_NAME_REGEX = /\/articles\/[^/]+\/Knowledge\/([^/]+)/;
   private static ATTACHMENT_RELATIVE_PATH_REGEX =
@@ -18,25 +24,38 @@ export class SalesforceAdapter
   private api: SalesforceApi;
 
   constructor() {
+    super();
+
     this.api = new SalesforceApi();
   }
 
-  public initialize(config: SalesforceConfig): Promise<void> {
+  public async initialize(
+    config: SalesforceConfig,
+    context: SalesforceContext,
+  ): Promise<void> {
+    await super.initialize(config, context);
+
     this.config = config;
-    return this.api.initialize(config);
+    return this.api.initialize(config, context);
   }
 
-  public getAllArticles(): Promise<SalesforceArticleDetails[]> {
-    return this.api.fetchAllArticles();
+  public async *articleIterator(): AsyncGenerator<
+    SalesforceArticleDetails,
+    void,
+    void
+  > {
+    yield* this.api.articleIterator();
   }
 
-  public getAllCategories(): Promise<SalesforceCategoryGroup[]> {
-    return this.api.fetchAllCategories();
+  public async *categoryIterator(): AsyncGenerator<
+    SalesforceCategoryGroup,
+    void,
+    void
+  > {
+    yield* this.api.categoryIterator();
   }
 
-  public getAllLabels(): Promise<unknown[]> {
-    return Promise.reject();
-  }
+  public async *labelIterator(): AsyncGenerator<unknown, void, void> {}
 
   public getDocumentLinkMatcherRegexp(): RegExp | undefined {
     return SalesforceAdapter.URL_NAME_REGEX;
@@ -53,6 +72,14 @@ export class SalesforceAdapter
   }
 
   public getResourceBaseUrl(): string {
-    return this.api.getInstanceUrl();
+    return removeTrailingSlash(
+      this.config.relativeLinkBaseUrl || this.api.getInstanceUrl(),
+    );
+  }
+
+  public async constructDocumentLink(
+    _id: string,
+  ): Promise<ExternalLink | null> {
+    return null;
   }
 }

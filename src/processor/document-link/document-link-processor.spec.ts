@@ -4,34 +4,46 @@ import { SourceAdapter } from '../../adapter/source-adapter.js';
 import { AdapterPair } from '../../adapter/adapter-pair.js';
 import { DestinationAdapter } from '../../adapter/destination-adapter.js';
 import { Config } from '../../config.js';
-import {
-  Document,
-  ExportModel,
-  SyncModel,
-} from '../../model/sync-export-model.js';
+import { ExportModel, SyncModel } from '../../model/sync-export-model.js';
+import { Document } from '../../model/document.js';
 import { Image } from '../../model/image.js';
 import { SyncDataResponse } from '../../model/sync-data-response.js';
 import { BulkDeleteResponse } from '../../model/bulk-delete-response.js';
+import {
+  ARTICLE_LINK,
+  generateDocumentWithLinkedDocuments,
+  LINKED_ARTICLE_ID,
+} from '../../tests/utils/entity-generators.js';
+import { Category, Label } from '../../model';
+import { PipeContext } from '../../pipe/pipe-context.js';
 import { ExternalLink } from '../../model/external-link.js';
-import { generateDocumentWithLinkedDocuments } from '../../tests/utils/entity-generators.js';
+import { LinkBlock } from '../../model/link-block.js';
 
 describe('DocumentLinkProcessor', function () {
+  const EXTERNAL_ID = 'some-external-id';
+  const OTHER_EXTERNAL_ID = 'other-external-id';
+  const EXTERNAL_ID_ALTERNATIVE = 'external-id-alternative';
+  const EXTERNAL_ID_PREFIX = 'external-id-prefix-';
+
   let linkProcessor: DocumentLinkProcessor;
   let sourceAdapter: SourceAdapter<unknown, unknown, unknown>;
   let adapters: AdapterPair<
     SourceAdapter<unknown, unknown, unknown>,
     DestinationAdapter
   >;
+  let context: PipeContext;
   let mockGetDocumentLinkMatcherRegexp: jest.Mock<() => RegExp | undefined>;
 
   beforeEach(async () => {
     sourceAdapter = {
       initialize: jest.fn<() => Promise<void>>(),
-      getAllCategories: jest.fn<() => Promise<unknown[]>>(),
-      getAllLabels: jest.fn<() => Promise<unknown[]>>(),
-      getAllArticles: jest.fn<() => Promise<unknown[]>>(),
+      categoryIterator: jest.fn<() => AsyncGenerator<Category, void, void>>(),
+      labelIterator: jest.fn<() => AsyncGenerator<Label, void, void>>(),
+      articleIterator: jest.fn<() => AsyncGenerator<Document, void, void>>(),
       getDocumentLinkMatcherRegexp: jest.fn<() => RegExp | undefined>(),
       getResourceBaseUrl: jest.fn<() => string>(),
+      constructDocumentLink:
+        jest.fn<(id: string) => Promise<ExternalLink | null>>(),
     };
 
     mockGetDocumentLinkMatcherRegexp =
@@ -70,49 +82,181 @@ describe('DocumentLinkProcessor', function () {
     };
 
     linkProcessor = new DocumentLinkProcessor();
-
-    await linkProcessor.initialize({ updateDocumentLinks: 'true' }, adapters);
   });
 
-  it('should replace hyperlink field with externalDocumentId for linked doc text block', async function () {
-    const externalId = 'some-external-id';
-    const result = await linkProcessor.run({
-      categories: [],
-      labels: [],
-      documents: [generateDocumentWithLinkedDocuments('1')],
-      articleLookupTable: new Map<string, ExternalLink>([
-        ['KB0012439', { externalDocumentId: externalId }],
-      ]),
+  describe('when linked article known', () => {
+    beforeEach(async () => {
+      context = {
+        articleLookupTable: {
+          [LINKED_ARTICLE_ID]: {
+            externalDocumentId: EXTERNAL_ID,
+            externalDocumentIdAlternatives: [EXTERNAL_ID_ALTERNATIVE],
+          },
+        },
+        imageLookupTable: {},
+      } as unknown as PipeContext;
+
+      await linkProcessor.initialize(
+        { updateDocumentLinks: 'true' },
+        adapters,
+        context,
+      );
     });
 
-    const blocks =
-      result.documents[0].published?.variations[0].body?.blocks ?? [];
+    it('should replace hyperlink field with externalDocumentId for linked doc text block', async function () {
+      const result = await linkProcessor.runOnDocument(
+        generateDocumentWithLinkedDocuments('1'),
+      );
+
+      verifyDocumentLinks(result, undefined, EXTERNAL_ID, [
+        EXTERNAL_ID_ALTERNATIVE,
+      ]);
+    });
+  });
+
+  describe('when linked article unknown', () => {
+    beforeEach(async () => {
+      context = {
+        articleLookupTable: {
+          [OTHER_EXTERNAL_ID]: {
+            externalDocumentId: OTHER_EXTERNAL_ID,
+            externalDocumentIdAlternatives: [EXTERNAL_ID_ALTERNATIVE],
+          },
+        },
+        imageLookupTable: {},
+      } as unknown as PipeContext;
+
+      await linkProcessor.initialize(
+        { updateDocumentLinks: 'true' },
+        adapters,
+        context,
+      );
+    });
+
+    it('should fetch linked article data from source', async function () {
+      sourceAdapter.constructDocumentLink = jest
+        .fn<(id: string) => Promise<ExternalLink | null>>()
+        .mockResolvedValue({
+          externalDocumentId: OTHER_EXTERNAL_ID,
+          externalDocumentIdAlternatives: [EXTERNAL_ID_ALTERNATIVE],
+        });
+
+      const result = await linkProcessor.runOnDocument(
+        generateDocumentWithLinkedDocuments('1'),
+        false,
+      );
+
+      verifyDocumentLinks(result, undefined, OTHER_EXTERNAL_ID, [
+        EXTERNAL_ID_ALTERNATIVE,
+      ]);
+    });
+
+    describe('when source fetch fails', () => {
+      beforeEach(async () => {
+        sourceAdapter.constructDocumentLink = jest
+          .fn<(id: string) => Promise<ExternalLink | null>>()
+          .mockResolvedValue(null);
+      });
+
+      it('should keep original link', async function () {
+        const result = await linkProcessor.runOnDocument(
+          generateDocumentWithLinkedDocuments('1'),
+          false,
+        );
+
+        verifyDocumentLinks(result, ARTICLE_LINK, undefined, undefined);
+      });
+    });
+  });
+
+  describe('when externalIdPrefix defined', () => {
+    beforeEach(async () => {
+      await linkProcessor.initialize(
+        { updateDocumentLinks: 'true', externalIdPrefix: EXTERNAL_ID_PREFIX },
+        adapters,
+        {
+          articleLookupTable: {
+            [LINKED_ARTICLE_ID]: { externalDocumentId: EXTERNAL_ID },
+          },
+        } as unknown as PipeContext,
+      );
+    });
+
+    it('should use the externalIdPrefix', async function () {
+      const result = await linkProcessor.runOnDocument(
+        generateDocumentWithLinkedDocuments('1'),
+      );
+
+      verifyDocumentLinks(
+        result,
+        undefined,
+        EXTERNAL_ID_PREFIX + EXTERNAL_ID,
+        undefined,
+      );
+    });
+  });
+
+  function verifyDocumentLinks(
+    result: Document,
+    expectedHyperlink: string | undefined,
+    expectedDocumentId: string | undefined,
+    expectedDocumentIdAlternatives: string[] | undefined,
+  ): void {
+    const blocks = result.published?.variations[0].body?.blocks ?? [];
     expect(blocks.length).toBe(4);
-    expect(blocks[0].paragraph?.blocks[0].text?.hyperlink).toBeUndefined();
+    expect(blocks[0].paragraph?.blocks[0].text?.hyperlink).toBe(
+      expectedHyperlink,
+    );
     expect(blocks[0].paragraph?.blocks[0].text?.externalDocumentId).toBe(
-      externalId,
+      expectedDocumentId,
     );
-    expect(blocks[1].list?.blocks[0].blocks[0].text?.hyperlink).toBeUndefined();
+    expect(
+      (blocks[0].paragraph?.blocks[0].text as LinkBlock)
+        .externalDocumentIdAlternatives,
+    ).toEqual(expectedDocumentIdAlternatives);
+    expect(blocks[1].list?.blocks[0].blocks[0].text?.hyperlink).toBe(
+      expectedHyperlink,
+    );
     expect(blocks[1].list?.blocks[0].blocks[0].text?.externalDocumentId).toBe(
-      externalId,
+      expectedDocumentId,
     );
-    expect(blocks[2].paragraph?.blocks[0].image?.hyperlink).toBeUndefined();
+    expect(
+      (blocks[1].list?.blocks[0].blocks[0].text as LinkBlock)
+        .externalDocumentIdAlternatives,
+    ).toEqual(expectedDocumentIdAlternatives);
+    expect(blocks[2].paragraph?.blocks[0].image?.hyperlink).toBe(
+      expectedHyperlink,
+    );
     expect(blocks[2].paragraph?.blocks[0].image?.externalDocumentId).toBe(
-      externalId,
+      expectedDocumentId,
     );
+    expect(
+      (blocks[2].paragraph?.blocks[0].image as LinkBlock)
+        .externalDocumentIdAlternatives,
+    ).toEqual(expectedDocumentIdAlternatives);
     expect(
       blocks[3].table?.rows[0].cells[0].blocks[0].list?.blocks[0].blocks[0].text
         ?.hyperlink,
-    ).toBeUndefined();
+    ).toBe(expectedHyperlink);
     expect(
       blocks[3].table?.rows[0].cells[0].blocks[0].list?.blocks[0].blocks[0].text
         ?.externalDocumentId,
-    ).toBe(externalId);
+    ).toBe(expectedDocumentId);
     expect(
-      blocks[3].table?.rows[0].cells[1].blocks[0].image?.hyperlink,
-    ).toBeUndefined();
+      (
+        blocks[3].table?.rows[0].cells[0].blocks[0].list?.blocks[0].blocks[0]
+          .text as LinkBlock
+      ).externalDocumentIdAlternatives,
+    ).toEqual(expectedDocumentIdAlternatives);
+    expect(blocks[3].table?.rows[0].cells[1].blocks[0].image?.hyperlink).toBe(
+      expectedHyperlink,
+    );
     expect(
       blocks[3].table?.rows[0].cells[1].blocks[0].image?.externalDocumentId,
-    ).toBe(externalId);
-  });
+    ).toBe(expectedDocumentId);
+    expect(
+      (blocks[3].table?.rows[0].cells[1].blocks[0].image as LinkBlock)
+        .externalDocumentIdAlternatives,
+    ).toEqual(expectedDocumentIdAlternatives);
+  }
 });

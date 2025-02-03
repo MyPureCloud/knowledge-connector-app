@@ -1,82 +1,67 @@
 import { ZendeskLabel } from './model/zendesk-label.js';
 import { ZendeskArticle } from './model/zendesk-article.js';
-import { ExternalContent } from '../model/external-content.js';
 import { Category } from '../model/category.js';
 import { Label } from '../model/label.js';
 import { ZendeskSection } from './model/zendesk-section.js';
-import { Document, DocumentVersion } from '../model/sync-export-model.js';
-import { ZendeskCategory } from './model/zendesk-category.js';
+import { Document, DocumentVersion } from '../model/document.js';
 import { GeneratedValue } from '../utils/generated-value.js';
-import { ExternalLink } from '../model/external-link.js';
+import { ZendeskContext } from './model/zendesk-context.js';
+import { LabelReference } from '../model';
 
-export function contentMapper(
-  categories: ZendeskSection[],
-  labels: ZendeskLabel[],
-  articles: ZendeskArticle[],
-  fetchCategories: boolean,
-  fetchLabels: boolean,
-): ExternalContent {
-  const sectionIdAndNameMapping = buildIdAndNameMapping(categories);
-
-  return {
-    categories: categories
-      ? categories.map((c) => categoryMapper(c, sectionIdAndNameMapping))
-      : [],
-    labels: labels ? labels.map(labelMapper) : [],
-    documents: articles
-      ? articles.map((a) =>
-          articleMapper(
-            a,
-            sectionIdAndNameMapping,
-            fetchCategories,
-            fetchLabels,
-          ),
-        )
-      : [],
-    articleLookupTable: buildArticleLookupTable(articles),
-  };
-}
-
-function categoryMapper(
+export function categoryMapper(
   category: ZendeskSection,
-  idAndNameMapping: Map<string, string>,
-): Category {
+  context: ZendeskContext,
+): Category[] {
   const { id, name, category_id, parent_section_id } = category;
 
-  const parentId = String(parent_section_id || category_id);
+  const parentId =
+    !!parent_section_id || !!category_id
+      ? String(parent_section_id || category_id)
+      : undefined;
 
-  const parentName = parentId ? idAndNameMapping.get(parentId) : null;
+  const parentCategory = parentId
+    ? context.categoryLookupTable[parentId]
+    : null;
+  if (parentCategory === undefined) {
+    // Parent is not yet processed
+    return [];
+  }
 
-  return {
-    id: null,
-    externalId: String(id),
-    name,
-    parentCategory: parentName
-      ? {
-          id: null,
-          name: parentName,
-        }
-      : null,
-  };
+  return [
+    {
+      id: null,
+      externalId: `${id}`,
+      name,
+      parentCategory: parentCategory
+        ? {
+            id: null,
+            externalId: parentCategory.externalId,
+            name: parentCategory.name,
+          }
+        : null,
+    },
+  ];
 }
 
-function labelMapper(label: ZendeskLabel): Label {
+export function labelMapper(label: ZendeskLabel): Label[] {
   const { id, name } = label;
 
-  return {
-    id: null,
-    externalId: String(id),
-    name,
-    color: GeneratedValue.COLOR,
-  };
+  return [
+    {
+      id: null,
+      externalId: String(id),
+      name,
+      color: GeneratedValue.COLOR,
+    },
+  ];
 }
 
-function articleMapper(
+export function articleMapper(
   article: ZendeskArticle,
-  sectionIdAndNameMapping: Map<string, string>,
+  context: ZendeskContext,
   fetchCategories: boolean,
   fetchLabels: boolean,
-): Document {
+): Document[] {
   const { id, title, body, draft, section_id, label_names } = article;
 
   const categoryId = String(section_id);
@@ -84,8 +69,9 @@ function articleMapper(
   const category =
     fetchCategories && section_id
       ? {
-          id: categoryId,
-          name: sectionIdAndNameMapping.get(categoryId) || categoryId,
+          id: null,
+          externalId: categoryId,
+          name: context.categoryLookupTable[categoryId]?.name || categoryId,
         }
       : null;
 
@@ -101,37 +87,31 @@ function articleMapper(
     ],
     category,
     labels: fetchLabels
-      ? label_names?.map((label) => ({
-          id: null,
-          name: String(label),
-        })) || null
+      ? label_names
+          ?.map((name) => mapLabelName(name, context.labelLookupTable))
+          .filter((l) => !!l) || null
       : null,
   };
 
-  return {
-    id: null,
-    externalId: String(id),
-    externalUrl: null,
-    published: !draft ? documentVersion : null,
-    draft: draft ? documentVersion : null,
-  };
+  return [
+    {
+      id: null,
+      externalId: String(id),
+      externalUrl: null,
+      published: !draft ? documentVersion : null,
+      draft: draft ? documentVersion : null,
+    },
+  ];
 }
 
-function buildIdAndNameMapping(items: ZendeskCategory[]): Map<string, string> {
-  const mapping = new Map<string, string>();
-
-  if (items) {
-    items.forEach((item) => {
-      if (item.id && item.name) {
-        mapping.set(String(item.id), item.name);
-      }
-    });
+function mapLabelName(
+  name: string,
+  lookupTable: Record<string, LabelReference>,
+): LabelReference | null {
+  const label = lookupTable[name];
+  if (label) {
+    return label;
   }
 
-  return mapping;
-}
-
-function buildArticleLookupTable(_articles: ZendeskArticle[]) {
-  // TODO
-  return new Map<string, ExternalLink>();
+  return null;
 }

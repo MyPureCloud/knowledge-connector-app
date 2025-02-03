@@ -12,7 +12,7 @@ export default async function wrapFunction<T>(
   try {
     return await fn();
   } catch (error) {
-    getLogger().error(`${errorMessage}: ${error}`);
+    getLogger().error(`${errorMessage}: ${error}`, error as Error);
     throw error;
   }
 }

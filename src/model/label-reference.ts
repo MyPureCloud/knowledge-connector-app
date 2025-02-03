@@ -1,5 +1,5 @@
-import { Identifiable } from './identifiable.js';
-
-export interface LabelReference extends Identifiable {
+export interface LabelReference {
+  id: string | null;
+  externalId: string | null;
   name: string | null;
 }

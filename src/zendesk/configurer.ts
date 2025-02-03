@@ -9,6 +9,7 @@ import { DocumentLinkProcessor } from '../processor/document-link/document-link-
 import { DiffAggregator } from '../aggregator/diff-aggregator.js';
 import { DiffUploader } from '../uploader/diff-uploader.js';
 import { UrlTransformer } from '../processor/url-transformer/url-transformer.js';
+import { NameConflictResolver } from '../processor/name-conflict-resolver/name-conflict-resolver.js';
 
 export const configurer: Configurer = (pipe: Pipe) => {
   pipe
@@ -20,6 +21,7 @@ export const configurer: Configurer = (pipe: Pipe) => {
       new UrlTransformer(),
       new PrefixExternalId(),
       new DocumentLinkProcessor(),
+      new NameConflictResolver(),
     )
     .aggregator(new DiffAggregator())
     .uploaders(new DiffUploader());

@@ -1,11 +1,8 @@
 import { SearchAssetRequest } from './model/search-asset-request.js';
 import { GenesysDestinationConfig } from './model/genesys-destination-config.js';
 import { Image } from '../model/image.js';
-import {
-  Document,
-  ExportModel,
-  SyncModel,
-} from '../model/sync-export-model.js';
+import { Document } from '../model/document.js';
+import { ExportModel, SyncModel } from '../model/sync-export-model.js';
 import { SyncDataResponse } from '../model/sync-data-response.js';
 import { UploadAssetStatusResponse } from './model/upload-asset-status-response.js';
 import { ExportArticlesResponse } from './model/export-articles-response.js';
@@ -56,7 +53,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
   }
 
   public async uploadImage(hash: string, image: Image): Promise<string | null> {
-    await this.validateFileType(image);
+    const contentType = await this.getContentType(image);
 
     const name = this.escapeName(hash + '-' + image.name);
 
@@ -71,7 +68,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
       return null;
     }
 
-    await this.getApi().upload(uploadUrl, image.content);
+    await this.getApi().upload(uploadUrl, image.content, contentType);
     await this.getApi().waitForJobToFinish<UploadAssetStatusResponse>(
       () => this.getApi().getUploadStatus(uploadUrl.id),
       ['Uploaded', 'Failed'],
@@ -149,7 +146,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
     return name.replaceAll(/[\\{^}%`\]">[~<#|/ ]/g, '-');
   }
 
-  private async validateFileType(image: Image): Promise<void> {
+  private async getContentType(image: Image): Promise<string> {
     const fileType = await fileTypeFromBuffer(
       await image.content.arrayBuffer(),
     );
@@ -160,5 +157,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
         SUPPORTED_FORMATS,
       );
     }
+
+    return fileType.mime;
   }
 }

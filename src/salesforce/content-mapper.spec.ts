@@ -1,57 +1,49 @@
 import { describe, expect, it } from '@jest/globals';
-import { contentMapper } from './content-mapper.js';
+import { articleMapper } from './content-mapper.js';
+import { SalesforceContext } from './model/salesforce-context.js';
 
 describe('contentMapper', () => {
-  describe('article mapper', () => {
+  describe('articleMapper', () => {
     it('should exclude none text fields', () => {
-      const result = contentMapper(
-        [],
-        [buildArticle()],
-        { salesforceLanguageCode: 'en-US' },
-        false,
-        false,
-        'https://test.lightning.force.com'
-      );
+      const [result] = articleMapper(buildArticle(), buildContext(), {
+        languageCode: 'en-US',
+        buildExternalUrls: false,
+        fetchLabels: false,
+        contentFields: [],
+        baseUrl: '',
+      });
 
-      expect(result.documents[0].published?.title).toBe('the title');
-      expect(result.documents[0].published?.variations[0].rawHtml).toBe(
+      expect(result.published?.title).toBe('the title');
+      expect(result.published?.variations[0].rawHtml).toBe(
         '<p>First line</p><p><p>Paragraph</p></p>',
       );
     });
 
     it('should include only requested fields', () => {
-      const result = contentMapper(
-        [],
-        [buildArticle()],
-        {
-          salesforceArticleContentFields: 'layout item name 5',
-          salesforceLanguageCode: 'en-US',
-        },
-        false,
-        false,
-        'https://test.lightning.force.com'
-      );
+      const [result] = articleMapper(buildArticle(), buildContext(), {
+        languageCode: 'en-US',
+        buildExternalUrls: false,
+        fetchLabels: false,
+        contentFields: ['layout item name 5'],
+        baseUrl: '',
+      });
 
-      expect(result.documents[0].published?.title).toBe('the title');
-      expect(result.documents[0].published?.variations[0].rawHtml).toBe(
+      expect(result.published?.title).toBe('the title');
+      expect(result.published?.variations[0].rawHtml).toBe(
         '<p><p>Paragraph</p></p>',
       );
     });
 
     it('should include article external url if enabled', () => {
-      const result = contentMapper(
-        [],
-        [buildArticle()],
-        {
-          salesforceLightningBaseUrl: 'https://test.lightning.force.com',
-          salesforceLanguageCode: 'en-us',
-        },
-        false,
-        true,
-        'https://test.lightning.force.com'
-      );
+      const [result] = articleMapper(buildArticle(), buildContext(), {
+        languageCode: 'en_US',
+        buildExternalUrls: true,
+        fetchLabels: false,
+        contentFields: [],
+        baseUrl: 'https://test.lightning.force.com',
+      });
 
-      expect(result.documents[0].externalUrl).toBe(
+      expect(result.externalUrl).toBe(
         'https://test.lightning.force.com/articles/en_US/Knowledge/testUrl',
       );
     });
@@ -107,6 +99,38 @@ describe('contentMapper', () => {
           value: '<p>Paragraph</p>',
         },
       ],
+    };
+  }
+
+  function buildContext(): SalesforceContext {
+    return {
+      adapter: {
+        unprocessedItems: {
+          categories: [],
+          labels: [],
+          articles: [],
+        },
+      },
+      syncableContents: {
+        categories: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+        labels: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+        documents: {
+          created: [],
+          updated: [],
+          deleted: [],
+        },
+      },
+      articleLookupTable: {},
+      labelLookupTable: {},
+      categoryLookupTable: {},
     };
   }
 });
