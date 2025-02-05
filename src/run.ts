@@ -9,7 +9,7 @@ const config = parseConfig();
 
 const logger = winston.createLogger({
   transports: [new winston.transports.Console()],
-  level: config['logLevel'] ?? 'info',
+  level: config['logLevel']?.toLowerCase() ?? 'info',
 });
 setLogger(logger);
 
