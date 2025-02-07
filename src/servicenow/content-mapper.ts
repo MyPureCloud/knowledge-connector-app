@@ -56,6 +56,7 @@ export function articleMapper(
     fields: {
       text: { value: body },
       workflow_state: { value: state },
+      sys_updated_on: { value: updatedOn },
     },
   } = article;
 
@@ -83,6 +84,7 @@ export function articleMapper(
       externalUrl: configuration.buildExternalUrls
         ? buildExternalUrl(configuration.baseUrl, article.number)
         : null,
+      externalVersionId: updatedOn ?? null,
       published: state === 'published' ? documentVersion : null,
       draft: state !== 'published' ? documentVersion : null,
     },

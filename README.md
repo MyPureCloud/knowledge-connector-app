@@ -206,6 +206,17 @@ BUILD_EXTERNAL_URLS=
 ATTACHMENT_DOMAIN_ALLOW_LIST=
 ```
 
+#### Compare mode
+
+```
+# Values: 'None', 'ModificationDate', or 'Content'. Default is 'ModificationDate'.
+# When set to 'None', all articles will be updated without comparison.
+# When set to 'ModificationDate', only articles that have been updated since the last sync will be updated.
+# When set to 'Content', only articles with detected content differences will be updated.
+
+COMPARE_MODE=
+```
+
 #### Log level
 
 ```

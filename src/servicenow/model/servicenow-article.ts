@@ -27,5 +27,12 @@ export interface ServiceNowArticle {
     workflow_state: {
       value: string;
     };
+    sys_updated_on: {
+      display_value: string;
+      name: string;
+      label: string;
+      type: string;
+      value: string;
+    };
   };
 }

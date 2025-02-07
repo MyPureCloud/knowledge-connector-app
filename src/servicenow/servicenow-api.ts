@@ -246,7 +246,7 @@ export class ServiceNowApi {
   }
 
   private constructArticleUrl(offset: number | null): string | null {
-    const endpoint = `/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&${this.queryParams()}&limit=${this.limit}`;
+    const endpoint = `/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category,sys_updated_on&${this.queryParams()}&limit=${this.limit}`;
     return offset !== null
       ? `${this.baseUrl}${endpoint}&offset=${offset}`
       : null;
