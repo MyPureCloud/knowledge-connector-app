@@ -3,4 +3,5 @@ export interface ExternalIdentifiable {
   externalId: string | null;
   externalIdAlternatives?: string[] | null;
   sourceId?: string | null;
+  externalVersionId?: string | null;
 }

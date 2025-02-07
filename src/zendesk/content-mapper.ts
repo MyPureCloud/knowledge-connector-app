@@ -100,6 +100,7 @@ export function articleMapper(
       externalUrl: null,
       published: !draft ? documentVersion : null,
       draft: draft ? documentVersion : null,
+      externalVersionId: article.updated_at ?? null,
     },
   ];
 }

@@ -1,5 +1,11 @@
 # Change log
 
+## 0.9.0 (2025-02-24)
+
+### Changes:
+
+1. Introduce COMPARE_MODE env variable for difference checking
+
 ## 0.8.5 (2025-02-05)
 
 ### Changes:

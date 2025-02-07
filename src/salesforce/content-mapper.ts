@@ -70,6 +70,7 @@ export function articleMapper(
             article.urlName,
           )
         : null,
+      externalVersionId: article.lastPublishedDate ?? null,
       published: documentVersion,
       draft: null,
     },

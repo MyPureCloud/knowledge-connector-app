@@ -17,6 +17,11 @@ import { MissingReferenceError } from '../utils/errors/missing-reference-error.j
 import { EntityType } from '../model/entity-type.js';
 
 const HELPER_PROPERTIES = ['externalIdAlternatives'];
+const enum CompareMode {
+  NONE = 'None',
+  MODIFICATION_DATE = 'ModificationDate',
+  CONTENT = 'Content',
+}
 
 /**
  * The DiffAggregator transforms the ExternalContent into ImportableContents,
@@ -25,6 +30,7 @@ const HELPER_PROPERTIES = ['externalIdAlternatives'];
  */
 export class DiffAggregator implements Aggregator {
   private context?: PipeContext;
+  private config?: DiffAggregatorConfig;
   private protectedFields: string[] = [];
   private externalIdPrefix: string = '';
 
@@ -34,6 +40,7 @@ export class DiffAggregator implements Aggregator {
     context: PipeContext,
   ): Promise<void> {
     this.context = context;
+    this.config = config;
 
     this.protectedFields = (config.protectedFields ?? '').split(',');
     this.externalIdPrefix = config.externalIdPrefix ?? '';
@@ -94,11 +101,7 @@ export class DiffAggregator implements Aggregator {
 
       this.copyProtectedContent(normalizedStoredItem, normalizedCollectedItem);
 
-      if (
-        !_.isEqualWith(normalizedCollectedItem, normalizedStoredItem, (c, s) =>
-          this.isEqualCustomizer(c, s),
-        )
-      ) {
+      if (!this.isEqual(normalizedCollectedItem, normalizedStoredItem)) {
         result.updated.push(normalizedCollectedItem);
       }
       result.deleted = result.deleted.filter(
@@ -109,6 +112,21 @@ export class DiffAggregator implements Aggregator {
     }
   }
 
+  private isEqual<T extends ExternalIdentifiable>(normalizedCollectedItem: T, normalizedStoredItem: T): boolean {
+    const compareMode = this.config?.compareMode ?? CompareMode.MODIFICATION_DATE;
+
+    if (compareMode === CompareMode.MODIFICATION_DATE &&
+      (normalizedCollectedItem.externalVersionId || normalizedStoredItem.externalVersionId)) {
+      return normalizedCollectedItem.externalVersionId === normalizedStoredItem.externalVersionId;
+    }
+
+    if (compareMode === CompareMode.NONE) { return false; }
+
+    return _.isEqualWith(normalizedCollectedItem, normalizedStoredItem, (c, s) =>
+      this.isEqualCustomizer(c, s),
+    )
+  }
+
   private normalizeDocument(document: Document): Document {
     const {
       externalId,
@@ -116,6 +134,7 @@ export class DiffAggregator implements Aggregator {
       externalUrl,
       published,
       draft,
+      externalVersionId
     } = document;
 
     return {
@@ -125,6 +144,7 @@ export class DiffAggregator implements Aggregator {
       externalUrl: externalUrl || null,
       published: published ? this.normalizeDocumentVersion(published) : null,
       draft: draft ? this.normalizeDocumentVersion(draft) : null,
+      externalVersionId: externalVersionId || null
     };
   }
 

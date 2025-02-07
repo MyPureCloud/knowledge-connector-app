@@ -21,7 +21,7 @@ describe('ServiceNowApi', () => {
   const ARTICLE_NUMBER = 'KB111';
 
   const fetchArticleUrl: string =
-    'https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category';
+    'https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category,sys_updated_on';
   const fetchCategoryUrl: string =
     'https://test-url.com/api/now/table/kb_category?sysparm_fields=sys_id,full_category&active=true&sysparm_query=parent_id!%3Dundefined';
   const filters = '&filter=workflow_state%3Dpublished';
@@ -96,6 +96,13 @@ describe('ServiceNowApi', () => {
         },
         workflow_state: {
           value: 'Published',
+        },
+        sys_updated_on: {
+          display_value: '04/10/2024 13:33:40',
+          name: 'sys_updated_on',
+          label: 'Updated',
+          type: 'glide_date_time',
+          value: '2024-04-10 18:33:40'
         },
       },
     };
@@ -312,7 +319,7 @@ describe('ServiceNowApi', () => {
           arraysFromAsync(api.articleIterator()),
         ).rejects.toThrowError(
           new ApiError(
-            `Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category${filters}&limit=50&offset=0] failed with status [500] and message [${ERROR_BODY}]`,
+            `Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category,sys_updated_on${filters}&limit=50&offset=0] failed with status [500] and message [${ERROR_BODY}]`,
             {
               url: 'https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=50',
               status: 500,

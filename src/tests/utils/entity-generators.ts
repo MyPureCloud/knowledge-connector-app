@@ -56,6 +56,7 @@ export function generateNormalizedDocument(
   visible: boolean = true,
   externalId: string = 'article-external-id' + suffix,
   sourceId: string | null = null,
+  externalVersionId: string | null = null,
 ): Document {
   return {
     id,
@@ -64,6 +65,11 @@ export function generateNormalizedDocument(
     ...(sourceId
       ? {
           sourceId,
+        }
+      : {}),
+    ...(externalVersionId
+      ? {
+        externalVersionId,
         }
       : {}),
     published: {
