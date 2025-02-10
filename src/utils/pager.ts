@@ -19,6 +19,11 @@ export class Pager<T> {
     getLogger().debug(`Fetching next page`);
     let nextPage: T[] | null;
     while ((nextPage = await this.getNextPage()) !== null) {
+      if (!nextPage?.length) {
+        getLogger().debug(`Next page is empty`);
+        return;
+      }
+
       this.unprocessedItems = nextPage;
 
       getLogger().debug(`Loaded ${nextPage.length} items`);

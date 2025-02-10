@@ -402,6 +402,11 @@ describe('DiffAggregator', () => {
           labels: [],
           documents: [],
         },
+        failedItems: {
+          categories: [],
+          labels: [],
+          documents: [],
+        },
       },
       syncableContents: {
         categories: {

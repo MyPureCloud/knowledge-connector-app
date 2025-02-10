@@ -92,7 +92,7 @@ export class ServiceNowAdapter
     } = info;
 
     if (!this.attachmentDomainValidator!.isDomainAllowed(url)) {
-      throw new AttachmentDomainNotAllowedError(url);
+      throw new AttachmentDomainNotAllowedError(url, articleId);
     }
     const content = await this.api.downloadAttachment(url);
 

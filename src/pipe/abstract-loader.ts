@@ -49,13 +49,14 @@ export abstract class AbstractLoader<
       `Processing ${unprocessedItems.length} postponed items in loader`,
     );
     while (unprocessedItems.length > 0) {
-      const item = unprocessedItems.shift();
+      const item = unprocessedItems[0];
       const result = mapper(item!);
       if (result.length > 0) {
         for (const i of result) {
           yield i;
         }
       }
+      unprocessedItems.shift();
     }
   }
 

@@ -3,6 +3,6 @@ import { ErrorBasePublic } from '../../utils/errors/error-base-public.js';
 
 export class ConfigurerError extends ErrorBasePublic {
   constructor(message: string, details: { [key: string]: unknown }) {
-    super(ErrorCodes.CONFIGURER_ERROR, message, details);
+    super(ErrorCodes.CONFIGURER_ERROR, message, undefined, details);
   }
 }

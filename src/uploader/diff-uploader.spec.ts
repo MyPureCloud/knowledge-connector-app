@@ -14,6 +14,7 @@ import {
 } from '../model';
 import { MockInstance } from 'jest-mock';
 import { ConfigurerError } from '../aggregator/errors/configurer-error.js';
+import { FailedItems } from '../model/failed-items.js';
 
 jest.mock('../utils/package-version.js');
 jest.mock('../genesys/genesys-destination-adapter.js');
@@ -32,6 +33,7 @@ describe('DiffUploader', () => {
   let sourceAdapter: SourceAdapter<unknown, unknown, unknown>;
   let destinationAdapter: GenesysDestinationAdapter;
   let syncData: MockInstance<(data: SyncModel) => Promise<SyncDataResponse>>;
+  let failedItems: FailedItems;
 
   beforeEach(async () => {
     config = {
@@ -49,6 +51,11 @@ describe('DiffUploader', () => {
     syncData = destinationAdapter.syncData as unknown as MockInstance<
       (data: SyncModel) => Promise<SyncDataResponse>
     >;
+    failedItems = {
+      categories: [],
+      labels: [],
+      documents: [],
+    };
 
     uploader = new DiffUploader();
   });
@@ -62,7 +69,7 @@ describe('DiffUploader', () => {
       it('should keep all entities in deleted section', async () => {
         const content = generateContent(EXTERNAL_ID_PREFIX, null);
 
-        await uploader.run(content);
+        await uploader.run(content, failedItems);
 
         verifySyncData(8);
       });
@@ -78,7 +85,7 @@ describe('DiffUploader', () => {
       it('should remove entities with other externalIdPrefix from deleted section', async () => {
         const content = generateContent(EXTERNAL_ID_PREFIX, null);
 
-        await uploader.run(content);
+        await uploader.run(content, failedItems);
 
         verifySyncData(4);
       });
@@ -94,7 +101,7 @@ describe('DiffUploader', () => {
       it('should remove entities with other sourceId from deleted section', async () => {
         const content = generateContent(null, SOURCE_ID);
 
-        await uploader.run(content);
+        await uploader.run(content, failedItems);
 
         verifySyncData(4);
       });
@@ -117,7 +124,9 @@ describe('DiffUploader', () => {
       });
 
       it('should throw error', () => {
-        expect(() => uploader.run(content)).rejects.toThrow(ConfigurerError);
+        expect(() => uploader.run(content, failedItems)).rejects.toThrow(
+          ConfigurerError,
+        );
       });
 
       describe('when stored content has more items than in the deleted section', () => {
@@ -126,7 +135,7 @@ describe('DiffUploader', () => {
           context.storedContent!.labels.push(generateItem(null, null));
           context.storedContent!.documents.push(generateItem(null, null));
 
-          await uploader.run(content);
+          await uploader.run(content, failedItems);
 
           verifySyncData(8);
         });
@@ -141,12 +150,14 @@ describe('DiffUploader', () => {
       });
 
       it('should delete all entities', async () => {
-        await uploader.run(content);
+        await uploader.run(content, failedItems);
 
         verifySyncData(8);
       });
     });
   });
+
+  describe('when there are failed items', () => {});
 
   function generateContent(
     externalIdPrefix: string | null,

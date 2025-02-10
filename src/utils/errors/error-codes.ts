@@ -9,4 +9,5 @@ export enum ErrorCodes {
   THIRD_PARTY_UNEXPECTED_ERROR = 'third.party.unexpected.error',
   THIRD_PARTY_INVALID_CREDENTIALS = 'third.party.invalid.credentials',
   INTERNAL_SERVER_ERROR = 'internal.server.error',
+  HTML_CONVERTER_ERROR = 'html.converter.error'
 }

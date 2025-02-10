@@ -10,6 +10,7 @@ import { DownloadError } from './errors/download-error.js';
 import { ApiError } from '../adapter/errors/api-error.js';
 import { runtime } from './runtime.js';
 import { getPackageVersion } from './package-version.js';
+import { EntityType } from '../model/entity-type.js';
 
 export { Response, RequestInit, HeadersInit } from 'undici';
 
@@ -36,7 +37,11 @@ export async function fetchImage(
   const requestHeaders = headers ? { headers } : {};
   const response = await innerFetch(url, requestHeaders);
   if (!response.ok) {
-    throw new DownloadError(`Image ${url} cannot be downloaded`, { url });
+    throw new DownloadError(
+      `Image ${url} cannot be downloaded`,
+      { url },
+      EntityType.DOCUMENT,
+    );
   }
 
   const content = await response.blob();
@@ -79,11 +84,13 @@ export async function fetch(
  * Read and parse JSON response
  * @param url
  * @param response
+ * @param entityName
  * @throws ApiError
  */
 export async function readResponse<T>(
   url: string,
   response: Response,
+  entityName?: EntityType,
 ): Promise<T> {
   await verifyResponseStatus(url, response);
 
@@ -100,6 +107,7 @@ export async function readResponse<T>(
         message: String(error),
         body,
       },
+      entityName,
     );
   }
 }
@@ -108,11 +116,13 @@ export async function readResponse<T>(
  * Verify that the response is ok
  * @param url
  * @param response
+ * @param entityName
  * @throws ApiError
  */
 export async function verifyResponseStatus(
   url: string,
   response: Response,
+  entityName?: EntityType,
 ): Promise<void> {
   const { status, ok } = response;
 
@@ -127,6 +137,7 @@ export async function verifyResponseStatus(
         message: `API request failed with status: ${status}`,
         body,
       },
+      entityName,
     );
   }
 }
@@ -135,10 +146,12 @@ export async function verifyResponseStatus(
  * Read the text response
  * @param url
  * @param response
+ * @param entityName
  */
 export async function readBody(
   url: string,
   response: Response,
+  entityName?: EntityType,
 ): Promise<string> {
   const { status } = response;
 
@@ -152,6 +165,7 @@ export async function readBody(
         status,
         message: String(error),
       },
+      entityName,
     );
   }
 }

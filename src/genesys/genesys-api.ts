@@ -8,6 +8,7 @@ import { getLogger } from '../utils/logger.js';
 import { JobStatus } from './model/job-status.js';
 import { fetch, RequestInit, Response } from '../utils/web-client.js';
 import { ApiError } from '../adapter/errors/api-error.js';
+import { EntityType } from '../model/entity-type.js';
 
 export abstract class GenesysApi {
   protected token?: TokenResponse;
@@ -58,6 +59,7 @@ export abstract class GenesysApi {
     init?: RequestInit,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     body?: { [key: string]: any },
+    entityName?: EntityType,
   ): Promise<T> {
     const config: RequestInit = {
       ...init,
@@ -68,7 +70,7 @@ export abstract class GenesysApi {
       },
       body: JSON.stringify(body),
     };
-    return this.innerFetch<T>(this.getBaseUrl() + endpoint, config);
+    return this.innerFetch<T>(this.getBaseUrl() + endpoint, config, entityName);
   }
 
   public async waitForJobToFinish<T extends JobStatusResponse>(
@@ -111,9 +113,13 @@ export abstract class GenesysApi {
     );
   }
 
-  protected async innerFetch<T>(url: string, init?: RequestInit): Promise<T> {
+  protected async innerFetch<T>(
+    url: string,
+    init?: RequestInit,
+    entityName?: EntityType,
+  ): Promise<T> {
     const response = await fetch(url, init);
-    await this.verifyResponse(response, url);
+    await this.verifyResponse(response, url, entityName);
 
     const json = await response.json();
     return json as T;
@@ -122,6 +128,7 @@ export abstract class GenesysApi {
   protected async verifyResponse(
     response: Response,
     url: string,
+    entityName?: EntityType,
   ): Promise<void> {
     if (!response.ok) {
       const message = JSON.stringify(await response.json());
@@ -132,6 +139,7 @@ export abstract class GenesysApi {
           status: response.status,
           message,
         },
+        entityName,
       );
     }
   }

@@ -84,7 +84,7 @@ export class GenesysSourceAdapter
     url: string,
   ): Promise<Image | null> {
     if (!this.attachmentDomainValidator!.isDomainAllowed(url)) {
-      throw new AttachmentDomainNotAllowedError(url);
+      throw new AttachmentDomainNotAllowedError(url, articleId);
     }
     return fetchImage(url);
   }

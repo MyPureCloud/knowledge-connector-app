@@ -6,6 +6,7 @@ import { ServiceNowCategory } from './model/servicenow-category.js';
 import { ServiceNowContext } from './model/servicenow-context.js';
 import { ServiceNowMapperConfiguration } from './model/servicenow-mapper-configuration.js';
 import { MissingReferenceError } from '../utils/errors/missing-reference-error.js';
+import { EntityType } from '../model/entity-type.js';
 
 export function categoryMapper(
   category: ServiceNowCategory,
@@ -99,7 +100,7 @@ function getCategoryReference(
   const category = categoryLookupTable[article.fields.kb_category.value];
   if (!category) {
     throw new MissingReferenceError(
-      'Category',
+      EntityType.CATEGORY,
       article.fields.kb_category?.value,
     );
   }

@@ -206,14 +206,14 @@ export class SalesforceApi {
       data = await readResponse<SalesforceAccessTokenResponse>(url, response);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new InvalidCredentialsError(
+        throw InvalidCredentialsError.fromApiError(
           `Failed to get Salesforce bearer token. Reason: ${error.message}`,
-          error.getDetails(),
+          error,
         );
       }
       throw new InvalidCredentialsError(
         `Failed to get Salesforce bearer token. Reason: ${error}`,
-        { status: response.status, message: error },
+        { messageParams: { status: response.status, message: error } },
       );
     }
 

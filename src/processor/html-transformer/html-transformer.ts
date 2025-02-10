@@ -6,6 +6,9 @@ import { Document } from '../../model/document.js';
 import { Category, Label } from '../../model';
 import { Processor } from '../processor.js';
 import { PipeContext } from '../../pipe/pipe-context.js';
+import { HtmlConverterError } from '../../utils/errors/html-converter-error.js';
+import { ErrorCodes } from '../../utils/errors/error-codes.js';
+import { EntityType } from '../../model/entity-type.js';
 
 export class HtmlTransformer implements Processor {
   public async initialize(
@@ -32,12 +35,15 @@ export class HtmlTransformer implements Processor {
       if (!variation.rawHtml && variation.body) {
         return;
       }
-
-      const blocks = convertHtmlToBlocks(variation.rawHtml || '');
-      variation.body = {
-        blocks,
-      };
-      delete variation.rawHtml;
+      try {
+        const blocks = convertHtmlToBlocks(variation.rawHtml || '');
+        variation.body = {
+          blocks,
+        };
+        delete variation.rawHtml;
+      } catch (error) {
+        throw new HtmlConverterError(ErrorCodes.HTML_CONVERTER_ERROR, (error as Error).message, EntityType.DOCUMENT)
+      }
     });
 
     return item;

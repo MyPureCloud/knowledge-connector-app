@@ -8,6 +8,9 @@ import { Runnable } from './runnable.js';
 import { Aggregator } from '../aggregator/aggregator.js';
 import { Interrupted } from '../utils/errors/interrupted.js';
 import _ from 'lodash';
+import { ErrorBasePublic } from '../utils/errors/error-base-public.js';
+import { ErrorCodes } from '../utils/errors/error-codes.js';
+import { EntityWithMetadata } from '../model/entity-with-metadata.js';
 
 export type Method<T> = (
   runnable: Runnable<unknown, unknown, unknown>,
@@ -22,6 +25,7 @@ export class Worker<T extends ExternalIdentifiable> {
   private executeMethod: Method<T> | null = null;
   private processedItemList: T[] | null = null;
   private unprocessedItemList: T[] | null = null;
+  private failedItemList: EntityWithMetadata<T>[] | null = null;
 
   public iterators(iterators: () => AsyncGenerator<T, void, void>[]): this {
     this.itemIterators = iterators;
@@ -48,6 +52,11 @@ export class Worker<T extends ExternalIdentifiable> {
     return this;
   }
 
+  public failedItems(failedItems: EntityWithMetadata<T>[]): this {
+    this.failedItemList = failedItems;
+    return this;
+  }
+
   public method(method: Method<T>): this {
     this.executeMethod = method;
     return this;
@@ -71,12 +80,18 @@ export class Worker<T extends ExternalIdentifiable> {
       this.unprocessedItemList,
       'UnprocessedItems list missing',
     );
+    const failedItems = validateNonNull(
+      this.failedItemList,
+      'FailedItems list missing',
+    );
+
     await this.firstTry(
       processors,
       method,
       aggregators,
       processedItems,
       unprocessedItems,
+      failedItems,
     );
 
     await this.secondTry(
@@ -85,6 +100,7 @@ export class Worker<T extends ExternalIdentifiable> {
       method,
       aggregators,
       processedItems,
+      failedItems,
     );
   }
 
@@ -94,7 +110,8 @@ export class Worker<T extends ExternalIdentifiable> {
     aggregators: Aggregator[],
     processedItems: T[],
     unprocessedItems: T[],
-  ) {
+    failedItems: EntityWithMetadata<T>[],
+  ): Promise<void> {
     for await (const item of this.consumeIterators()) {
       getLogger().info(
         `Worker load next item with externalId: ${item.externalId}`,
@@ -122,9 +139,11 @@ export class Worker<T extends ExternalIdentifiable> {
             throw error;
           })
           .on(TransformationError, () => {
-            unprocessedItems.unshift(item);
+            unprocessedItems.push(item);
           })
-          .any(() => {}) // TODO: push to errorList
+          .any(() => {
+            failedItems.push(this.generateFailedEntity(item, error as Error));
+          })
           .with(error);
       }
     }
@@ -136,17 +155,21 @@ export class Worker<T extends ExternalIdentifiable> {
     method: Method<T>,
     aggregators: Aggregator[],
     processedItems: T[],
-  ) {
+    failedItems: EntityWithMetadata<T>[],
+  ): Promise<void> {
     getLogger().debug(
       `Processing ${unprocessedItems.length} postponed items in worker`,
     );
     while (unprocessedItems.length > 0) {
-      const item = unprocessedItems.shift();
+      const item = unprocessedItems.shift()!;
+      getLogger().info(
+        `Worker load next postponed item with externalId: ${item.externalId}`,
+      );
 
       try {
         const unprocessedItem = _.cloneDeep(item);
         const processedItem = await this.executeRunnable<T>(
-          unprocessedItem!,
+          unprocessedItem,
           processors,
           method,
           false,
@@ -162,15 +185,17 @@ export class Worker<T extends ExternalIdentifiable> {
         processedItems.push(processedItem);
       } catch (error) {
         getLogger().warn(
-          `Error processing (unprocessed) item ${item!.externalId}: ${error}`,
+          `Error processing (unprocessed) item ${item.externalId}: ${error}`,
           error as Error,
         );
         await catcher()
           .on(Interrupted, (error) => {
-            unprocessedItems.unshift(item!);
+            unprocessedItems.unshift(item);
             throw error;
           })
-          .any(() => {}) // TODO: push to errorList
+          .any(() => {
+            failedItems.push(this.generateFailedEntity(item, error as Error));
+          })
           .with(error);
       }
     }
@@ -195,5 +220,25 @@ export class Worker<T extends ExternalIdentifiable> {
       item = await method(runnable, item, firstTry);
     }
     return item;
+  }
+
+  private generateFailedEntity(item: T, error: Error): EntityWithMetadata<T> {
+    if (error instanceof ErrorBasePublic) {
+      return {
+        ...item,
+        errors: error.toFailedEntityErrors(),
+      };
+    }
+
+    return {
+      ...item,
+      errors: [
+        {
+          code: ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR,
+          messageWithParams: 'Unexpected error',
+          messageParams: { error: error.message },
+        },
+      ],
+    };
   }
 }

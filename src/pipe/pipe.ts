@@ -22,6 +22,7 @@ import { TimerConfig } from './timer-config.js';
 import { Interrupted } from '../utils/errors/interrupted.js';
 import { Worker } from './worker.js';
 import { runtime } from '../utils/runtime.js';
+import { FailedItems } from '../model/failed-items.js';
 import { catcher } from '../utils/catch-error-helper.js';
 
 /**
@@ -203,7 +204,10 @@ export class Pipe {
     context: PipeContext,
   ): Promise<void> {
     await this.initTasks(this.uploaderList, config, context);
-    await this.executeUploaders(context.syncableContents);
+    await this.executeUploaders(
+      context.syncableContents,
+      context.pipe.failedItems,
+    );
   }
 
   private async processDocuments(context: PipeContext): Promise<void> {
@@ -213,6 +217,7 @@ export class Pipe {
       .aggregators(this.aggregatorList)
       .processedItems(context.pipe.processedItems.documents)
       .unprocessedItems(context.pipe.unprocessedItems.documents)
+      .failedItems(context.pipe.failedItems.documents)
       .method(
         async (runnable, item, firstTry: boolean) =>
           (await runnable.runOnDocument(
@@ -230,6 +235,7 @@ export class Pipe {
       .aggregators(this.aggregatorList)
       .processedItems(context.pipe.processedItems.labels)
       .unprocessedItems(context.pipe.unprocessedItems.labels)
+      .failedItems(context.pipe.failedItems.labels)
       .method(
         async (runnable, item, firstTry: boolean) =>
           (await runnable.runOnLabel(item as Label, firstTry)) as Label,
@@ -244,6 +250,7 @@ export class Pipe {
       .aggregators(this.aggregatorList)
       .processedItems(context.pipe.processedItems.categories)
       .unprocessedItems(context.pipe.unprocessedItems.categories)
+      .failedItems(context.pipe.failedItems.categories)
       .method(
         async (runnable, item, firstTry: boolean) =>
           (await runnable.runOnCategory(
@@ -282,11 +289,12 @@ export class Pipe {
 
   private async executeUploaders(
     importableContents: SyncableContents,
+    failedItems: FailedItems,
   ): Promise<void> {
     for (const uploader of this.uploaderList) {
       await this.execute(
         uploader,
-        (item) => uploader.run(item),
+        (item) => uploader.run(item, failedItems),
         importableContents,
       );
     }
@@ -401,6 +409,11 @@ export class Pipe {
           documents: [],
         },
         unprocessedItems: {
+          categories: [],
+          labels: [],
+          documents: [],
+        },
+        failedItems: {
           categories: [],
           labels: [],
           documents: [],

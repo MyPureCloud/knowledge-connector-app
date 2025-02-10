@@ -14,6 +14,7 @@ import { DestinationAdapter } from '../adapter/destination-adapter.js';
 import { DiffAggregatorConfig } from './diff-aggregator-config.js';
 import { PipeContext } from '../pipe/pipe-context.js';
 import { MissingReferenceError } from '../utils/errors/missing-reference-error.js';
+import { EntityType } from '../model/entity-type.js';
 
 const HELPER_PROPERTIES = ['externalIdAlternatives'];
 
@@ -184,7 +185,7 @@ export class DiffAggregator implements Aggregator {
     const { name } = this.getFinalVersion(
       categoryReference.externalId!,
       this.context!.categoryLookupTable,
-      'Category',
+      EntityType.CATEGORY,
     );
 
     return { id: null, externalId: null, name };
@@ -220,7 +221,7 @@ export class DiffAggregator implements Aggregator {
     const { name } = this.getFinalVersion(
       labelReference.externalId!,
       this.context!.labelLookupTable,
-      'Label',
+      EntityType.LABEL,
     );
 
     return {
@@ -305,7 +306,7 @@ export class DiffAggregator implements Aggregator {
   private getFinalVersion<R extends CategoryReference | LabelReference>(
     externalId: string,
     lookupTable: Record<string, R>,
-    entityType: 'Category' | 'Label' | 'Document',
+    entityType: EntityType,
   ): R {
     const item = lookupTable[externalId];
 

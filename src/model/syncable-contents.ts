@@ -1,6 +1,7 @@
 import { Category } from './category.js';
 import { Label } from './label.js';
 import { Document } from './document.js';
+import { EntityWithMetadata } from './entity-with-metadata';
 
 export interface SyncableContents {
   categories: ImportableContent<Category>;
@@ -9,7 +10,7 @@ export interface SyncableContents {
 }
 
 export interface ImportableContent<T> {
-  created: T[];
-  updated: T[];
-  deleted: T[];
+  created: EntityWithMetadata<T>[];
+  updated: EntityWithMetadata<T>[];
+  deleted: EntityWithMetadata<T>[];
 }
