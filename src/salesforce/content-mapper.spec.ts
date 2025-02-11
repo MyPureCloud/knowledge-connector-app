@@ -55,6 +55,7 @@ describe('contentMapper', () => {
       title: 'the title',
       categoryGroups: [],
       urlName: 'testUrl',
+      lastPublishedDate: '2024-11-28T08:38:17Z',
       layoutItems: [
         {
           label: 'Title',

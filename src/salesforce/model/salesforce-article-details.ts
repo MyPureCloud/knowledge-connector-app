@@ -7,4 +7,5 @@ export interface SalesforceArticleDetails {
   urlName: string;
   categoryGroups: SalesforceCategoryGroup[];
   layoutItems: SalesforceArticleLayoutItem[];
+  lastPublishedDate: string;
 }

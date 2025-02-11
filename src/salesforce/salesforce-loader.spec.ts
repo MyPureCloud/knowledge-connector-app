@@ -21,17 +21,20 @@ const mockGetResourceBaseUrl = jest.fn<() => Promise<unknown[]>>();
 
 describe('SalesforceLoader', () => {
   const LABEL = generateMappedLabel();
-  const DOCUMENT = generateRawDocument(
-    '<p><img src="https://document-image.url"></p>',
-    null,
-    [
-      {
-        id: null,
-        externalId: 'category-url',
-        name: 'category-group-label/category-label',
-      },
-    ],
-  );
+  const DOCUMENT = {
+    ...generateRawDocument(
+      '<p><img src="https://document-image.url"></p>',
+      null,
+      [
+        {
+          id: null,
+          externalId: 'category-url',
+          name: 'category-group-label/category-label',
+        },
+      ],
+    ),
+    externalVersionId: '2024-11-28T08:38:17Z',
+  };
 
   let config: SalesforceConfig;
   let adapter: SalesforceAdapter;
@@ -218,6 +221,7 @@ function generateArticle(): SalesforceArticleDetails {
         name: '',
       },
     ],
+    lastPublishedDate: '2024-11-28T08:38:17Z',
   };
 }
 
