@@ -34,21 +34,26 @@ describe('ZendeskLoader', () => {
     CATEGORY_NAME,
     CATEGORY_EXTERNAL_ID,
   );
-  const DOCUMENT = generateRawDocument(
-    'article-body',
-    {
-      id: null,
-      externalId: CATEGORY_EXTERNAL_ID,
-      name: CATEGORY_NAME,
-    },
-    [
+  const DOCUMENT = {
+    ...generateRawDocument(
+      'article-body',
       {
         id: null,
-        externalId: 'label-external-id',
-        name: 'label-name',
+        externalId:
+        CATEGORY_EXTERNAL_ID,
+        name:
+        CATEGORY_NAME,
       },
-    ],
-  );
+      [
+        {
+          id: null,
+          externalId: 'label-external-id',
+          name: 'label-name',
+        },
+      ],
+    ),
+    externalVersionId: '2023-11-02T21:49:40Z',
+  };
 
   let config: ZendeskConfig;
   let adapter: ZendeskAdapter;
@@ -210,6 +215,7 @@ function generateLoadedArticle(): ZendeskArticle {
     draft: false,
     section_id: CATEGORY_EXTERNAL_ID,
     label_names: ['label-name'],
+    updated_at: '2023-11-02T21:49:40Z',
   };
 }
 
