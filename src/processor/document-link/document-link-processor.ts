@@ -44,13 +44,13 @@ export class DocumentLinkProcessor implements Processor {
     return item;
   }
 
-    /**
-     * Run the processor on a document
-     * @param item
-     * @param firstTry
-     * @throws DocumentLinkError
-     */
-    public async runOnDocument(
+  /**
+   * Run the processor on a document
+   * @param item
+   * @param firstTry
+   * @throws DocumentLinkError
+   */
+  public async runOnDocument(
     item: Document,
     firstTry: boolean = true,
   ): Promise<Document> {

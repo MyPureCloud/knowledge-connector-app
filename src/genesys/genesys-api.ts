@@ -6,8 +6,7 @@ import { Config } from '../config.js';
 import { JobStatusResponse } from './model/job-status-response.js';
 import { getLogger } from '../utils/logger.js';
 import { JobStatus } from './model/job-status.js';
-import { fetch, RequestInit, Response } from '../utils/web-client.js';
-import { ApiError } from '../adapter/errors/api-error.js';
+import { fetch, readResponse, RequestInit } from '../utils/web-client.js';
 import { EntityType } from '../model/entity-type.js';
 
 export abstract class GenesysApi {
@@ -119,28 +118,6 @@ export abstract class GenesysApi {
     entityName?: EntityType,
   ): Promise<T> {
     const response = await fetch(url, init);
-    await this.verifyResponse(response, url, entityName);
-
-    const json = await response.json();
-    return json as T;
-  }
-
-  protected async verifyResponse(
-    response: Response,
-    url: string,
-    entityName?: EntityType,
-  ): Promise<void> {
-    if (!response.ok) {
-      const message = JSON.stringify(await response.json());
-      throw new ApiError(
-        `Api request [${url}] failed with status [${response.status}] and message [${message}]`,
-        {
-          url,
-          status: response.status,
-          message,
-        },
-        entityName,
-      );
-    }
+    return readResponse<T>(url, response, entityName);
   }
 }

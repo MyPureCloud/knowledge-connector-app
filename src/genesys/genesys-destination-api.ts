@@ -13,9 +13,10 @@ import { validateNonNull } from '../utils/validate-non-null.js';
 import { BulkDeleteResponse } from '../model/bulk-delete-response.js';
 import { GenesysApi } from './genesys-api.js';
 import { GenesysDestinationConfig } from './model/genesys-destination-config.js';
-import { fetch } from '../utils/web-client.js';
+import { fetch, readBody, verifyResponseStatus } from '../utils/web-client.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 import { getLogger } from '../utils/logger.js';
+import { EntityType } from '../model/entity-type.js';
 
 export class GenesysDestinationApi extends GenesysApi {
   protected config: GenesysDestinationConfig = {};
@@ -100,9 +101,8 @@ export class GenesysDestinationApi extends GenesysApi {
       },
       body: blob,
     });
-    await this.verifyResponse(response, uploadUrl.url);
-
-    await response.text();
+    await verifyResponseStatus(uploadUrl.url, response, EntityType.DOCUMENT);
+    await readBody(uploadUrl.url, response, EntityType.DOCUMENT);
   }
 
   public getUploadStatus(uploadId: string): Promise<UploadAssetStatusResponse> {
@@ -133,15 +133,16 @@ export class GenesysDestinationApi extends GenesysApi {
         },
       );
 
-    validateNonNull(url, 'Missing URL to upload to');
+    const uploadUrl = validateNonNull(url, 'Missing URL to upload to');
 
     getLogger().debug(`Uploading data (size: ${data.size})`);
-    const response = await fetch(url!, {
+    const response = await fetch(uploadUrl, {
       method: 'PUT',
       headers,
       body: data,
     });
-    await this.verifyResponse(response, url!);
+    await verifyResponseStatus(uploadUrl, response);
+    await readBody(uploadUrl, response);
 
     return { uploadKey };
   }

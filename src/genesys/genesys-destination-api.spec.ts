@@ -31,14 +31,16 @@ describe('GenesysDestinationApi', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () =>
-          Promise.resolve({
-            results: [
-              {
-                id: 'asset-id',
-              },
-            ],
-          } as SearchAssetResponse),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({
+              results: [
+                {
+                  id: 'asset-id',
+                },
+              ],
+            } as SearchAssetResponse),
+          ),
       } as Response);
 
       const response = await genesysDestinationApi.lookupImage({
@@ -80,10 +82,12 @@ describe('GenesysDestinationApi', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: () =>
-          Promise.resolve({
-            id: 'sync-id',
-          } as SyncDataResponse),
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({
+              id: 'sync-id',
+            } as SyncDataResponse),
+          ),
       } as Response);
 
       const response = await genesysDestinationApi.createSyncJob('upload-key');
@@ -107,8 +111,10 @@ describe('GenesysDestinationApi', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: () =>
-        Promise.resolve({ access_token: 'access-token' } as TokenResponse),
+      text: () =>
+        Promise.resolve(
+          JSON.stringify({ access_token: 'access-token' } as TokenResponse),
+        ),
     } as Response);
   }
 
