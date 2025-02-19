@@ -1,6 +1,6 @@
 {
   "name": "knowledge-connector-app",
-  "version": "0.8.5",
+  "version": "0.8.6",
   "description": "Knowledge Connector App",
   "module": "./dist/index.js",
   "main": "./dist/index.js",
