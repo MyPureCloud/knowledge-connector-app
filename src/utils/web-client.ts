@@ -39,7 +39,7 @@ export async function fetchImage(
   if (!response.ok) {
     throw new DownloadError(
       `Image ${url} cannot be downloaded`,
-      { url },
+      { url, statusCode: response.status },
       EntityType.DOCUMENT,
     );
   }
@@ -59,11 +59,13 @@ export async function fetchImage(
  * Execute request
  * @param url
  * @param init
+ * @param entityName
  * @throws Interrupted
  */
 export async function fetch(
   url: string,
   init?: RequestInit,
+  entityName?: EntityType,
 ): Promise<Response> {
   runtime.check();
 
@@ -77,7 +79,20 @@ export async function fetch(
     ...init,
     headers,
   };
-  return await innerFetch(url, updatedInit);
+
+  try {
+    return await innerFetch(url, updatedInit);
+  } catch (error) {
+    throw new ApiError(
+      `Api request [${url}] failed with error - ${error}`,
+      {
+        url,
+        message: String(error),
+      },
+      entityName,
+      error,
+    );
+  }
 }
 
 /**
@@ -108,6 +123,7 @@ export async function readResponse<T>(
         body,
       },
       entityName,
+      error,
     );
   }
 }
@@ -166,6 +182,7 @@ export async function readBody(
         message: String(error),
       },
       entityName,
+      error,
     );
   }
 }
