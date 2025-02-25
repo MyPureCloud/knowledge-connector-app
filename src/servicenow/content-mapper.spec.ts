@@ -51,6 +51,13 @@ describe('contentMapper', () => {
         workflow_state: {
           value: 'published',
         },
+        sys_updated_on: {
+          display_value: '04/10/2024 13:33:40',
+          name: 'sys_updated_on',
+          label: 'Updated',
+          type: 'glide_date_time',
+          value: '2024-04-10 18:33:40'
+        },
       },
     };
   }

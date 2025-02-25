@@ -1,28 +1,30 @@
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { DiffAggregator } from './diff-aggregator.js';
-import { DestinationAdapter } from '../adapter/destination-adapter.js';
-import { AdapterPair } from '../adapter/adapter-pair.js';
-import { Adapter } from '../adapter/adapter.js';
-import { SourceAdapter } from '../adapter/source-adapter.js';
+import {beforeEach, describe, expect, it, jest} from '@jest/globals';
+import {DiffAggregator} from './diff-aggregator.js';
+import {DestinationAdapter} from '../adapter/destination-adapter.js';
+import {AdapterPair} from '../adapter/adapter-pair.js';
+import {Adapter} from '../adapter/adapter.js';
+import {SourceAdapter} from '../adapter/source-adapter.js';
 import {
   generateNormalizedCategory,
   generateNormalizedDocument,
   generateNormalizedLabel,
 } from '../tests/utils/entity-generators.js';
-import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
-import { ImportableContent } from '../model/syncable-contents.js';
-import { Category } from '../model/category.js';
-import { Label } from '../model/label.js';
-import { Document } from '../model/document.js';
-import { ExternalIdentifiable } from '../model/external-identifiable.js';
-import { PipeContext } from '../pipe/pipe-context.js';
-import { MissingReferenceError } from '../utils/errors/missing-reference-error.js';
-import { NamedEntity } from '../model';
+import {GenesysDestinationAdapter} from '../genesys/genesys-destination-adapter.js';
+import {ImportableContent} from '../model/syncable-contents.js';
+import {Category} from '../model/category.js';
+import {Label} from '../model/label.js';
+import {Document} from '../model/document.js';
+import {ExternalIdentifiable} from '../model/external-identifiable.js';
+import {PipeContext} from '../pipe/pipe-context.js';
+import {MissingReferenceError} from '../utils/errors/missing-reference-error.js';
+import {NamedEntity} from '../model';
+import {CompareMode} from "../utils/compare-mode";
 
 jest.mock('../genesys/genesys-destination-adapter.js');
 
 describe('DiffAggregator', () => {
   const ALTERNATIVE_EXTERNAL_ID = 'alternative-external-id';
+  const EXTERNAL_VERSION_ID = '2024-04-10 18:33:40';
 
   let sourceAdapter: SourceAdapter<Category, Label, Document>;
   let destinationAdapter: GenesysDestinationAdapter;
@@ -359,6 +361,115 @@ describe('DiffAggregator', () => {
           await aggregator.runOnDocument(doc);
 
           verifyGroups(context.syncableContents.documents, 0, 0, 1);
+        });
+      });
+
+      describe('when article has externalVersionId', () => {
+        it('should not update article with the same externalVersionId', async () => {
+          context.storedContent!.documents[0].externalVersionId = EXTERNAL_VERSION_ID;
+
+          const doc = {
+            ...generateNormalizedDocument(
+              '-1',
+              'document-id-1',
+              'updated title',
+              null,
+              undefined,
+              undefined,
+              null,
+              EXTERNAL_VERSION_ID
+            )
+          };
+
+          await aggregator.runOnDocument(doc);
+
+          verifyGroups(context.syncableContents.documents, 0, 0, 1);
+        });
+
+        it('should update article with the different externalVersionId', async () => {
+          context.storedContent!.documents[0].externalVersionId = EXTERNAL_VERSION_ID;
+
+          const doc = {
+            ...generateNormalizedDocument(
+              '-1',
+              'document-id-1',
+              undefined,
+              null,
+              undefined,
+              undefined,
+              null,
+              '2222-12-12 12:12:12'
+            )
+          };
+
+          await aggregator.runOnDocument(doc);
+
+          verifyGroups(context.syncableContents.documents, 0, 1, 1);
+        });
+
+        it('should update all articles without comparison when compareMode is set to None', async () => {
+          prepareStoredContent(
+            [],
+            [],
+            [
+              generateNormalizedDocument('-1', 'document-id-1'),
+              generateNormalizedDocument('-2', 'document-id-2'),
+              generateNormalizedDocument('-3', 'document-id-3'),
+            ],
+          );
+          await aggregator.initialize(
+            { protectedFields: 'published.alternatives', compareMode: CompareMode.NONE },
+            adapters,
+            context,
+          );
+
+          context.storedContent!.documents[0].externalVersionId = EXTERNAL_VERSION_ID;
+
+          const doc = {
+            ...generateNormalizedDocument(
+              '-1',
+              'document-id-1',
+              undefined,
+              null,
+              undefined,
+              undefined,
+              null,
+              EXTERNAL_VERSION_ID
+            )
+          };
+
+          await aggregator.runOnDocument(doc);
+          await aggregator.runOnDocument(generateNormalizedDocument('-2'));
+          await aggregator.runOnDocument(generateNormalizedDocument('-3'));
+
+          verifyGroups(context.syncableContents.documents, 0, 3, 0);
+        });
+
+        it('should update article based on content comparison when compareMode is set to Content', async () => {
+          await aggregator.initialize(
+            { protectedFields: 'published.alternatives', compareMode: CompareMode.CONTENT },
+            adapters,
+            context,
+          );
+
+          context.storedContent!.documents[0].externalVersionId = EXTERNAL_VERSION_ID;
+
+          const doc = {
+            ...generateNormalizedDocument(
+              '-1',
+              null,
+              'updated-document',
+              null,
+              undefined,
+              undefined,
+              null,
+              EXTERNAL_VERSION_ID
+            )
+          };
+
+          await aggregator.runOnDocument(doc);
+
+          verifyGroups(context.syncableContents.documents, 0, 1, 1);
         });
       });
     });
