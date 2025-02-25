@@ -15,13 +15,9 @@ import { DiffAggregatorConfig } from './diff-aggregator-config.js';
 import { PipeContext } from '../pipe/pipe-context.js';
 import { MissingReferenceError } from '../utils/errors/missing-reference-error.js';
 import { EntityType } from '../model/entity-type.js';
+import { CompareMode } from '../utils/compare-mode.js';
 
 const HELPER_PROPERTIES = ['externalIdAlternatives'];
-const enum CompareMode {
-  NONE = 'None',
-  MODIFICATION_DATE = 'ModificationDate',
-  CONTENT = 'Content',
-}
 
 /**
  * The DiffAggregator transforms the ExternalContent into ImportableContents,
@@ -33,6 +29,7 @@ export class DiffAggregator implements Aggregator {
   private config?: DiffAggregatorConfig;
   private protectedFields: string[] = [];
   private externalIdPrefix: string = '';
+  private compareMode?: CompareMode;
 
   public async initialize(
     config: DiffAggregatorConfig,
@@ -40,10 +37,10 @@ export class DiffAggregator implements Aggregator {
     context: PipeContext,
   ): Promise<void> {
     this.context = context;
-    this.config = config;
 
     this.protectedFields = (config.protectedFields ?? '').split(',');
     this.externalIdPrefix = config.externalIdPrefix ?? '';
+    this.compareMode = config.compareMode ?? CompareMode.MODIFICATION_DATE;
   }
 
   public async runOnCategory(content: Category): Promise<void> {
@@ -113,14 +110,12 @@ export class DiffAggregator implements Aggregator {
   }
 
   private isEqual<T extends ExternalIdentifiable>(normalizedCollectedItem: T, normalizedStoredItem: T): boolean {
-    const compareMode = this.config?.compareMode ?? CompareMode.MODIFICATION_DATE;
-
-    if (compareMode === CompareMode.MODIFICATION_DATE &&
+    if (this.compareMode === CompareMode.MODIFICATION_DATE &&
       (normalizedCollectedItem.externalVersionId || normalizedStoredItem.externalVersionId)) {
       return normalizedCollectedItem.externalVersionId === normalizedStoredItem.externalVersionId;
     }
 
-    if (compareMode === CompareMode.NONE) { return false; }
+    if (this.compareMode === CompareMode.NONE) { return false; }
 
     return _.isEqualWith(normalizedCollectedItem, normalizedStoredItem, (c, s) =>
       this.isEqualCustomizer(c, s),

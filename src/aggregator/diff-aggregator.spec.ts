@@ -1,23 +1,24 @@
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { DiffAggregator } from './diff-aggregator.js';
-import { DestinationAdapter } from '../adapter/destination-adapter.js';
-import { AdapterPair } from '../adapter/adapter-pair.js';
-import { Adapter } from '../adapter/adapter.js';
-import { SourceAdapter } from '../adapter/source-adapter.js';
+import {beforeEach, describe, expect, it, jest} from '@jest/globals';
+import {DiffAggregator} from './diff-aggregator.js';
+import {DestinationAdapter} from '../adapter/destination-adapter.js';
+import {AdapterPair} from '../adapter/adapter-pair.js';
+import {Adapter} from '../adapter/adapter.js';
+import {SourceAdapter} from '../adapter/source-adapter.js';
 import {
   generateNormalizedCategory,
   generateNormalizedDocument,
   generateNormalizedLabel,
 } from '../tests/utils/entity-generators.js';
-import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
-import { ImportableContent } from '../model/syncable-contents.js';
-import { Category } from '../model/category.js';
-import { Label } from '../model/label.js';
-import { Document } from '../model/document.js';
-import { ExternalIdentifiable } from '../model/external-identifiable.js';
-import { PipeContext } from '../pipe/pipe-context.js';
-import { MissingReferenceError } from '../utils/errors/missing-reference-error.js';
-import { NamedEntity } from '../model';
+import {GenesysDestinationAdapter} from '../genesys/genesys-destination-adapter.js';
+import {ImportableContent} from '../model/syncable-contents.js';
+import {Category} from '../model/category.js';
+import {Label} from '../model/label.js';
+import {Document} from '../model/document.js';
+import {ExternalIdentifiable} from '../model/external-identifiable.js';
+import {PipeContext} from '../pipe/pipe-context.js';
+import {MissingReferenceError} from '../utils/errors/missing-reference-error.js';
+import {NamedEntity} from '../model';
+import {CompareMode} from "../utils/compare-mode";
 
 jest.mock('../genesys/genesys-destination-adapter.js');
 
@@ -417,7 +418,7 @@ describe('DiffAggregator', () => {
             ],
           );
           await aggregator.initialize(
-            { protectedFields: 'published.alternatives', compareMode: 'None' },
+            { protectedFields: 'published.alternatives', compareMode: CompareMode.NONE },
             adapters,
             context,
           );
@@ -446,7 +447,7 @@ describe('DiffAggregator', () => {
 
         it('should update article based on content comparison when compareMode is set to Content', async () => {
           await aggregator.initialize(
-            { protectedFields: 'published.alternatives', compareMode: 'Content' },
+            { protectedFields: 'published.alternatives', compareMode: CompareMode.CONTENT },
             adapters,
             context,
           );
