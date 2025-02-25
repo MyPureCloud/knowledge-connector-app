@@ -7,12 +7,14 @@ export class ApiError extends ErrorBasePublic {
     message: string,
     messageParams: { [key: string]: unknown },
     entityName?: EntityType,
+    cause?: unknown,
   ) {
     super(
       ErrorCodes.THIRD_PARTY_UNEXPECTED_ERROR,
       message,
       entityName,
       messageParams,
+      cause,
     );
   }
 }

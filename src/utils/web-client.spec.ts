@@ -65,6 +65,8 @@ describe('WebClient', () => {
                 status: 419,
                 message: 'Error: Cannot read response body',
               },
+              undefined,
+              Error('Cannot read response body'),
             ),
           );
         });
@@ -84,6 +86,8 @@ describe('WebClient', () => {
               message: 'SyntaxError: Unexpected token < in JSON at position 0',
               body: NON_JSON_RESPONSE_BODY,
             },
+            undefined,
+            SyntaxError('Unexpected token < in JSON at position 0'),
           ),
         );
       });

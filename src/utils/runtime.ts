@@ -38,6 +38,7 @@ class RuntimeService {
 
   public reset() {
     this.interrupted = false;
+    this.stopProcessKillTimer();
   }
 
   public setProcessKillTimer(lifetimeInSeconds: number): void {

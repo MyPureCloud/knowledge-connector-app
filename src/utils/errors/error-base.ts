@@ -12,8 +12,9 @@ export abstract class ErrorBase extends Error {
     message: string,
     entityName?: EntityType,
     messageParams?: ErrorMessageParams,
+    cause?: unknown,
   ) {
-    super(message);
+    super(message, { cause });
 
     this.code = code;
     this.entityName = entityName;

@@ -163,6 +163,8 @@ export class Pipe {
    * @param {Config} config
    */
   public async start(config: PrefixExternalIdConfig): Promise<void> {
+    runtime.reset();
+
     const startTime = Date.now();
     this.startProcessKillTimer(config);
 
