@@ -1,5 +1,11 @@
 # Change log
 
+## 0.9.1 (2025-02-25)
+
+### Changes:
+
+1. ApiError contains nested error
+
 ## 0.9.0 (2025-02-24)
 
 ### Changes:
