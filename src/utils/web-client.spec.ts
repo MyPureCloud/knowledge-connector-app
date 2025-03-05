@@ -6,10 +6,19 @@ import {
   it,
   jest,
 } from '@jest/globals';
-import { fetch, fetchImage, readResponse, Response } from './web-client.js';
+import {
+  fetch,
+  fetchImage,
+  fetchResource,
+  readResponse,
+  Response,
+} from './web-client.js';
 import { ApiError } from '../adapter/errors/api-error.js';
 import { Interrupted } from './errors/interrupted.js';
 import { runtime } from './runtime.js';
+import { MockAgent, setGlobalDispatcher } from 'undici';
+import { configure } from './retry.js';
+import { ContentType } from './content-type.js';
 
 jest.mock('./package-version.js');
 
@@ -20,6 +29,20 @@ describe('WebClient', () => {
   };
   const RESPONSE_BODY_RAW = JSON.stringify(RESPONSE_BODY);
   const NON_JSON_RESPONSE_BODY = '<something><inside></inside></something>';
+
+  let mockAgent: MockAgent;
+
+  beforeEach(() => {
+    mockAgent = new MockAgent();
+    mockAgent.disableNetConnect();
+    setGlobalDispatcher(mockAgent);
+    configure(1);
+  });
+
+  afterEach(async () => {
+    await mockAgent.close();
+    configure();
+  });
 
   describe('readResponse', () => {
     it('should parse response body', async () => {
@@ -90,6 +113,176 @@ describe('WebClient', () => {
             SyntaxError('Unexpected token < in JSON at position 0'),
           ),
         );
+      });
+    });
+  });
+
+  describe('fetchResource', () => {
+    describe('when content type is JSON', () => {
+      it('should resolve with response', async () => {
+        mockAgent
+          .get(URL)
+          .intercept({ method: 'GET', path: '/' })
+          .reply(200, JSON.stringify({}))
+          .times(1);
+
+        const actual = await fetchResource(
+          URL,
+          {},
+          undefined,
+          ContentType.JSON,
+        );
+
+        expect(actual).toStrictEqual({});
+        mockAgent.assertNoPendingInterceptors();
+      });
+
+      describe('when unparsable', () => {
+        it('should reject', async () => {
+          mockAgent
+            .get(URL)
+            .intercept({ method: 'GET', path: '/' })
+            .reply(200, 'some none JSON response')
+            .times(6);
+
+          await expect(() => fetchResource(URL)).rejects.toThrow(
+            new ApiError(
+              'Api request [https://some-random-url.genesys.com] failed to parse body [some none JSON response] - SyntaxError: Unexpected token s in JSON at position 0',
+              {},
+              undefined,
+              new Error('Unexpected token s in JSON at position 0'),
+            ),
+          );
+
+          mockAgent.assertNoPendingInterceptors();
+        });
+      });
+    });
+
+    describe('when content type is text', () => {
+      it('should resolve with response', async () => {
+        mockAgent
+          .get(URL)
+          .intercept({ method: 'GET', path: '/' })
+          .reply(200, 'text response')
+          .times(1);
+
+        const actual = await fetchResource(
+          URL,
+          {},
+          undefined,
+          ContentType.TEXT,
+        );
+
+        expect(actual).toBe('text response');
+        mockAgent.assertNoPendingInterceptors();
+      });
+    });
+
+    describe('when content type is blob', () => {
+      it('should resolve with response', async () => {
+        mockAgent
+          .get(URL)
+          .intercept({ method: 'GET', path: '/' })
+          .reply(200, 'text response')
+          .times(1);
+
+        const actual = await fetchResource(
+          URL,
+          {},
+          undefined,
+          ContentType.BLOB,
+        );
+
+        expect(actual).toBeInstanceOf(Blob);
+        mockAgent.assertNoPendingInterceptors();
+      });
+    });
+
+    describe('when status 2XX', () => {
+      it('should resolve with response', async () => {
+        mockAgent
+          .get(URL)
+          .intercept({ method: 'GET', path: '/' })
+          .reply(200, JSON.stringify({}))
+          .times(1);
+
+        await fetchResource(URL);
+
+        mockAgent.assertNoPendingInterceptors();
+      });
+    });
+
+    describe('when status 4XX', () => {
+      it('should not retry', async () => {
+        mockAgent
+          .get(URL)
+          .intercept({ method: 'GET', path: '/' })
+          .reply(404, JSON.stringify({}))
+          .times(1);
+
+        await expect(() => fetchResource(URL)).rejects.toThrow(
+          new ApiError(
+            `Api request [https://some-random-url.genesys.com] failed with status [404] and message [{}]`,
+            {
+              url: 'https://some-random-url.genesys.com',
+              status: 404,
+            },
+          ),
+        );
+
+        mockAgent.assertNoPendingInterceptors();
+      });
+    });
+
+    describe('when status 5XX', () => {
+      it('should retry', async () => {
+        mockAgent
+          .get(URL)
+          .intercept({ method: 'GET', path: '/' })
+          .reply(503, JSON.stringify({}))
+          .times(6);
+
+        await expect(() => fetchResource(URL)).rejects.toThrow(ApiError);
+
+        mockAgent.assertNoPendingInterceptors();
+      }, 10000);
+    });
+
+    describe('when response cannot be parsed', () => {
+      it('should retry', async () => {
+        mockAgent
+          .get(URL)
+          .intercept({ method: 'GET', path: '/' })
+          .reply(200, '<html></html>')
+          .times(6);
+
+        await expect(() => fetchResource(URL)).rejects.toThrow(
+          new ApiError(
+            'Api request [https://some-random-url.genesys.com] failed to parse body [<html></html>] - SyntaxError: Unexpected token < in JSON at position 0',
+            {},
+            undefined,
+            new Error('Unexpected token < in JSON at position 0'),
+          ),
+        );
+
+        mockAgent.assertNoPendingInterceptors();
+      }, 10000);
+    });
+
+    describe('when interrupted', () => {
+      beforeEach(() => {
+        runtime.interrupt();
+      });
+
+      afterEach(() => {
+        runtime.reset();
+      });
+
+      it('should not retry', async () => {
+        await expect(() => fetchResource(URL)).rejects.toThrow(Interrupted);
+
+        mockAgent.assertNoPendingInterceptors();
       });
     });
   });

@@ -17,4 +17,8 @@ export class ApiError extends ErrorBasePublic {
       cause,
     );
   }
+
+  public getStatus(): number | null {
+    return (this.messageParams?.status as number) ?? null;
+  }
 }

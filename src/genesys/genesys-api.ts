@@ -6,7 +6,7 @@ import { Config } from '../config.js';
 import { JobStatusResponse } from './model/job-status-response.js';
 import { getLogger } from '../utils/logger.js';
 import { JobStatus } from './model/job-status.js';
-import { fetch, readResponse, RequestInit } from '../utils/web-client.js';
+import { fetchResource, RequestInit } from '../utils/web-client.js';
 import { EntityType } from '../model/entity-type.js';
 
 export abstract class GenesysApi {
@@ -117,7 +117,6 @@ export abstract class GenesysApi {
     init?: RequestInit,
     entityName?: EntityType,
   ): Promise<T> {
-    const response = await fetch(url, init);
-    return readResponse<T>(url, response, entityName);
+    return fetchResource(url, init, entityName);
   }
 }

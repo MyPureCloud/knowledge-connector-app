@@ -1,10 +1,6 @@
 import { ServiceNowConfig } from './model/servicenow-config.js';
 import { ServiceNowArticle } from './model/servicenow-article.js';
-import {
-  fetch,
-  readResponse,
-  verifyResponseStatus,
-} from '../utils/web-client.js';
+import { fetchResource } from '../utils/web-client.js';
 import { ServiceNowArticleResponse } from './model/servicenow-article-response.js';
 import { ServiceNowArticleAttachment } from './model/servicenow-article-attachment.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
@@ -21,6 +17,9 @@ import {
   ServiceNowSingleArticle,
   ServiceNowSingleArticleResponse,
 } from './model/servicenow-single-article-response.js';
+import { EntityType } from '../model/entity-type.js';
+import { ContentType } from '../utils/content-type.js';
+import { RequestInit } from 'undici';
 
 export class ServiceNowApi {
   private config: ServiceNowConfig = {};
@@ -94,20 +93,16 @@ export class ServiceNowApi {
     attachmentId: string,
   ): Promise<ServiceNowArticleAttachment> {
     const url = `${this.baseUrl}/api/now/attachment/${attachmentId}`;
-    const response = await fetch(url, {
-      headers: this.buildHeaders(),
-    });
-
-    return readResponse<ServiceNowArticleAttachment>(url, response);
+    return fetchResource(url, this.buildRequestInit(), EntityType.DOCUMENT);
   }
 
   public async downloadAttachment(url: string): Promise<Blob> {
-    const response = await fetch(url, {
-      headers: this.buildHeaders(),
-    });
-    await verifyResponseStatus(url, response);
-
-    return await response.blob();
+    return fetchResource<Blob>(
+      url,
+      this.buildRequestInit(),
+      EntityType.DOCUMENT,
+      ContentType.BLOB,
+    );
   }
 
   public getInstanceUrl(): string {
@@ -117,12 +112,11 @@ export class ServiceNowApi {
   public async getArticle(id: string): Promise<ServiceNowSingleArticle | null> {
     const url = `${this.baseUrl}/api/sn_km_api/knowledge/articles/${id}`;
     try {
-      const response = await fetch(url, {
-        headers: this.buildHeaders(),
-      });
-
-      const json: ServiceNowSingleArticleResponse =
-        await readResponse<ServiceNowSingleArticleResponse>(url, response);
+      const json = await fetchResource<ServiceNowSingleArticleResponse>(
+        url,
+        this.buildRequestInit(),
+        EntityType.DOCUMENT,
+      );
 
       if (!json.result?.number) {
         // Article not found
@@ -145,12 +139,12 @@ export class ServiceNowApi {
       return null;
     }
 
-    const response = await fetch(url, {
-      headers: this.buildHeaders(),
-    });
+    const json = await fetchResource<ServiceNowArticleResponse>(
+      url,
+      this.buildRequestInit(),
+      EntityType.DOCUMENT,
+    );
 
-    const json: ServiceNowArticleResponse =
-      await readResponse<ServiceNowArticleResponse>(url, response);
     const list = json.result.articles;
 
     getLogger().debug(
@@ -172,12 +166,12 @@ export class ServiceNowApi {
       return null;
     }
 
-    const response = await fetch(url, {
-      headers: this.buildHeaders(),
-    });
+    const json = await fetchResource<ServiceNowCategoryResponse>(
+      url,
+      this.buildRequestInit(),
+      EntityType.CATEGORY,
+    );
 
-    const json: ServiceNowCategoryResponse =
-      await readResponse<ServiceNowCategoryResponse>(url, response);
     const list = json.result;
 
     getLogger().debug(
@@ -191,14 +185,18 @@ export class ServiceNowApi {
     return list;
   }
 
-  private buildHeaders() {
+  private buildRequestInit(): RequestInit {
     return {
-      Authorization:
-        'Basic ' +
-        Buffer.from(
-          this.config.servicenowUsername + ':' + this.config.servicenowPassword,
-          'utf-8',
-        ).toString('base64'),
+      headers: {
+        Authorization:
+          'Basic ' +
+          Buffer.from(
+            this.config.servicenowUsername +
+              ':' +
+              this.config.servicenowPassword,
+            'utf-8',
+          ).toString('base64'),
+      },
     };
   }
 

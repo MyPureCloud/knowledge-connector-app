@@ -5,12 +5,7 @@ import { ZendeskArticleAttachment } from './model/zendest-article-attachment.js'
 import { ZendeskSection } from './model/zendesk-section.js';
 import { ZendeskArticle } from './model/zendesk-article.js';
 import { ZendeskLabel } from './model/zendesk-label.js';
-import {
-  fetch,
-  HeadersInit,
-  readResponse,
-  verifyResponseStatus,
-} from '../utils/web-client.js';
+import { fetchResource } from '../utils/web-client.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 import { setIfMissing } from '../utils/objects.js';
 import {
@@ -19,6 +14,9 @@ import {
   ZendeskSectionContext,
 } from './model/zendesk-context.js';
 import { Pager } from '../utils/pager.js';
+import { EntityType } from '../model/entity-type.js';
+import { ContentType } from '../utils/content-type.js';
+import { RequestInit } from 'undici';
 
 export class ZendeskApi {
   private config: ZendeskConfig = {};
@@ -127,12 +125,12 @@ export class ZendeskApi {
   }
 
   public async downloadAttachment(url: string): Promise<Blob> {
-    const response = await fetch(url, {
-      headers: this.buildHeaders(),
-    });
-    await verifyResponseStatus(url, response);
-
-    return await response.blob();
+    return fetchResource<Blob>(
+      url,
+      this.buildRequestInit(),
+      EntityType.DOCUMENT,
+      ContentType.BLOB,
+    );
   }
 
   public getInstanceUrl(): string {
@@ -169,14 +167,10 @@ export class ZendeskApi {
     }
     const url = context.nextUrl;
 
-    const headers = this.buildHeaders();
-    const response = await fetch(url, {
-      headers,
-    });
-
-    const json: ZendeskResponse = await readResponse<ZendeskResponse>(
+    const json = await fetchResource<ZendeskResponse>(
       url,
-      response,
+      this.buildRequestInit(),
+      this.toEntityType(property),
     );
 
     context.nextUrl = json.next_page ? json.next_page : null;
@@ -184,14 +178,28 @@ export class ZendeskApi {
     return json[property] as T[];
   }
 
-  private buildHeaders(): HeadersInit {
+  private buildRequestInit(): RequestInit {
     return {
-      Authorization:
-        'Basic ' +
-        Buffer.from(
-          this.config.zendeskUsername + ':' + this.config.zendeskPassword,
-          'utf-8',
-        ).toString('base64'),
+      headers: {
+        Authorization:
+          'Basic ' +
+          Buffer.from(
+            this.config.zendeskUsername + ':' + this.config.zendeskPassword,
+            'utf-8',
+          ).toString('base64'),
+      },
     };
+  }
+
+  private toEntityType(type: ZendeskEntityTypes): EntityType {
+    switch (type) {
+      case ZendeskEntityTypes.CATEGORIES:
+      case ZendeskEntityTypes.SECTIONS:
+        return EntityType.CATEGORY;
+      case ZendeskEntityTypes.LABELS:
+        return EntityType.LABEL;
+      default:
+        return EntityType.DOCUMENT;
+    }
   }
 }
