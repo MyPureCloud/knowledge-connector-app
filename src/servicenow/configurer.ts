@@ -10,6 +10,7 @@ import { ServiceNowAdapter } from './servicenow-adapter.js';
 import { ServiceNowLoader } from './servicenow-loader.js';
 import { UrlTransformer } from '../processor/url-transformer/url-transformer.js';
 import { NameConflictResolver } from '../processor/name-conflict-resolver/name-conflict-resolver.js';
+import { ModificationDateFilter } from '../filter/modification-date-filter.js';
 
 export const configurer: Configurer = (pipe: Pipe): void => {
   pipe
@@ -23,6 +24,7 @@ export const configurer: Configurer = (pipe: Pipe): void => {
       new DocumentLinkProcessor(),
       new NameConflictResolver(),
     )
+    .filter(new ModificationDateFilter())
     .aggregator(new DiffAggregator())
     .uploaders(new DiffUploader());
 };

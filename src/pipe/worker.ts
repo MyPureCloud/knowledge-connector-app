@@ -11,6 +11,7 @@ import _ from 'lodash';
 import { ErrorBasePublic } from '../utils/errors/error-base-public.js';
 import { ErrorCodes } from '../utils/errors/error-codes.js';
 import { EntityWithMetadata } from '../model/entity-with-metadata.js';
+import { Filter } from '../filter/filter.js';
 
 export type Method<T> = (
   runnable: Runnable<unknown, unknown, unknown>,
@@ -21,6 +22,7 @@ export type Method<T> = (
 export class Worker<T extends ExternalIdentifiable> {
   private itemIterators: (() => AsyncGenerator<T, void, void>[]) | null = null;
   private processorList: Processor[] | null = null;
+  private filterList: Filter[] | null = null;
   private aggregatorList: Aggregator[] | null = null;
   private executeMethod: Method<T> | null = null;
   private processedItemList: T[] | null = null;
@@ -34,6 +36,11 @@ export class Worker<T extends ExternalIdentifiable> {
 
   public processors(processors: Processor[]): this {
     this.processorList = processors;
+    return this;
+  }
+
+  public filters(filters: Filter[]): this {
+    this.filterList = filters;
     return this;
   }
 
@@ -71,6 +78,7 @@ export class Worker<T extends ExternalIdentifiable> {
       this.aggregatorList,
       'Aggregators missing',
     );
+    const filters = validateNonNull(this.filterList, 'Filters missing');
     const method = validateNonNull(this.executeMethod, 'Method missing');
     const processedItems = validateNonNull(
       this.processedItemList,
@@ -89,6 +97,7 @@ export class Worker<T extends ExternalIdentifiable> {
       processors,
       method,
       aggregators,
+      filters,
       processedItems,
       unprocessedItems,
       failedItems,
@@ -108,6 +117,7 @@ export class Worker<T extends ExternalIdentifiable> {
     processors: Processor[],
     method: Method<T>,
     aggregators: Aggregator[],
+    filters: Filter[],
     processedItems: T[],
     unprocessedItems: T[],
     failedItems: EntityWithMetadata<T>[],
@@ -118,16 +128,23 @@ export class Worker<T extends ExternalIdentifiable> {
       );
       try {
         const unprocessedItem = _.cloneDeep(item);
-        const processedItem = await this.executeRunnable<T>(
-          unprocessedItem,
-          processors,
-          method,
-          true,
-        );
 
-        await this.executeRunnable<T>(processedItem, aggregators, method, true);
+        const shouldProcess = await this.filter(unprocessedItem, filters, method);
+        if (shouldProcess) {
+          const processedItem = await this.executeRunnable<T>(
+            unprocessedItem,
+            processors,
+            method,
+            true,
+          );
 
-        processedItems.push(processedItem);
+          await this.executeRunnable<T>(processedItem, aggregators, method, true);
+
+          processedItems.push(processedItem);
+        } else {
+          getLogger().info(`Worker filtered the item with externalId: ${item.externalId}`);
+          processedItems.push(unprocessedItem);
+        }
       } catch (error) {
         getLogger().warn(
           `Error processing item ${item.externalId}: ${error}`,
@@ -147,6 +164,20 @@ export class Worker<T extends ExternalIdentifiable> {
           .with(error);
       }
     }
+  }
+
+  private async filter(
+    item: T,
+    filters: Filter[],
+    method: Method<T>,
+  ): Promise<boolean> {
+    for (const filter of filters) {
+      const shouldProcess = await method(filter, item, true);
+      if (!shouldProcess) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private async secondTry(

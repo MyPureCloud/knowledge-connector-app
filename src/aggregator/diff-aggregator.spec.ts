@@ -18,7 +18,7 @@ import {ExternalIdentifiable} from '../model/external-identifiable.js';
 import {PipeContext} from '../pipe/pipe-context.js';
 import {MissingReferenceError} from '../utils/errors/missing-reference-error.js';
 import {NamedEntity} from '../model';
-import {CompareMode} from "../utils/compare-mode";
+import {CompareMode} from '../utils/compare-mode.js';
 
 jest.mock('../genesys/genesys-destination-adapter.js');
 
