@@ -111,24 +111,18 @@ export class ServiceNowApi {
 
   public async getArticle(id: string): Promise<ServiceNowSingleArticle | null> {
     const url = `${this.baseUrl}/api/sn_km_api/knowledge/articles/${id}`;
-    try {
-      const json = await fetchResource<ServiceNowSingleArticleResponse>(
-        url,
-        this.buildRequestInit(),
-        EntityType.DOCUMENT,
-      );
+    const json = await fetchResource<ServiceNowSingleArticleResponse>(
+      url,
+      this.buildRequestInit(),
+      EntityType.DOCUMENT,
+    );
 
-      if (!json.result?.number) {
-        // Article not found
-        return null;
-      }
-
-      return json.result;
-    } catch (error) {
-      getLogger().error(`Failed to fetch article ${id}`, error as Error);
+    if (!json.result?.number) {
+      // Article not found
+      return null;
     }
 
-    return null;
+    return json.result;
   }
 
   private async fetchNextArticlePage(): Promise<ServiceNowArticle[] | null> {

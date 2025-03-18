@@ -13,6 +13,8 @@ import { AbstractSourceAdapter } from '../adapter/abstract-source-adapter.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 import { ExternalLink } from '../model/external-link.js';
 import { ServiceNowSingleArticle } from './model/servicenow-single-article-response.js';
+import { catcher } from '../utils/catch-error-helper.js';
+import { Interrupted } from '../utils/errors/interrupted.js';
 
 export class ServiceNowAdapter
   extends AbstractSourceAdapter<unknown, unknown, ServiceNowArticle>
@@ -123,10 +125,17 @@ export class ServiceNowAdapter
         externalDocumentIdAlternatives: [`kb_knowledge:${article.sys_id}`],
       };
     } catch (error) {
-      getLogger().error(`Failed to fetch single article ${id}`, error as Error);
+      return await catcher<ExternalLink | null>()
+        .rethrow(Interrupted)
+        .any(() => {
+          getLogger().error(
+            `Failed to fetch single article ${id}`,
+            error as Error,
+          );
+          return null;
+        })
+        .with(error);
     }
-
-    return null;
   }
 
   private async getVisibleArticle(
