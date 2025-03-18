@@ -1,5 +1,11 @@
 # Change log
 
+## 0.9.5 (2025-03-19)
+
+### Changes:
+
+1. Reduced import during when compare mode is ModificationDate
+
 ## 0.9.4 (2025-03-19)
 
 ### Fixes:
