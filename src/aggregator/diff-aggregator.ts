@@ -156,7 +156,9 @@ export class DiffAggregator implements Aggregator {
       labels: labels?.length
         ? labels.map((l) => this.normalizeLabelReference(l)).filter((l) => !!l)
         : null,
-      variations: variations.map(this.normalizeVariation),
+      variations: variations?.length
+        ? variations.map(this.normalizeVariation)
+        : null,
     };
   }
 

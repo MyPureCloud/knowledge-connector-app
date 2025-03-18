@@ -24,7 +24,7 @@ export abstract class GenesysApi {
 
   protected abstract getKnowledgeBaseId(): string;
 
-  public createExportJob(): Promise<ExportArticlesResponse> {
+  public createExportJob(useReducedExport: boolean): Promise<ExportArticlesResponse> {
     const kbId = this.getKnowledgeBaseId();
     const body: ExportArticlesRequest = {
       exportFilter: {
@@ -33,6 +33,11 @@ export abstract class GenesysApi {
       fileType: 'json',
       jsonFileVersion: 3,
     };
+
+    if (useReducedExport) {
+      body.exportFilter.exclude = ['Categories', 'Labels', 'Variations']
+    }
+
     return this.fetch<ExportArticlesResponse>(
       `/api/v2/knowledge/knowledgeBases/${kbId}/export/jobs`,
       {

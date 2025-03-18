@@ -13,6 +13,7 @@ import { getLogger } from '../utils/logger.js';
 import { fileTypeFromBuffer } from 'file-type';
 import { FileTypeNotSupportedError } from './errors/file-type-not-supported-error.js';
 import { InvalidExportJobError } from './errors/invalid-export-job-error.js';
+import { CompareMode } from '../utils/compare-mode.js';
 
 const SUPPORTED_FORMATS = ['jpeg', 'jpg', 'png', 'gif'];
 
@@ -23,6 +24,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
   private readonly api: GenesysDestinationApi;
 
   private config: GenesysDestinationConfig = {};
+  private compareMode?: CompareMode;
 
   constructor() {
     this.api = new GenesysDestinationApi();
@@ -30,6 +32,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
 
   public initialize(config: GenesysDestinationConfig): Promise<void> {
     this.config = config;
+    this.compareMode = config.compareMode ?? CompareMode.MODIFICATION_DATE;
     return this.getApi().initialize(config);
   }
 
@@ -80,7 +83,8 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
   }
 
   public async exportAllEntities(): Promise<ExportModel> {
-    const jobStatus = await this.getApi().createExportJob();
+    const shouldUseReducedExport = this.compareMode === CompareMode.MODIFICATION_DATE
+    const jobStatus = await this.getApi().createExportJob(shouldUseReducedExport);
 
     const job = await this.getApi().waitForJobToFinish<ExportArticlesResponse>(
       () => this.getApi().getExportStatus(jobStatus.id),
