@@ -2,7 +2,7 @@ import { SalesforceConfig } from './model/salesforce-config.js';
 import { SalesforceEntityTypes } from './model/salesforce-entity-types.js';
 import { SalesforceResponse } from './model/salesforce-response.js';
 import { SalesforceArticle } from './model/salesforce-article.js';
-import { fetch, fetchImage, readResponse } from '../utils/web-client.js';
+import { fetchImage, fetchResource } from '../utils/web-client.js';
 import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
 import { SalesforceCategory } from './model/salesforce-category.js';
@@ -23,6 +23,7 @@ import { setIfMissing } from '../utils/objects.js';
 import { Pager } from '../utils/pager.js';
 import { catcher } from '../utils/catch-error-helper.js';
 import { Interrupted } from '../utils/errors/interrupted.js';
+import { EntityType } from '../model/entity-type.js';
 
 export class SalesforceApi {
   private config: SalesforceConfig = {};
@@ -144,11 +145,13 @@ export class SalesforceApi {
     categoryName: string,
   ): Promise<SalesforceCategory> {
     const url = `${this.instanceUrl}/services/data/${this.config.salesforceApiVersion}/support/dataCategoryGroups/${categoryGroup}/dataCategories/${categoryName}?sObjectName=KnowledgeArticleVersion`;
-    const response = await fetch(url, {
-      headers: this.buildHeaders(),
-    });
-
-    return readResponse<SalesforceCategory>(url, response);
+    return fetchResource(
+      url,
+      {
+        headers: this.buildHeaders(),
+      },
+      EntityType.CATEGORY,
+    );
   }
 
   private async *fetchCategoryGroups(): AsyncGenerator<
@@ -193,53 +196,64 @@ export class SalesforceApi {
     bodyParams.append('password', this.config.salesforcePassword!);
 
     const url = `${processedLoginUrl}/services/oauth2/token`;
-    const response = await fetch(url, {
+    const request = {
       method: 'POST',
       body: bodyParams,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-    });
+    };
 
-    let data;
     try {
-      data = await readResponse<SalesforceAccessTokenResponse>(url, response);
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw InvalidCredentialsError.fromApiError(
-          `Failed to get Salesforce bearer token. Reason: ${error.message}`,
-          error,
-        );
-      }
-      throw new InvalidCredentialsError(
-        `Failed to get Salesforce bearer token. Reason: ${error}`,
-        { messageParams: { status: response.status, message: error } },
+      const data = await fetchResource<SalesforceAccessTokenResponse>(
+        url,
+        request,
+        undefined,
       );
+
+      validateNonNull(
+        data.access_token,
+        `Access token not found in the response: ${JSON.stringify(data)}`,
+      );
+      validateNonNull(
+        data.instance_url,
+        `Instance URL not found in the response: ${JSON.stringify(data)}`,
+      );
+
+      this.instanceUrl = removeTrailingSlash(data.instance_url);
+
+      return data.access_token;
+    } catch (error) {
+      return await catcher<string>()
+        .on(ApiError, (apiError) => {
+          throw InvalidCredentialsError.fromApiError(
+            `Failed to get Salesforce bearer token. Reason: ${apiError.message}`,
+            apiError as ApiError,
+          );
+        })
+        .rethrow(Interrupted)
+        .any(() => {
+          throw new InvalidCredentialsError(
+            `Failed to get Salesforce bearer token. Reason: ${error}`,
+            { messageParams: { message: error } },
+          );
+        })
+        .with(error);
     }
-
-    validateNonNull(
-      data.access_token,
-      `Access token not found in the response: ${JSON.stringify(data)}`,
-    );
-    validateNonNull(
-      data.instance_url,
-      `Instance URL not found in the response: ${JSON.stringify(data)}`,
-    );
-
-    this.instanceUrl = removeTrailingSlash(data.instance_url);
-
-    return data.access_token;
   }
 
   private async fetchArticleDetails(
     articleId: string,
   ): Promise<SalesforceArticleDetails> {
     const url = `${this.instanceUrl}/services/data/${this.config.salesforceApiVersion}/support/knowledgeArticles/${articleId}`;
-    const response = await fetch(url, {
-      headers: this.buildHeaders(),
-    });
 
-    return readResponse<SalesforceArticleDetails>(url, response);
+    return fetchResource(
+      url,
+      {
+        headers: this.buildHeaders(),
+      },
+      EntityType.DOCUMENT,
+    );
   }
 
   private async *getAllPages<T>(
@@ -273,13 +287,12 @@ export class SalesforceApi {
     const url = context.nextUrl;
 
     const headers = this.buildHeaders();
-    const response = await fetch(url, {
-      headers,
-    });
-
-    const json: SalesforceResponse = await readResponse<SalesforceResponse>(
+    const json = await fetchResource<SalesforceResponse>(
       url,
-      response,
+      {
+        headers,
+      },
+      this.toEntityType(property),
     );
 
     context.nextUrl = json.nextPageUrl
@@ -314,5 +327,11 @@ export class SalesforceApi {
     }
 
     return filters.join('&');
+  }
+
+  private toEntityType(type: SalesforceEntityTypes): EntityType {
+    return type === SalesforceEntityTypes.ARTICLES
+      ? EntityType.DOCUMENT
+      : EntityType.CATEGORY;
   }
 }

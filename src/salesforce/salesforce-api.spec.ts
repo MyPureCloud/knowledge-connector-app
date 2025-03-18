@@ -8,6 +8,7 @@ import { SalesforceEntityTypes } from './model/salesforce-entity-types.js';
 import { arraysFromAsync } from '../utils/arrays.js';
 import { SalesforceArticle } from './model/salesforce-article.js';
 import { Interrupted } from '../utils/errors/interrupted.js';
+import { EntityType } from '../model/entity-type.js';
 
 jest.mock('../utils/package-version.js');
 jest.mock('../utils/web-client.js');
@@ -67,6 +68,7 @@ describe('SalesforceApi', () => {
             'Accept-Language': 'de',
           },
         },
+        EntityType.DOCUMENT,
       );
     });
 
@@ -95,6 +97,7 @@ describe('SalesforceApi', () => {
             'Accept-Language': 'de',
           },
         },
+        EntityType.DOCUMENT,
       );
     });
 
@@ -123,6 +126,7 @@ describe('SalesforceApi', () => {
             'Accept-Language': 'de-AT',
           },
         },
+        EntityType.DOCUMENT,
       );
     });
 
@@ -205,7 +209,11 @@ describe('SalesforceApi', () => {
   }
 
   function checkFetchUrl(expectedUrl: string) {
-    expect(fetch).toHaveBeenCalledWith(expectedUrl, { headers: HEADERS });
+    expect(fetch).toHaveBeenCalledWith(
+      expectedUrl,
+      { headers: HEADERS },
+      EntityType.DOCUMENT,
+    );
   }
 
   function buildContext(): SalesforceContext {

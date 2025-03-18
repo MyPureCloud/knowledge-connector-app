@@ -13,10 +13,11 @@ import { validateNonNull } from '../utils/validate-non-null.js';
 import { BulkDeleteResponse } from '../model/bulk-delete-response.js';
 import { GenesysApi } from './genesys-api.js';
 import { GenesysDestinationConfig } from './model/genesys-destination-config.js';
-import { fetch, readBody, verifyResponseStatus } from '../utils/web-client.js';
+import { fetchResource } from '../utils/web-client.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 import { getLogger } from '../utils/logger.js';
 import { EntityType } from '../model/entity-type.js';
+import { ContentType } from '../utils/content-type.js';
 
 export class GenesysDestinationApi extends GenesysApi {
   protected config: GenesysDestinationConfig = {};
@@ -93,16 +94,21 @@ export class GenesysDestinationApi extends GenesysApi {
     blob: Blob,
     contentType: string,
   ): Promise<void> {
-    const response = await fetch(uploadUrl.url, {
+    const request = {
       method: 'PUT',
       headers: {
         ...uploadUrl.headers,
         'Content-Type': contentType,
       },
       body: blob,
-    });
-    await verifyResponseStatus(uploadUrl.url, response, EntityType.DOCUMENT);
-    await readBody(uploadUrl.url, response, EntityType.DOCUMENT);
+    };
+
+    await fetchResource(
+      uploadUrl.url,
+      request,
+      EntityType.DOCUMENT,
+      ContentType.TEXT,
+    );
   }
 
   public getUploadStatus(uploadId: string): Promise<UploadAssetStatusResponse> {
@@ -136,13 +142,12 @@ export class GenesysDestinationApi extends GenesysApi {
     const uploadUrl = validateNonNull(url, 'Missing URL to upload to');
 
     getLogger().debug(`Uploading data (size: ${data.size})`);
-    const response = await fetch(uploadUrl, {
+    const request = {
       method: 'PUT',
       headers,
       body: data,
-    });
-    await verifyResponseStatus(uploadUrl, response);
-    await readBody(uploadUrl, response);
+    };
+    await fetchResource(uploadUrl, request, undefined, ContentType.TEXT);
 
     return { uploadKey };
   }

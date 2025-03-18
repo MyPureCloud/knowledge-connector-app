@@ -10,6 +10,7 @@ import { ServiceNowContext } from './model/servicenow-context.js';
 import { ServiceNowCategory } from './model/servicenow-category.js';
 import { ServiceNowCategoryResponse } from './model/servicenow-category-response.js';
 import { ServiceNowSingleArticleResponse } from './model/servicenow-single-article-response.js';
+import { EntityType } from '../model/entity-type.js';
 
 jest.mock('../utils/package-version.js');
 jest.mock('../utils/web-client.js');
@@ -67,8 +68,8 @@ describe('ServiceNowApi', () => {
 
         expect(response).toEqual([category]);
         expect(fetch).toHaveBeenCalledTimes(2);
-        checkFetchUrl(expectedUrl + '&sysparm_offset=0');
-        checkFetchUrl(expectedUrl + '&sysparm_offset=1');
+        checkFetchUrl(expectedUrl + '&sysparm_offset=0', EntityType.CATEGORY);
+        checkFetchUrl(expectedUrl + '&sysparm_offset=1', EntityType.CATEGORY);
       });
     });
   });
@@ -102,7 +103,7 @@ describe('ServiceNowApi', () => {
           name: 'sys_updated_on',
           label: 'Updated',
           type: 'glide_date_time',
-          value: '2024-04-10 18:33:40'
+          value: '2024-04-10 18:33:40',
         },
       },
     };
@@ -129,7 +130,7 @@ describe('ServiceNowApi', () => {
 
         expect(response).toEqual([testArticle]);
         expect(fetch).toHaveBeenCalledTimes(1);
-        checkFetchUrl(expectedUrl);
+        checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
       it('should fetch articles with custom limit', async () => {
@@ -144,7 +145,7 @@ describe('ServiceNowApi', () => {
 
         expect(response).toEqual([testArticle]);
         expect(fetch).toHaveBeenCalledTimes(1);
-        checkFetchUrl(expectedUrl);
+        checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
       it('should fetch articles with one specific category', async () => {
@@ -159,7 +160,7 @@ describe('ServiceNowApi', () => {
 
         expect(response).toEqual([testArticle]);
         expect(fetch).toHaveBeenCalledTimes(1);
-        checkFetchUrl(expectedUrl);
+        checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
       it('should fetch articles with multiple specific categories', async () => {
@@ -174,7 +175,7 @@ describe('ServiceNowApi', () => {
 
         expect(response).toEqual([testArticle]);
         expect(fetch).toHaveBeenCalledTimes(1);
-        checkFetchUrl(expectedUrl);
+        checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
       it('should fetch articles with a specific two-letter language code', async () => {
@@ -189,7 +190,7 @@ describe('ServiceNowApi', () => {
 
         expect(response).toEqual([testArticle]);
         expect(fetch).toHaveBeenCalledTimes(1);
-        checkFetchUrl(expectedUrl);
+        checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
       it('should fetch articles with a transformed five-character language code', async () => {
@@ -204,7 +205,7 @@ describe('ServiceNowApi', () => {
 
         expect(response).toEqual([testArticle]);
         expect(fetch).toHaveBeenCalledTimes(1);
-        checkFetchUrl(expectedUrl);
+        checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
       it('should fetch articles with one specific knowledge base', async () => {
@@ -219,7 +220,7 @@ describe('ServiceNowApi', () => {
 
         expect(response).toEqual([testArticle]);
         expect(fetch).toHaveBeenCalledTimes(1);
-        checkFetchUrl(expectedUrl);
+        checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
       it('should fetch articles with multiple knowledge bases', async () => {
@@ -234,7 +235,7 @@ describe('ServiceNowApi', () => {
 
         expect(response).toEqual([testArticle]);
         expect(fetch).toHaveBeenCalledTimes(1);
-        checkFetchUrl(expectedUrl);
+        checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
       it('should fetch articles with custom settings', async () => {
@@ -252,7 +253,7 @@ describe('ServiceNowApi', () => {
 
         expect(response).toEqual([testArticle]);
         expect(fetch).toHaveBeenCalledTimes(1);
-        checkFetchUrl(expectedUrl);
+        checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
     });
 
@@ -294,8 +295,8 @@ describe('ServiceNowApi', () => {
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(fetch).toHaveBeenCalledTimes(2);
-        checkFetchUrl(firstExpectedUrl);
-        checkFetchUrl(secondExpectedUrl);
+        checkFetchUrl(firstExpectedUrl, EntityType.DOCUMENT);
+        checkFetchUrl(secondExpectedUrl, EntityType.DOCUMENT);
         expect(response.length).toEqual(4);
         expect(response).toEqual([
           testArticle,
@@ -349,7 +350,7 @@ describe('ServiceNowApi', () => {
         const actual = await api.getArticle(ARTICLE_SYS_ID);
 
         expect(fetch).toHaveBeenCalledTimes(1);
-        checkFetchUrl(expectedUrl1);
+        checkFetchUrl(expectedUrl1, EntityType.DOCUMENT);
         expect(actual).toEqual({
           sys_id: ARTICLE_SYS_ID,
           number: ARTICLE_NUMBER,
@@ -372,8 +373,8 @@ describe('ServiceNowApi', () => {
     });
   });
 
-  function checkFetchUrl(expectedUrl: string) {
-    expect(fetch).toHaveBeenCalledWith(expectedUrl, headers);
+  function checkFetchUrl(expectedUrl: string, entityType: EntityType): void {
+    expect(fetch).toHaveBeenCalledWith(expectedUrl, headers, entityType);
   }
 
   function mockApiResponse(status: number, body: unknown): void {

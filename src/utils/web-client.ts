@@ -11,6 +11,8 @@ import { ApiError } from '../adapter/errors/api-error.js';
 import { runtime } from './runtime.js';
 import { getPackageVersion } from './package-version.js';
 import { EntityType } from '../model/entity-type.js';
+import { retry } from './retry.js';
+import { ContentType } from './content-type.js';
 
 export { Response, RequestInit, HeadersInit } from 'undici';
 
@@ -61,6 +63,7 @@ export async function fetchImage(
  * @param init
  * @param entityName
  * @throws Interrupted
+ * @throws ApiError
  */
 export async function fetch(
   url: string,
@@ -163,6 +166,7 @@ export async function verifyResponseStatus(
  * @param url
  * @param response
  * @param entityName
+ * @throws ApiError
  */
 export async function readBody(
   url: string,
@@ -174,6 +178,75 @@ export async function readBody(
   try {
     return await response.text();
   } catch (error) {
+    throw new ApiError(
+      `Api request [${url}] failed to read body from response with status [${status}] - ${error}`,
+      {
+        url,
+        status,
+        message: String(error),
+      },
+      entityName,
+      error,
+    );
+  }
+}
+
+/**
+ * Fetch resource from URL with content type
+ * @param url
+ * @param init
+ * @param entityName
+ * @param acceptContentType
+ * @throws ApiError
+ * @throws Interrupted
+ */
+export async function fetchResource<T>(
+  url: string,
+  init?: RequestInit,
+  entityName?: EntityType,
+  acceptContentType: ContentType = ContentType.JSON,
+): Promise<T> {
+  return retry(async () => {
+    const response = await fetch(url, init, entityName);
+
+    if (acceptContentType === ContentType.JSON) {
+      return readJson(url, response, entityName);
+    } else if (acceptContentType === ContentType.TEXT) {
+      return readText(url, response, entityName);
+    } else {
+      return readBlob(url, response, entityName);
+    }
+  });
+}
+
+export async function readJson<T>(
+  url: string,
+  response: Response,
+  entityName?: EntityType,
+): Promise<T> {
+  return readResponse<T>(url, response, entityName);
+}
+
+export async function readText<T>(
+  url: string,
+  response: Response,
+  entityName?: EntityType,
+): Promise<T> {
+  await verifyResponseStatus(url, response, entityName);
+  return (await readBody(url, response, entityName)) as T;
+}
+
+export async function readBlob<T>(
+  url: string,
+  response: Response,
+  entityName?: EntityType,
+): Promise<T> {
+  await verifyResponseStatus(url, response, entityName);
+
+  try {
+    return (await response.blob()) as T;
+  } catch (error) {
+    const { status } = response;
     throw new ApiError(
       `Api request [${url}] failed to read body from response with status [${status}] - ${error}`,
       {

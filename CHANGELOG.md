@@ -1,5 +1,11 @@
 # Change log
 
+## 0.9.2 (2025-03-13)
+
+### Changes:
+
+1. API calls are retried on error
+
 ## 0.9.1 (2025-02-25)
 
 ### Changes:

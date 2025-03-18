@@ -65,6 +65,7 @@ describe('GenesysDestinationApi', () => {
           },
           method: 'POST',
         },
+        undefined,
       );
       expect(response.results[0].id).toBe('asset-id');
     });
@@ -102,6 +103,7 @@ describe('GenesysDestinationApi', () => {
           },
           method: 'POST',
         },
+        undefined,
       );
       expect(response.id).toBe('sync-id');
     });

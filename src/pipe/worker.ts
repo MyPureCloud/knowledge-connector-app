@@ -166,9 +166,10 @@ export class Worker<T extends ExternalIdentifiable> {
         `Worker load next postponed item with externalId: ${item.externalId}`,
       );
 
+      let processedItem: T;
       try {
         const unprocessedItem = _.cloneDeep(item);
-        const processedItem = await this.executeRunnable<T>(
+        processedItem = await this.executeRunnable<T>(
           unprocessedItem,
           processors,
           method,
@@ -194,7 +195,9 @@ export class Worker<T extends ExternalIdentifiable> {
             throw error;
           })
           .any(() => {
-            failedItems.push(this.generateFailedEntity(item, error as Error));
+            failedItems.push(
+              this.generateFailedEntity(processedItem || item, error as Error),
+            );
           })
           .with(error);
       }

@@ -16,3 +16,4 @@ export { SyncDataResponse } from './sync-data-response.js';
 export * from './sync-export-model.js';
 export { SyncableContents, ImportableContent } from './syncable-contents.js';
 export { Context } from '../context/context.js';
+export { EntityType } from './entity-type.js';
