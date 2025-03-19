@@ -8,7 +8,7 @@ import { getLogger } from '../utils/logger.js';
 import { JobStatus } from './model/job-status.js';
 import { fetchResource, RequestInit } from '../utils/web-client.js';
 import { EntityType } from '../model/entity-type.js';
-import { ExcludeOptions } from '../model/exclude-options';
+import { ExcludeOptions } from '../model/exclude-options.js';
 
 export abstract class GenesysApi {
   protected token?: TokenResponse;
