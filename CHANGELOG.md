@@ -1,5 +1,17 @@
 # Change log
 
+## 0.9.4 (2025-03-19)
+
+### Fixes:
+
+1. ServiceNow Adapter unit test regarding 0.9.3 fix
+
+## 0.9.3 (2025-03-18)
+
+### Fixes:
+
+1. ServiceNow Adapter does not swallow Interrupted error
+
 ## 0.9.2 (2025-03-13)
 
 ### Changes:

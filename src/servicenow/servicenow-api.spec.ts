@@ -361,14 +361,22 @@ describe('ServiceNowApi', () => {
     describe('with status error', () => {
       const ERROR_BODY = '<some><xml></xml></some>';
 
-      beforeEach(() => {
+      beforeEach(async () => {
+        await api.initialize(config, context);
+
         mockApiResponse(500, ERROR_BODY);
       });
 
-      it('should return null', async () => {
-        const actual = await api.getArticle(ARTICLE_NUMBER);
-
-        expect(actual).toEqual(null);
+      it('should return ApiError', async () => {
+        await expect(() => api.getArticle(ARTICLE_NUMBER)).rejects.toThrowError(
+          new ApiError(
+            `Api request [https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_NUMBER}] failed with status [500] and message [${ERROR_BODY}]`,
+            {
+              url: `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_NUMBER}`,
+              status: 500,
+            },
+          ),
+        );
       });
     });
   });
