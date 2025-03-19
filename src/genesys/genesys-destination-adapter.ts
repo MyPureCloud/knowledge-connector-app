@@ -31,7 +31,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
   }
 
   public initialize(config: GenesysDestinationConfig): Promise<void> {
-    this.config = config
+    this.config = config;
     return this.getApi().initialize(config);
   }
 
@@ -174,7 +174,8 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
       getLogger().debug('Adding Labels to Genesys destination export exclude list');
       excludes.push(ExcludeOptions.LABELS)
     }
-    if (this.config.compareMode ?? CompareMode.MODIFICATION_DATE) {
+    const compareMode = this.config.compareMode ?? CompareMode.MODIFICATION_DATE;
+    if (compareMode === CompareMode.MODIFICATION_DATE) {
       getLogger().debug('Adding Variations to Genesys destination export exclude list');
       excludes.push(ExcludeOptions.VARIATIONS)
     }

@@ -1,5 +1,4 @@
 import { Config } from '../../config.js';
-import { CompareMode } from '../../utils/compare-mode.js';
 
 export interface GenesysSourceConfig extends Config {
   genesysSourceLoginUrl?: string;
@@ -7,5 +6,4 @@ export interface GenesysSourceConfig extends Config {
   genesysSourceClientId?: string;
   genesysSourceClientSecret?: string;
   genesysSourceKnowledgeBaseId?: string;
-  compareMode?: CompareMode;
 }

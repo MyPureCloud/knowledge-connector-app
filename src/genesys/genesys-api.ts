@@ -30,7 +30,7 @@ export abstract class GenesysApi {
     const body: ExportArticlesRequest = {
       exportFilter: {
         versionFilter: 'Latest',
-        exclude
+        ...(exclude ? { exclude } : {})
       },
       fileType: 'json',
       jsonFileVersion: 3,
