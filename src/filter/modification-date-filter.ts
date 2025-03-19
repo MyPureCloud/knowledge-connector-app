@@ -45,7 +45,7 @@ export class ModificationDateFilter implements Filter {
         storedItem && (storedItem.externalId === prefixedExternalId));
 
     if (this.externalVersionIdsMatch(content, storedDocument)) {
-      this.removeFromDeletedDocuments(content.externalVersionId);
+      this.removeFromDeletedDocuments(prefixedExternalId);
       return false;
     }
     return true;
@@ -63,9 +63,9 @@ export class ModificationDateFilter implements Filter {
     );
   }
 
-  private removeFromDeletedDocuments(externalVersionId: string | null | undefined): void {
+  private removeFromDeletedDocuments(externalId: string | null): void {
     const index = this.context!.syncableContents.documents.deleted.findIndex(
-      document => document.externalVersionId === externalVersionId
+      document => document.externalId === externalId
     );
 
     if (index !== -1) {
