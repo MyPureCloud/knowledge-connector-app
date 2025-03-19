@@ -16,7 +16,7 @@ export interface DocumentVersion {
   visible: boolean;
   category: CategoryReference | null;
   labels: LabelReference[] | null;
-  variations: Variation[];
+  variations: Variation[] | null;
 }
 
 export interface Variation {

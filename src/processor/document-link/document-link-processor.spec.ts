@@ -202,7 +202,7 @@ describe('DocumentLinkProcessor', function () {
     expectedDocumentId: string | undefined,
     expectedDocumentIdAlternatives: string[] | undefined,
   ): void {
-    const blocks = result.published?.variations[0].body?.blocks ?? [];
+    const blocks = result.published?.variations?.[0].body?.blocks ?? [];
     expect(blocks.length).toBe(4);
     expect(blocks[0].paragraph?.blocks[0].text?.hyperlink).toBe(
       expectedHyperlink,

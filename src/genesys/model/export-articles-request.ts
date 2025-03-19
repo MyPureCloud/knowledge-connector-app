@@ -4,6 +4,7 @@ export interface ExportArticlesRequest {
       interval?: string;
     };
     versionFilter: 'Latest';
+    exclude?: string[];
   };
   fileType: 'json';
   jsonFileVersion: 3;

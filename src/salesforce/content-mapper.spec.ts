@@ -14,7 +14,7 @@ describe('contentMapper', () => {
       });
 
       expect(result.published?.title).toBe('the title');
-      expect(result.published?.variations[0].rawHtml).toBe(
+      expect(result.published?.variations?.[0].rawHtml).toBe(
         '<p>First line</p><p><p>Paragraph</p></p>',
       );
     });
@@ -29,7 +29,7 @@ describe('contentMapper', () => {
       });
 
       expect(result.published?.title).toBe('the title');
-      expect(result.published?.variations[0].rawHtml).toBe(
+      expect(result.published?.variations?.[0].rawHtml).toBe(
         '<p><p>Paragraph</p></p>',
       );
     });

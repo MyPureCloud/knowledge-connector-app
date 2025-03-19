@@ -93,7 +93,7 @@ describe('ImageProcessor', () => {
         generateNormalizedDocument('1'),
       );
 
-      expect(result.published?.variations[0].body?.blocks[0].image?.url).toBe(
+      expect(result.published?.variations?.[0].body?.blocks[0].image?.url).toBe(
         'https://api.mypurecloud.com/image',
       );
     });
@@ -104,11 +104,11 @@ describe('ImageProcessor', () => {
       );
 
       expect(
-        result.published?.variations[0].body?.blocks[1].table?.rows[0].cells[0]
+        result.published?.variations?.[0].body?.blocks[1].table?.rows[0].cells[0]
           .blocks[0].image?.url,
       ).toBe('https://api.mypurecloud.com/image');
       expect(
-        result.published?.variations[0].body?.blocks[1].table?.rows[1].cells[0]
+        result.published?.variations?.[0].body?.blocks[1].table?.rows[1].cells[0]
           .blocks[0].image?.url,
       ).toBe('https://api.mypurecloud.com/image');
     });
@@ -122,7 +122,7 @@ describe('ImageProcessor', () => {
         generateNormalizedDocument('1'),
       );
 
-      expect(result.published?.variations[0].body?.blocks[0].image?.url).toBe(
+      expect(result.published?.variations?.[0].body?.blocks[0].image?.url).toBe(
         'https://document-image.url',
       );
     });
@@ -146,12 +146,12 @@ describe('ImageProcessor', () => {
       await imageProcessor.initialize(config, adapters, {} as PipeContext);
       mockGetAttachment.mockResolvedValue(null);
       const document = generateNormalizedDocument('1');
-      document.published!.variations[0].body!.blocks[0].image!.url =
+      document.published!.variations![0].body!.blocks[0].image!.url =
         'relative-image.jpg';
 
       const result = await imageProcessor.runOnDocument(document);
 
-      expect(result.published?.variations[0].body?.blocks[0].image?.url).toBe(
+      expect(result.published?.variations?.[0].body?.blocks[0].image?.url).toBe(
         'https://api.mypurecloud.com/image',
       );
     });
@@ -165,12 +165,12 @@ describe('ImageProcessor', () => {
       await imageProcessor.initialize(config, adapters, {} as PipeContext);
       mockGetAttachment.mockResolvedValue(null);
       const document = generateNormalizedDocument('1');
-      document.published!.variations[0].body!.blocks[0].image!.url =
+      document.published!.variations![0].body!.blocks[0].image!.url =
         'relative-image.jpg';
 
       const result = await imageProcessor.runOnDocument(document);
 
-      expect(result.published?.variations[0].body?.blocks[0].image?.url).toBe(
+      expect(result.published?.variations?.[0].body?.blocks[0].image?.url).toBe(
         'https://api-cdn.usw2.pure.cloud/relative-image.jpg',
       );
     });
@@ -191,12 +191,12 @@ describe('ImageProcessor', () => {
       mockLookupImage.mockResolvedValue(null);
       mockUploadImage.mockRejectedValue(new Error('Failed'));
       const document = generateNormalizedDocument('1');
-      document.published!.variations[0].body!.blocks[0].image!.url =
+      document.published!.variations![0].body!.blocks[0].image!.url =
         'relative-image.jpg';
 
       const result = await imageProcessor.runOnDocument(document);
 
-      expect(result.published?.variations[0].body?.blocks[0].image?.url).toBe(
+      expect(result.published?.variations?.[0].body?.blocks[0].image?.url).toBe(
         'https://api-cdn.usw2.pure.cloud/relative-image.jpg',
       );
     });
@@ -206,7 +206,7 @@ describe('ImageProcessor', () => {
     let document: Document;
     beforeEach(async () => {
       document = generateNormalizedDocument('1');
-      document.published!.variations[0].body!.blocks[0].image!.url =
+      document.published!.variations![0].body!.blocks[0].image!.url =
         'relative-image.png';
     });
 
@@ -224,7 +224,7 @@ describe('ImageProcessor', () => {
       it('should do nothing', async () => {
         const result = await imageProcessor.runOnDocument(document);
 
-        expect(result.published?.variations[0].body?.blocks[0].image?.url).toBe(
+        expect(result.published?.variations?.[0].body?.blocks[0].image?.url).toBe(
           'relative-image.png',
         );
         expect(mockGetAttachment).not.toHaveBeenCalled();
@@ -246,7 +246,7 @@ describe('ImageProcessor', () => {
       it('should extend relative image URLs', async () => {
         const result = await imageProcessor.runOnDocument(document);
 
-        expect(result.published?.variations[0].body?.blocks[0].image?.url).toBe(
+        expect(result.published?.variations?.[0].body?.blocks[0].image?.url).toBe(
           'https://api-cdn.usw2.pure.cloud/relative-image.png',
         );
         expect(mockGetAttachment).not.toHaveBeenCalled();

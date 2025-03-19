@@ -8,6 +8,7 @@ import { getLogger } from '../utils/logger.js';
 import { JobStatus } from './model/job-status.js';
 import { fetchResource, RequestInit } from '../utils/web-client.js';
 import { EntityType } from '../model/entity-type.js';
+import { ExcludeOptions } from '../model/exclude-options.js';
 
 export abstract class GenesysApi {
   protected token?: TokenResponse;
@@ -24,15 +25,17 @@ export abstract class GenesysApi {
 
   protected abstract getKnowledgeBaseId(): string;
 
-  public createExportJob(): Promise<ExportArticlesResponse> {
+  public createExportJob(exclude?: ExcludeOptions[]): Promise<ExportArticlesResponse> {
     const kbId = this.getKnowledgeBaseId();
     const body: ExportArticlesRequest = {
       exportFilter: {
         versionFilter: 'Latest',
+        ...(exclude ? { exclude } : {})
       },
       fileType: 'json',
       jsonFileVersion: 3,
     };
+
     return this.fetch<ExportArticlesResponse>(
       `/api/v2/knowledge/knowledgeBases/${kbId}/export/jobs`,
       {

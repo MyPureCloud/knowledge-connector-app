@@ -117,8 +117,8 @@ describe('HtmlTransformer', () => {
 
       const result = await htmlTransformer.runOnDocument(article);
 
-      expect(result.published?.variations[0].rawHtml).toBeUndefined();
-      expect(result.published?.variations[0].body).toEqual({
+      expect(result.published?.variations?.[0].rawHtml).toBeUndefined();
+      expect(result.published?.variations?.[0].body).toEqual({
         blocks: [
           {
             type: 'Paragraph',
