@@ -9,5 +9,7 @@ export interface GenesysDestinationConfig extends PrefixExternalIdConfig {
   genesysKnowledgeBaseId?: string;
   genesysSourceId?: string;
   allowPruneAllEntities?: string;
+  fetchCategories?: string;
+  fetchLabels?: string;
   compareMode?: CompareMode;
 }

@@ -16,7 +16,6 @@ import { GenesysContext } from './model/genesys-context.js';
 import { AbstractSourceAdapter } from '../adapter/abstract-source-adapter.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 import { ExternalLink } from '../model/external-link.js';
-import { CompareMode } from '../utils/compare-mode.js';
 
 /**
  * GenesysSourceAdapter extends {@Link AbstractSourceAdapter}, implements {@Link ImageSourceAdapter} to fetch data from Genesys Knowledge's API
@@ -31,7 +30,6 @@ export class GenesysSourceAdapter
   private api: GenesysSourceApi;
   private exportedKnowledgeData: ExportModel | null = null;
   private attachmentDomainValidator?: AttachmentDomainValidator;
-  private compareMode?: CompareMode;
 
   constructor() {
     super();
@@ -49,7 +47,6 @@ export class GenesysSourceAdapter
 
     this.exportedKnowledgeData = await this.exportAllEntities();
     this.attachmentDomainValidator = new AttachmentDomainValidator(config);
-    this.compareMode = config.compareMode ?? CompareMode.MODIFICATION_DATE;
   }
 
   public async *categoryIterator(): AsyncGenerator<Category, void, void> {
@@ -104,8 +101,7 @@ export class GenesysSourceAdapter
 
   private async exportAllEntities(): Promise<ExportModel> {
     getLogger().debug('Export articles in loader');
-    const shouldUseReducedExport = this.compareMode === CompareMode.MODIFICATION_DATE
-    const jobStatus = await this.api.createExportJob(shouldUseReducedExport);
+    const jobStatus = await this.api.createExportJob();
     getLogger().debug('Export job ' + JSON.stringify(jobStatus));
     const job = await this.api.waitForJobToFinish<ExportArticlesResponse>(
       () => this.api.getExportStatus(jobStatus.id),

@@ -14,6 +14,7 @@ import { fileTypeFromBuffer } from 'file-type';
 import { FileTypeNotSupportedError } from './errors/file-type-not-supported-error.js';
 import { InvalidExportJobError } from './errors/invalid-export-job-error.js';
 import { CompareMode } from '../utils/compare-mode.js';
+import { ExcludeOptions } from '../model/exclude-options.js';
 
 const SUPPORTED_FORMATS = ['jpeg', 'jpg', 'png', 'gif'];
 
@@ -24,15 +25,13 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
   private readonly api: GenesysDestinationApi;
 
   private config: GenesysDestinationConfig = {};
-  private compareMode?: CompareMode;
 
   constructor() {
     this.api = new GenesysDestinationApi();
   }
 
   public initialize(config: GenesysDestinationConfig): Promise<void> {
-    this.config = config;
-    this.compareMode = config.compareMode ?? CompareMode.MODIFICATION_DATE;
+    this.config = config
     return this.getApi().initialize(config);
   }
 
@@ -83,8 +82,7 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
   }
 
   public async exportAllEntities(): Promise<ExportModel> {
-    const shouldUseReducedExport = this.compareMode === CompareMode.MODIFICATION_DATE
-    const jobStatus = await this.getApi().createExportJob(shouldUseReducedExport);
+    const jobStatus = await this.getApi().createExportJob(this.buildExcludesList());
 
     const job = await this.getApi().waitForJobToFinish<ExportArticlesResponse>(
       () => this.getApi().getExportStatus(jobStatus.id),
@@ -163,5 +161,24 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
     }
 
     return fileType.mime;
+  }
+
+  private buildExcludesList(): ExcludeOptions[] {
+    const excludes = [] as ExcludeOptions[];
+
+    if (this.config.fetchCategories === 'false' ) {
+      getLogger().debug('Adding Categories to Genesys destination export exclude list');
+      excludes.push(ExcludeOptions.CATEGORIES)
+    }
+    if (this.config.fetchLabels === 'false' ) {
+      getLogger().debug('Adding Labels to Genesys destination export exclude list');
+      excludes.push(ExcludeOptions.LABELS)
+    }
+    if (this.config.compareMode ?? CompareMode.MODIFICATION_DATE) {
+      getLogger().debug('Adding Variations to Genesys destination export exclude list');
+      excludes.push(ExcludeOptions.VARIATIONS)
+    }
+
+    return excludes;
   }
 }
