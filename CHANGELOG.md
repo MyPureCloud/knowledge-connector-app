@@ -1,5 +1,11 @@
 # Change log
 
+## 0.9.7 (2025-03-20)
+
+### Fixes:
+
+1. Empty export exclude won't be sent, preventing validation error during export
+
 ## 0.9.6 (2025-03-20)
 
 ### Changes:
