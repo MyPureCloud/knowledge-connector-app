@@ -9,6 +9,7 @@ export { InvalidExportJobError } from './genesys/errors/invalid-export-job-error
 export * from './model/index.js';
 export * from './processor/index.js';
 export * from './aggregator/index.js';
+export * from './filter/index.js';
 export * from './uploader/index.js';
 export * from './pipe/index.js';
 export * from './context/index.js';

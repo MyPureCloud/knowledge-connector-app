@@ -24,6 +24,7 @@ import { Worker } from './worker.js';
 import { runtime } from '../utils/runtime.js';
 import { FailedItems } from '../model/failed-items.js';
 import { catcher } from '../utils/catch-error-helper.js';
+import { Filter } from '../filter/filter.js';
 
 /**
  * Pipe is the collection of tasks and adapters which can be executed to do the sync from source to destination.
@@ -38,6 +39,7 @@ export class Pipe {
   private sourceAdapter: SourceAdapter<unknown, unknown, unknown> | undefined;
   private destinationAdapter: DestinationAdapter | undefined;
   private loaderList: Loader[] = [];
+  private filterList: Filter[] = [];
   private processorList: Processor[] = [];
   private aggregatorList: Aggregator[] = [];
   private uploaderList: Uploader[] = [];
@@ -100,6 +102,15 @@ export class Pipe {
       }
       this.processorList.splice(pos, 0, p);
     });
+    return this;
+  }
+
+  /**
+   * Define filter task
+   * @param {Filter} filter
+   */
+  public filter(filter: Filter): Pipe {
+    this.filterList = [filter];
     return this;
   }
 
@@ -216,6 +227,7 @@ export class Pipe {
     await new Worker()
       .iterators(() => this.loaderList.map((l) => l.documentIterator()))
       .processors(this.processorList)
+      .filters(this.filterList)
       .aggregators(this.aggregatorList)
       .processedItems(context.pipe.processedItems.documents)
       .unprocessedItems(context.pipe.unprocessedItems.documents)
@@ -234,6 +246,7 @@ export class Pipe {
     await new Worker()
       .iterators(() => this.loaderList.map((l) => l.labelIterator()))
       .processors(this.processorList)
+      .filters(this.filterList)
       .aggregators(this.aggregatorList)
       .processedItems(context.pipe.processedItems.labels)
       .unprocessedItems(context.pipe.unprocessedItems.labels)
@@ -249,6 +262,7 @@ export class Pipe {
     await new Worker()
       .iterators(() => this.loaderList.map((l) => l.categoryIterator()))
       .processors(this.processorList)
+      .filters(this.filterList)
       .aggregators(this.aggregatorList)
       .processedItems(context.pipe.processedItems.categories)
       .unprocessedItems(context.pipe.unprocessedItems.categories)
@@ -275,6 +289,7 @@ export class Pipe {
 
     await this.initTasks(this.loaderList, config, context);
     await this.initTasks(this.processorList, config, context);
+    await this.initTasks(this.filterList, config, context);
     await this.initTasks(this.aggregatorList, config, context);
 
     return context;

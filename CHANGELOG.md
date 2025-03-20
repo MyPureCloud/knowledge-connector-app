@@ -1,5 +1,11 @@
 # Change log
 
+## 0.9.6 (2025-03-20)
+
+### Changes:
+
+1. Added filter tasks for conditional pipeline processing
+
 ## 0.9.5 (2025-03-19)
 
 ### Changes:

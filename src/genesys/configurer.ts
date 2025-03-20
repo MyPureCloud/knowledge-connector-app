@@ -7,6 +7,7 @@ import { PrefixExternalId } from '../processor/prefix-external-id/prefix-externa
 import { DiffAggregator } from '../aggregator/diff-aggregator.js';
 import { DiffUploader } from '../uploader/diff-uploader.js';
 import { DocumentLinkProcessor } from '../processor/document-link/document-link-processor.js';
+import { ModificationDateFilter } from '../filter/modification-date-filter.js';
 
 export const configurer: Configurer = (pipe: Pipe) => {
   pipe
@@ -17,6 +18,7 @@ export const configurer: Configurer = (pipe: Pipe) => {
       new PrefixExternalId(),
       new DocumentLinkProcessor(),
     )
+    .filter(new ModificationDateFilter())
     .aggregator(new DiffAggregator())
     .uploaders(new DiffUploader());
 };

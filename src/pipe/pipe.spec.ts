@@ -18,6 +18,7 @@ import {
   generateNormalizedLabel,
 } from '../tests/utils/entity-generators.js';
 import { ExternalLink } from '../model/external-link.js';
+import { Filter } from '../filter/filter.js';
 
 jest.mock('../genesys/genesys-destination-adapter.js');
 
@@ -51,6 +52,7 @@ describe('Pipe', () => {
     const calls: string[] = [];
     const loaderMock = createLoaderMock();
     const processorMock = createProcessorMock(calls);
+    const filterMock = createFilterMock(calls);
     const aggregatorMock = createAggregatorMock(calls);
     const uploaderMock = createUploaderMock(calls);
 
@@ -58,17 +60,52 @@ describe('Pipe', () => {
       .adapters(adapterPair)
       .loaders(loaderMock)
       .processors(processorMock)
+      .filter(filterMock)
       .aggregator(aggregatorMock)
       .uploaders(uploaderMock)
       .start({});
 
     expect(calls).toStrictEqual([
+      'filter',
       'processor',
       'aggregator',
+      'filter',
       'processor',
       'aggregator',
+      'filter',
       'processor',
       'aggregator',
+      'uploader',
+    ]);
+  });
+
+  it('should skip processor task when filter task returns false', async () => {
+    expect.assertions(1);
+
+    const calls: string[] = [];
+    const loaderMock = createLoaderMock();
+    const processorMock = createProcessorMock(calls);
+    const filterMock = createFilterMock(calls, false);
+    const aggregatorMock = createAggregatorMock(calls);
+    const uploaderMock = createUploaderMock(calls);
+
+    await new Pipe()
+      .adapters(adapterPair)
+      .loaders(loaderMock)
+      .processors(processorMock)
+      .filter(filterMock)
+      .aggregator(aggregatorMock)
+      .uploaders(uploaderMock)
+      .start({});
+
+    expect(calls).toStrictEqual([
+      'filter',
+      'processor',
+      'aggregator',
+      'filter',
+      'processor',
+      'aggregator',
+      'filter',
       'uploader',
     ]);
   });
@@ -78,6 +115,7 @@ describe('Pipe', () => {
 
     const loaderMock = createLoaderMock();
     const processorMock = createProcessorMock([]);
+    const filterMock = createFilterMock([]);
     const aggregatorMock = createAggregatorMock([]);
     const uploaderMock = createUploaderMock([]);
 
@@ -85,6 +123,7 @@ describe('Pipe', () => {
       .adapters(adapterPair)
       .loaders(loaderMock)
       .processors(processorMock)
+      .filter(filterMock)
       .aggregator(aggregatorMock)
       .uploaders(uploaderMock)
       .start({});
@@ -94,10 +133,11 @@ describe('Pipe', () => {
   });
 
   it('should initialize all tasks', async () => {
-    expect.assertions(4);
+    expect.assertions(5);
 
     const loaderMock = createLoaderMock();
     const processorMock = createProcessorMock([]);
+    const filterMock = createFilterMock([]);
     const aggregatorMock = createAggregatorMock([]);
     const uploaderMock = createUploaderMock([]);
 
@@ -105,12 +145,14 @@ describe('Pipe', () => {
       .adapters(adapterPair)
       .loaders(loaderMock)
       .processors(processorMock)
+      .filter(filterMock)
       .aggregator(aggregatorMock)
       .uploaders(uploaderMock)
       .start({});
 
     expect(loaderMock.initialize).toHaveBeenCalledTimes(1);
     expect(processorMock.initialize).toHaveBeenCalledTimes(1);
+    expect(filterMock.initialize).toHaveBeenCalledTimes(1);
     expect(aggregatorMock.initialize).toHaveBeenCalledTimes(1);
     expect(uploaderMock.initialize).toHaveBeenCalledTimes(1);
   });
@@ -122,6 +164,7 @@ describe('Pipe', () => {
       const calls: string[] = [];
       const loaderMock = createLoaderMock();
       const processorMock = createProcessorMock(calls);
+      const filterMock = createFilterMock(calls);
       const aggregatorMock = createAggregatorMock(calls);
       const uploaderMock = createUploaderMock(calls);
 
@@ -131,6 +174,7 @@ describe('Pipe', () => {
           .destination(destinationAdapter)
           .loaders(loaderMock)
           .processors(processorMock)
+          .filter(filterMock)
           .aggregator(aggregatorMock)
           .uploaders(uploaderMock);
       };
@@ -140,10 +184,13 @@ describe('Pipe', () => {
       expect(sourceAdapter.initialize).toHaveBeenCalledTimes(1);
       expect(destinationAdapter.initialize).toHaveBeenCalledTimes(1);
       expect(calls).toStrictEqual([
+        'filter',
         'processor',
         'aggregator',
+        'filter',
         'processor',
         'aggregator',
+        'filter',
         'processor',
         'aggregator',
         'uploader',
@@ -206,6 +253,27 @@ describe('Pipe', () => {
       },
       getPriority(): number {
         return 0;
+      },
+    };
+  }
+
+  function createFilterMock(calls: string[], shouldProcess = true): Filter {
+    return {
+      initialize: jest
+        .fn<() => Promise<void>>()
+        .mockReturnValue(Promise.resolve()),
+
+      runOnCategory: async (_item: Category) => {
+        calls.push('filter');
+        return true;
+      },
+      runOnLabel: async (_item: Label) => {
+        calls.push('filter');
+        return true;
+      },
+      runOnDocument: async (_item: Document) => {
+        calls.push('filter');
+        return shouldProcess;
       },
     };
   }
