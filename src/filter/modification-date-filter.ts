@@ -24,11 +24,11 @@ export class ModificationDateFilter implements Filter {
     this.externalIdPrefix = config.externalIdPrefix ?? undefined;
   }
 
-  public async runOnCategory(content: Category): Promise<boolean> {
+  public async runOnCategory(_content: Category): Promise<boolean> {
     return true;
   }
 
-  public async runOnLabel(content: Label): Promise<boolean> {
+  public async runOnLabel(_content: Label): Promise<boolean> {
     return true;
   }
 
@@ -58,7 +58,7 @@ export class ModificationDateFilter implements Filter {
   private externalVersionIdsMatch(content: Document, storedDocument?: Document): boolean {
     return !!(
       storedDocument &&
-      (content.externalVersionId || storedDocument.externalVersionId) &&
+      content.externalVersionId && storedDocument.externalVersionId &&
       content.externalVersionId === storedDocument.externalVersionId
     );
   }
