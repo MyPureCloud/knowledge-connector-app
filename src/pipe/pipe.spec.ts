@@ -60,7 +60,7 @@ describe('Pipe', () => {
       .adapters(adapterPair)
       .loaders(loaderMock)
       .processors(processorMock)
-      .filter(filterMock)
+      .filters(filterMock)
       .aggregator(aggregatorMock)
       .uploaders(uploaderMock)
       .start({});
@@ -93,7 +93,7 @@ describe('Pipe', () => {
       .adapters(adapterPair)
       .loaders(loaderMock)
       .processors(processorMock)
-      .filter(filterMock)
+      .filters(filterMock)
       .aggregator(aggregatorMock)
       .uploaders(uploaderMock)
       .start({});
@@ -123,7 +123,7 @@ describe('Pipe', () => {
       .adapters(adapterPair)
       .loaders(loaderMock)
       .processors(processorMock)
-      .filter(filterMock)
+      .filters(filterMock)
       .aggregator(aggregatorMock)
       .uploaders(uploaderMock)
       .start({});
@@ -145,7 +145,7 @@ describe('Pipe', () => {
       .adapters(adapterPair)
       .loaders(loaderMock)
       .processors(processorMock)
-      .filter(filterMock)
+      .filters(filterMock)
       .aggregator(aggregatorMock)
       .uploaders(uploaderMock)
       .start({});
@@ -174,7 +174,7 @@ describe('Pipe', () => {
           .destination(destinationAdapter)
           .loaders(loaderMock)
           .processors(processorMock)
-          .filter(filterMock)
+          .filters(filterMock)
           .aggregator(aggregatorMock)
           .uploaders(uploaderMock);
       };

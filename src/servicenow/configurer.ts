@@ -11,6 +11,7 @@ import { ServiceNowLoader } from './servicenow-loader.js';
 import { UrlTransformer } from '../processor/url-transformer/url-transformer.js';
 import { NameConflictResolver } from '../processor/name-conflict-resolver/name-conflict-resolver.js';
 import { ModificationDateFilter } from '../filter/modification-date-filter.js';
+import { DuplicateFilter } from '../filter/duplicate-filter.js';
 
 export const configurer: Configurer = (pipe: Pipe): void => {
   pipe
@@ -24,7 +25,7 @@ export const configurer: Configurer = (pipe: Pipe): void => {
       new DocumentLinkProcessor(),
       new NameConflictResolver(),
     )
-    .filter(new ModificationDateFilter())
+    .filters(new DuplicateFilter(), new ModificationDateFilter())
     .aggregator(new DiffAggregator())
     .uploaders(new DiffUploader());
 };

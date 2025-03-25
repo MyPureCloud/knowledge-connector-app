@@ -106,11 +106,11 @@ export class Pipe {
   }
 
   /**
-   * Define filter task
-   * @param {Filter} filter
+   * Define filter tasks
+   * @param {Filter[]} filters
    */
-  public filter(filter: Filter): Pipe {
-    this.filterList = [filter];
+  public filters(...filters: Filter[]): Pipe {
+    this.filterList = filters;
     return this;
   }
 
