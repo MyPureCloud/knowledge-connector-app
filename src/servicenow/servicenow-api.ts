@@ -43,6 +43,7 @@ export class ServiceNowApi {
       done: false,
       nextOffset: 0,
       unprocessed: [],
+      processedCount: 0,
     },
   };
   private oAuthToken: ServicenowOAuthToken = {
@@ -106,6 +107,10 @@ export class ServiceNowApi {
       yield item;
     }
 
+    getLogger().info(
+      `fetchNextArticlePage finished - processedCount: ${this.apiContext.articles.processedCount}`,
+    );
+
     this.apiContext.articles.done = true;
   }
 
@@ -132,7 +137,7 @@ export class ServiceNowApi {
   }
 
   public async getArticle(id: string): Promise<ServiceNowSingleArticle | null> {
-    const url = `${this.baseUrl}/api/sn_km_api/knowledge/articles/${id}`;
+    const url = `${this.baseUrl}/api/sn_km_api/knowledge/articles/${id}?fields=topic,category,kb_category,kb_knowledge_base,workflow_state,active,sys_updated_on,valid_to`;
     const requestInit = await this.buildRequestInit();
     const json = await fetchResource<ServiceNowSingleArticleResponse>(
       url,
@@ -141,9 +146,38 @@ export class ServiceNowApi {
     );
 
     if (!json.result?.number) {
-      // Article not found
+      getLogger().info(`Single article not found with ID ${id}`);
       return null;
     }
+
+    const {
+      sys_id,
+      number,
+      fields: {
+        topic: { value: topic } = {},
+        category: { value: category } = {},
+        kb_category: { value: kb_category } = {},
+        kb_knowledge_base: { value: kb_knowledge_base } = {},
+        workflow_state: { value: workflow_state } = {},
+        sys_updated_on: { value: sys_updated_on } = {},
+        active: { value: active } = {},
+        valid_to: { value: valid_to } = {},
+      } = {},
+    } = json.result;
+    getLogger().info(
+      `Single article successfully fetched with ID ${id}: ${JSON.stringify({
+        sys_id,
+        number,
+        topic,
+        category,
+        kb_category,
+        kb_knowledge_base,
+        workflow_state,
+        sys_updated_on,
+        active,
+        valid_to,
+      })}`,
+    );
 
     return json.result;
   }
@@ -165,9 +199,10 @@ export class ServiceNowApi {
     );
 
     const list = json.result.articles;
+    this.apiContext.articles.processedCount += list?.length || 0;
 
-    getLogger().debug(
-      `fetchNextArticlePage - count: ${json.result.meta.count}, end: ${json.result.meta.end}`,
+    getLogger().info(
+      `fetchNextArticlePage - count: ${json.result.meta.count}, end: ${json.result.meta.end}, processedCount: ${this.apiContext.articles.processedCount}`,
     );
     this.apiContext.articles.nextOffset =
       json.result.meta.count > json.result.meta.end
@@ -264,6 +299,8 @@ export class ServiceNowApi {
     if (categories) {
       filters.push(this.buildCategoriesFilter(categories));
     }
+    filters.push('ORDERBYnumber');
+
     return filters.join('^');
   }
 
