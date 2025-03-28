@@ -24,7 +24,7 @@ export class Pager<T> {
         return;
       }
 
-      this.unprocessedItems = nextPage;
+      this.unprocessedItems.push(...nextPage);
 
       getLogger().debug(`Loaded ${nextPage.length} items`);
       for await (const item of this.processList(this.unprocessedItems)) {

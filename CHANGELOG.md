@@ -1,5 +1,15 @@
 # Change log
 
+## 0.9.8 (2025-04-03)
+
+### Fixes:
+
+1. Updated pagination handling: next page results are now added to unprocessedItems collection
+
+### Changes:
+
+1. Added duplicate filter to prevent syncing multiple articles with the same external ID
+
 ## 0.9.7 (2025-03-20)
 
 ### Fixes:
