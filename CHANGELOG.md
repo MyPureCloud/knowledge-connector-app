@@ -1,5 +1,11 @@
 # Change log
 
+## 0.9.9 (2025-04-03)
+
+### Changes:
+
+1. Added OAuth authentication type to ServiceNow
+
 ## 0.9.8 (2025-04-03)
 
 ### Fixes:

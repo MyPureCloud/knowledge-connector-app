@@ -2,7 +2,7 @@ import { isString } from 'lodash';
 import { ApiError } from '../adapter/errors/api-error.js';
 import { ServiceNowApi } from './servicenow-api.js';
 import { ServiceNowArticle } from './model/servicenow-article.js';
-import { ServiceNowConfig } from './model/servicenow-config.js';
+import { AuthenticationType, ServiceNowConfig } from './model/servicenow-config.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fetch, Response } from '../utils/web-client.js';
 import { arraysFromAsync } from '../utils/arrays.js';
@@ -11,6 +11,11 @@ import { ServiceNowCategory } from './model/servicenow-category.js';
 import { ServiceNowCategoryResponse } from './model/servicenow-category-response.js';
 import { ServiceNowSingleArticleResponse } from './model/servicenow-single-article-response.js';
 import { EntityType } from '../model/entity-type.js';
+import { ServiceNowAccessTokenResponse } from './model/servicenow-access-token-response.js';
+import { URLSearchParams } from 'url';
+import { ErrorCodes } from '../utils/errors/error-codes.js';
+import { ValidationError } from '../utils/errors/validation-error.js';
+import { InvalidCredentialsError } from '../adapter/errors/invalid-credentials-error.js';
 
 jest.mock('../utils/package-version.js');
 jest.mock('../utils/web-client.js');
@@ -20,16 +25,22 @@ describe('ServiceNowApi', () => {
   const CATEGORY_ID_2 = '56873484398434';
   const ARTICLE_SYS_ID = '11122233344434341246536356';
   const ARTICLE_NUMBER = 'KB111';
+  const ACCESS_TOKEN = 'test-token';
 
   const fetchArticleUrl: string =
     'https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category,sys_updated_on';
   const fetchCategoryUrl: string =
     'https://test-url.com/api/now/table/kb_category?sysparm_fields=sys_id,full_category&active=true&sysparm_query=parent_id!%3Dundefined';
   const filters = '&filter=workflow_state%3Dpublished';
-  const headers = {
+  const basicAuthenticationHeaders = {
     headers: {
       Authorization: 'Basic dXNlcjpwYXNzd29yZA==',
     },
+  };
+  const oAuthAuthenticationHeaders = {
+    headers: {
+      Authorization: `Bearer ${ACCESS_TOKEN}`,
+    }
   };
 
   let mockFetch: jest.Mock<typeof fetch>;
@@ -381,8 +392,134 @@ describe('ServiceNowApi', () => {
     });
   });
 
-  function checkFetchUrl(expectedUrl: string, entityType: EntityType): void {
+  describe('OAuth', () => {
+    describe('getArticle with status ok', () => {
+      beforeEach(() => {
+        config = {
+          ...config,
+          servicenowClientId: 'test-client-id',
+          servicenowClientSecret: 'test-client-secret',
+          servicenowAuthenticationType: AuthenticationType.OAUTH,
+        };
+      });
+
+      it('should fetch article', async () => {
+        mockApiResponse(200, {
+          access_token: ACCESS_TOKEN,
+        } as ServiceNowAccessTokenResponse);
+
+        mockApiResponse(200, {
+          result: {
+            sys_id: ARTICLE_SYS_ID,
+            number: ARTICLE_NUMBER,
+          },
+        } as ServiceNowSingleArticleResponse);
+
+        await api.initialize(config, context);
+
+        const expectedUrl1 = 'https://test-url.com/oauth_token.do';
+        const expectedRequestBody = buildOAuthRequestBody();
+
+        const expectedUrl2 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_SYS_ID}`;
+
+        const actual = await api.getArticle(ARTICLE_SYS_ID);
+
+        expect(fetch).toHaveBeenCalledTimes(2);
+
+        expect(fetch).toHaveBeenCalledWith(expectedUrl1, {
+          method: 'POST',
+          body: expectedRequestBody,
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        }, undefined);
+
+        expect(fetch).toHaveBeenCalledWith(expectedUrl2, oAuthAuthenticationHeaders, EntityType.DOCUMENT);
+
+        expect(actual).toEqual({
+          sys_id: ARTICLE_SYS_ID,
+          number: ARTICLE_NUMBER,
+        });
+      });
+
+      describe('On authentication error', () => {
+        it('should throw error when SERVICENOW_CLIENT_ID is missing from config', async () => {
+          config.servicenowClientId = undefined;
+          await checkValidationError('Missing SERVICENOW_CLIENT_ID from config');
+        });
+
+        it('should throw error when SERVICENOW_CLIENT_SECRET is missing from config', async () => {
+          config.servicenowClientSecret = undefined;
+          await checkValidationError('Missing SERVICENOW_CLIENT_SECRET from config');
+        });
+
+        it('should throw error when SERVICENOW_USERNAME is missing from config', async () => {
+          config.servicenowUsername = undefined;
+          await checkValidationError('Missing SERVICENOW_USERNAME from config');
+        });
+
+        it('should throw error when SERVICENOW_PASSWORD is missing from config', async () => {
+          config.servicenowPassword = undefined;
+          await checkValidationError('Missing SERVICENOW_PASSWORD from config');
+        });
+
+        it('should throw error credentials are invalid', async () => {
+          mockApiResponse(500, 'Error message');
+
+          try {
+            await api.initialize(config, context);
+            expect(true).toBe(false);
+          } catch (error) {
+            expect((error as InvalidCredentialsError).toFailedEntityErrors()[0].code).toEqual(ErrorCodes.THIRD_PARTY_INVALID_CREDENTIALS);
+            expect((error as InvalidCredentialsError)
+              .toFailedEntityErrors()[0].messageWithParams).toEqual('Failed to get ServiceNow bearer token. Reason: Api request [https://test-url.com/oauth_token.do] failed with status [500] and message [Error message]');
+          }
+          checkFetchToken();
+        });
+
+        it('should throw error when access token is missing', async () => {
+          mockApiResponse(200, {} as ServiceNowAccessTokenResponse);
+
+          try {
+            await api.initialize(config, context);
+            expect(true).toBe(false);
+          } catch (error) {
+            expect((error as InvalidCredentialsError).toFailedEntityErrors()[0].code).toEqual(ErrorCodes.THIRD_PARTY_INVALID_CREDENTIALS);
+            expect((error as InvalidCredentialsError).toFailedEntityErrors()[0].messageWithParams).toContain('Access token not found in the response:');
+          }
+          checkFetchToken();
+        });
+      });
+    });
+  });
+
+  function checkFetchUrl(expectedUrl: string, entityType: EntityType, isOAuth = false): void {
+    const headers = isOAuth ? oAuthAuthenticationHeaders : basicAuthenticationHeaders;
     expect(fetch).toHaveBeenCalledWith(expectedUrl, headers, entityType);
+  }
+
+  async function checkValidationError(errorMessage: string): Promise<void> {
+    try {
+      await api.initialize(config, context);
+      expect(true).toBe(false);
+    } catch (error) {
+      expect((error as ValidationError).toFailedEntityErrors()[0].code).toEqual(ErrorCodes.VALIDATION_ERROR);
+      expect((error as ValidationError).toFailedEntityErrors()[0].messageWithParams).toEqual(errorMessage);
+    }
+  }
+
+  function checkFetchToken(): void {
+    const expectedUrl1 = 'https://test-url.com/oauth_token.do';
+    const expectedRequestBody = buildOAuthRequestBody();
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledWith(expectedUrl1, {
+      method: 'POST',
+      body: expectedRequestBody,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    }, undefined);
   }
 
   function mockApiResponse(status: number, body: unknown): void {
@@ -415,5 +552,16 @@ describe('ServiceNowApi', () => {
       sys_id: 'sys-id',
       full_category: 'full-category',
     };
+  }
+
+  function buildOAuthRequestBody(): URLSearchParams {
+    const expectedRequestBody = new URLSearchParams();
+    expectedRequestBody.append('grant_type', 'password');
+    expectedRequestBody.append('client_id', 'test-client-id');
+    expectedRequestBody.append('client_secret', 'test-client-secret');
+    expectedRequestBody.append('username', 'user');
+    expectedRequestBody.append('password', 'password');
+
+    return expectedRequestBody;
   }
 });

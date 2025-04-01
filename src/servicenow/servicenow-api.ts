@@ -1,4 +1,4 @@
-import { ServiceNowConfig } from './model/servicenow-config.js';
+import { AuthenticationType, ServiceNowConfig } from './model/servicenow-config.js';
 import { ServiceNowArticle } from './model/servicenow-article.js';
 import { fetchResource } from '../utils/web-client.js';
 import { ServiceNowArticleResponse } from './model/servicenow-article-response.js';
@@ -20,6 +20,13 @@ import {
 import { EntityType } from '../model/entity-type.js';
 import { ContentType } from '../utils/content-type.js';
 import { RequestInit } from 'undici';
+import { validateNonNull} from '../utils/validate-non-null.js';
+import { URLSearchParams} from 'url';
+import { ServiceNowAccessTokenResponse} from '../servicenow/model/servicenow-access-token-response.js';
+import { catcher } from '../utils/catch-error-helper.js';
+import { Interrupted } from '../utils/errors/interrupted.js';
+import { ApiError } from '../adapter/errors/api-error.js';
+import { InvalidCredentialsError } from '../adapter/errors/invalid-credentials-error.js';
 
 export class ServiceNowApi {
   private config: ServiceNowConfig = {};
@@ -37,6 +44,9 @@ export class ServiceNowApi {
       unprocessed: [],
     },
   };
+  private bearerToken: string = '';
+  private authenticationType?: AuthenticationType;
+  private isOAuth: boolean = false;
 
   public async initialize(
     config: ServiceNowConfig,
@@ -45,6 +55,11 @@ export class ServiceNowApi {
     this.config = config;
     this.limit = this.config.limit ? parseInt(this.config.limit, 10) : 50;
     this.baseUrl = removeTrailingSlash(this.config.servicenowBaseUrl ?? '');
+    this.authenticationType = config.servicenowAuthenticationType ?? AuthenticationType.BASIC;
+    this.isOAuth = this.authenticationType === AuthenticationType.OAUTH;
+    if (this.isOAuth) {
+      this.bearerToken = await this.authenticate();
+    }
 
     this.apiContext = setIfMissing(context, 'api', this.apiContext);
   }
@@ -180,6 +195,14 @@ export class ServiceNowApi {
   }
 
   private buildRequestInit(): RequestInit {
+    if (this.isOAuth && this.bearerToken) {
+      return {
+        headers: {
+          Authorization: `Bearer ${this.bearerToken}`,
+        },
+      };
+    }
+
     return {
       headers: {
         Authorization:
@@ -249,5 +272,71 @@ export class ServiceNowApi {
     return offset !== null
       ? `${this.baseUrl}${endpoint}&sysparm_offset=${offset}`
       : null;
+  }
+
+  private async authenticate(): Promise<string> {
+    validateNonNull(
+      this.config.servicenowClientId,
+      'Missing SERVICENOW_CLIENT_ID from config',
+    );
+    validateNonNull(
+      this.config.servicenowClientSecret,
+      'Missing SERVICENOW_CLIENT_SECRET from config',
+    );
+    validateNonNull(
+      this.config.servicenowUsername,
+      'Missing SERVICENOW_USERNAME from config',
+    );
+    validateNonNull(
+      this.config.servicenowPassword,
+      'Missing SERVICENOW_PASSWORD from config',
+    );
+
+    const bodyParams = new URLSearchParams();
+    bodyParams.append('grant_type', 'password');
+    bodyParams.append('client_id', this.config.servicenowClientId!);
+    bodyParams.append('client_secret', this.config.servicenowClientSecret!);
+    bodyParams.append('username', this.config.servicenowUsername!);
+    bodyParams.append('password', this.config.servicenowPassword!);
+
+    const url = `${this.baseUrl}/oauth_token.do`;
+    const request = {
+      method: 'POST',
+      body: bodyParams,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    };
+
+    try {
+      const data = await fetchResource<ServiceNowAccessTokenResponse>(
+        url,
+        request,
+        undefined,
+      );
+
+      validateNonNull(
+        data.access_token,
+        `Access token not found in the response: ${JSON.stringify(data)}`,
+      );
+
+      return data.access_token;
+    } catch (error) {
+      return await catcher<string>()
+        .on(ApiError, (apiError) => {
+          throw InvalidCredentialsError.fromApiError(
+            `Failed to get ServiceNow bearer token. Reason: ${apiError.message}`,
+            apiError as ApiError,
+          );
+        })
+        .rethrow(Interrupted)
+        .any(() => {
+          throw new InvalidCredentialsError(
+            `Failed to get ServiceNow bearer token. Reason: ${error}`,
+            { messageParams: { message: error } },
+          );
+        })
+        .with(error);
+    }
   }
 }
