@@ -26,6 +26,9 @@ describe('ServiceNowApi', () => {
   const ARTICLE_SYS_ID = '11122233344434341246536356';
   const ARTICLE_NUMBER = 'KB111';
   const ACCESS_TOKEN = 'test-token';
+  const NEW_ACCESS_TOKEN = 'new-test-token';
+  const REFRESH_TOKEN = 'refresh-token';
+  const TEN_DAYS_IN_SEC = 864000;
 
   const fetchArticleUrl: string =
     'https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category,sys_updated_on';
@@ -406,6 +409,8 @@ describe('ServiceNowApi', () => {
       it('should fetch article', async () => {
         mockApiResponse(200, {
           access_token: ACCESS_TOKEN,
+          expires_in: TEN_DAYS_IN_SEC,
+          refresh_token: REFRESH_TOKEN
         } as ServiceNowAccessTokenResponse);
 
         mockApiResponse(200, {
@@ -416,26 +421,72 @@ describe('ServiceNowApi', () => {
         } as ServiceNowSingleArticleResponse);
 
         await api.initialize(config, context);
+        const actual = await api.getArticle(ARTICLE_SYS_ID);
 
         const expectedUrl1 = 'https://test-url.com/oauth_token.do';
-        const expectedRequestBody = buildOAuthRequestBody();
-
         const expectedUrl2 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_SYS_ID}`;
-
-        const actual = await api.getArticle(ARTICLE_SYS_ID);
 
         expect(fetch).toHaveBeenCalledTimes(2);
 
-        expect(fetch).toHaveBeenCalledWith(expectedUrl1, {
-          method: 'POST',
-          body: expectedRequestBody,
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
-        }, undefined);
+        const firstCall = mockFetch.mock.calls[0];
+        expect(firstCall[0]).toBe(expectedUrl1);
+        verifyOAuthRequestBody(firstCall[1]?.body as URLSearchParams);
 
         expect(fetch).toHaveBeenCalledWith(expectedUrl2, oAuthAuthenticationHeaders, EntityType.DOCUMENT);
 
+        expect(actual).toEqual({
+          sys_id: ARTICLE_SYS_ID,
+          number: ARTICLE_NUMBER,
+        });
+      });
+
+      it('should refresh token and successfully fetch article when token is expired', async () => {
+        mockApiResponse(200, {
+          access_token: ACCESS_TOKEN,
+          expires_in: -1 * TEN_DAYS_IN_SEC,
+          refresh_token: REFRESH_TOKEN
+        } as ServiceNowAccessTokenResponse);
+
+        mockApiResponse(200, {
+          access_token: NEW_ACCESS_TOKEN,
+          expires_in: TEN_DAYS_IN_SEC,
+          refresh_token: REFRESH_TOKEN
+        } as ServiceNowAccessTokenResponse);
+
+        mockApiResponse(200, {
+          result: {
+            sys_id: ARTICLE_SYS_ID,
+            number: ARTICLE_NUMBER,
+          },
+        } as ServiceNowSingleArticleResponse);
+
+        await api.initialize(config, context);
+        const actual = await api.getArticle(ARTICLE_SYS_ID);
+
+        const expectedUrl1 = 'https://test-url.com/oauth_token.do';
+        const expectedUrl2 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_SYS_ID}`;
+        const oAuthAuthenticationHeadersWithNewToken = {
+          Authorization: `Bearer ${NEW_ACCESS_TOKEN}`,
+        };
+
+        expect(fetch).toHaveBeenCalledTimes(3);
+
+        // Verify initial authentication call
+        const firstCall = mockFetch.mock.calls[0];
+        expect(firstCall[0]).toBe(expectedUrl1);
+        verifyOAuthRequestBody(firstCall[1]?.body as URLSearchParams);
+
+        // Verify token refresh call
+        const secondCall = mockFetch.mock.calls[1];
+        expect(secondCall[0]).toBe(expectedUrl1);
+        verifyOAuthRequestBody(secondCall[1]?.body as URLSearchParams, true);
+
+        // Verify article fetch call
+        const thirdCall = mockFetch.mock.calls[2];
+        expect(thirdCall[0]).toBe(expectedUrl2);
+        expect(thirdCall[1]?.headers).toEqual(oAuthAuthenticationHeadersWithNewToken);
+
+        // Verify response
         expect(actual).toEqual({
           sys_id: ARTICLE_SYS_ID,
           number: ARTICLE_NUMBER,
@@ -509,17 +560,30 @@ describe('ServiceNowApi', () => {
   }
 
   function checkFetchToken(): void {
-    const expectedUrl1 = 'https://test-url.com/oauth_token.do';
-    const expectedRequestBody = buildOAuthRequestBody();
-
+    const expectedUrl = 'https://test-url.com/oauth_token.do';
     expect(fetch).toHaveBeenCalledTimes(1);
-    expect(fetch).toHaveBeenCalledWith(expectedUrl1, {
-      method: 'POST',
-      body: expectedRequestBody,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    }, undefined);
+    const call = mockFetch.mock.calls[0];
+    expect(call[0]).toBe(expectedUrl);
+    verifyOAuthRequestBody(call[1]?.body as URLSearchParams);
+  }
+
+  function verifyOAuthRequestBody(
+    requestBody: URLSearchParams,
+    isRefreshToken = false
+  ) {
+    expect(requestBody.get('client_id')).toBe('test-client-id');
+    expect(requestBody.get('client_secret')).toBe('test-client-secret');
+    if (isRefreshToken) {
+      expect(requestBody.get('grant_type')).toBe('refresh_token');
+      expect(requestBody.get('refresh_token')).toBe(REFRESH_TOKEN);
+      expect(requestBody.get('username')).toBeNull();
+      expect(requestBody.get('password')).toBeNull();
+    } else {
+      expect(requestBody.get('grant_type')).toBe('password');
+      expect(requestBody.get('password')).toBe('password');
+      expect(requestBody.get('username')).toBe('user');
+      expect(requestBody.get('refresh_token')).toBeNull();
+    }
   }
 
   function mockApiResponse(status: number, body: unknown): void {
@@ -552,16 +616,5 @@ describe('ServiceNowApi', () => {
       sys_id: 'sys-id',
       full_category: 'full-category',
     };
-  }
-
-  function buildOAuthRequestBody(): URLSearchParams {
-    const expectedRequestBody = new URLSearchParams();
-    expectedRequestBody.append('grant_type', 'password');
-    expectedRequestBody.append('client_id', 'test-client-id');
-    expectedRequestBody.append('client_secret', 'test-client-secret');
-    expectedRequestBody.append('username', 'user');
-    expectedRequestBody.append('password', 'password');
-
-    return expectedRequestBody;
   }
 });

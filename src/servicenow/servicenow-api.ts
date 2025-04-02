@@ -27,6 +27,7 @@ import { catcher } from '../utils/catch-error-helper.js';
 import { Interrupted } from '../utils/errors/interrupted.js';
 import { ApiError } from '../adapter/errors/api-error.js';
 import { InvalidCredentialsError } from '../adapter/errors/invalid-credentials-error.js';
+import { ServicenowOAuthToken } from './model/servicenow-oauth-token.js';
 
 export class ServiceNowApi {
   private config: ServiceNowConfig = {};
@@ -44,7 +45,11 @@ export class ServiceNowApi {
       unprocessed: [],
     },
   };
-  private bearerToken: string = '';
+  private oAuthToken: ServicenowOAuthToken = {
+    bearerToken : '',
+    refreshToken: '',
+    expiresAt: 0
+  };
   private authenticationType?: AuthenticationType;
   private isOAuth: boolean = false;
 
@@ -58,7 +63,7 @@ export class ServiceNowApi {
     this.authenticationType = config.servicenowAuthenticationType ?? AuthenticationType.BASIC;
     this.isOAuth = this.authenticationType === AuthenticationType.OAUTH;
     if (this.isOAuth) {
-      this.bearerToken = await this.authenticate();
+      await this.authenticate();
     }
 
     this.apiContext = setIfMissing(context, 'api', this.apiContext);
@@ -108,13 +113,15 @@ export class ServiceNowApi {
     attachmentId: string,
   ): Promise<ServiceNowArticleAttachment> {
     const url = `${this.baseUrl}/api/now/attachment/${attachmentId}`;
-    return fetchResource(url, this.buildRequestInit(), EntityType.DOCUMENT);
+    const requestInit = await this.buildRequestInit();
+    return fetchResource(url, requestInit, EntityType.DOCUMENT);
   }
 
   public async downloadAttachment(url: string): Promise<Blob> {
+    const requestInit = await this.buildRequestInit();
     return fetchResource<Blob>(
       url,
-      this.buildRequestInit(),
+      requestInit,
       EntityType.DOCUMENT,
       ContentType.BLOB,
     );
@@ -126,9 +133,10 @@ export class ServiceNowApi {
 
   public async getArticle(id: string): Promise<ServiceNowSingleArticle | null> {
     const url = `${this.baseUrl}/api/sn_km_api/knowledge/articles/${id}`;
+    const requestInit = await this.buildRequestInit();
     const json = await fetchResource<ServiceNowSingleArticleResponse>(
       url,
-      this.buildRequestInit(),
+      requestInit,
       EntityType.DOCUMENT,
     );
 
@@ -148,9 +156,11 @@ export class ServiceNowApi {
       return null;
     }
 
+    const requestInit = await this.buildRequestInit();
+
     const json = await fetchResource<ServiceNowArticleResponse>(
       url,
-      this.buildRequestInit(),
+      requestInit,
       EntityType.DOCUMENT,
     );
 
@@ -175,9 +185,11 @@ export class ServiceNowApi {
       return null;
     }
 
+    const requestInit = await this.buildRequestInit();
+
     const json = await fetchResource<ServiceNowCategoryResponse>(
       url,
-      this.buildRequestInit(),
+      requestInit,
       EntityType.CATEGORY,
     );
 
@@ -194,11 +206,15 @@ export class ServiceNowApi {
     return list;
   }
 
-  private buildRequestInit(): RequestInit {
-    if (this.isOAuth && this.bearerToken) {
+  private async buildRequestInit(): Promise<RequestInit> {
+    if (this.isOAuth && this.oAuthToken.bearerToken) {
+      if (this.isTokenExpired()) {
+        await this.refreshAccessToken();
+      }
+
       return {
         headers: {
-          Authorization: `Bearer ${this.bearerToken}`,
+          Authorization: `Bearer ${this.oAuthToken.bearerToken}`,
         },
       };
     }
@@ -274,7 +290,34 @@ export class ServiceNowApi {
       : null;
   }
 
-  private async authenticate(): Promise<string> {
+  private isTokenExpired(): boolean {
+    return Date.now() >= this.oAuthToken.expiresAt;
+  }
+
+  private async refreshAccessToken(): Promise<void> {
+    validateNonNull(
+      this.config.servicenowClientId,
+      'Missing SERVICENOW_CLIENT_ID from config',
+    );
+    validateNonNull(
+      this.config.servicenowClientSecret,
+      'Missing SERVICENOW_CLIENT_SECRET from config',
+    );
+    validateNonNull(
+      this.oAuthToken.refreshToken,
+      'Missing refresh token from the previous access token',
+    );
+
+    const bodyParams = new URLSearchParams();
+    bodyParams.append('grant_type', 'refresh_token');
+    bodyParams.append('client_id', this.config.servicenowClientId!);
+    bodyParams.append('client_secret', this.config.servicenowClientSecret!);
+    bodyParams.append('refresh_token', this.oAuthToken.refreshToken);
+
+    await this.getAccessToken(bodyParams);
+  }
+
+  private async authenticate(): Promise<void> {
     validateNonNull(
       this.config.servicenowClientId,
       'Missing SERVICENOW_CLIENT_ID from config',
@@ -299,6 +342,10 @@ export class ServiceNowApi {
     bodyParams.append('username', this.config.servicenowUsername!);
     bodyParams.append('password', this.config.servicenowPassword!);
 
+    await this.getAccessToken(bodyParams);
+  }
+
+  private async getAccessToken(bodyParams: URLSearchParams): Promise<void> {
     const url = `${this.baseUrl}/oauth_token.do`;
     const request = {
       method: 'POST',
@@ -320,9 +367,13 @@ export class ServiceNowApi {
         `Access token not found in the response: ${JSON.stringify(data)}`,
       );
 
-      return data.access_token;
+      this.oAuthToken = {
+        bearerToken: data.access_token,
+        refreshToken: data.refresh_token,
+        expiresAt: Date.now() + data.expires_in * 1000
+      }
     } catch (error) {
-      return await catcher<string>()
+      await catcher<void>()
         .on(ApiError, (apiError) => {
           throw InvalidCredentialsError.fromApiError(
             `Failed to get ServiceNow bearer token. Reason: ${apiError.message}`,
