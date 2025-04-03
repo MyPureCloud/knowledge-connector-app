@@ -18,7 +18,7 @@ export const configurer: Configurer = (pipe: Pipe) => {
       new PrefixExternalId(),
       new DocumentLinkProcessor(),
     )
-    .filter(new ModificationDateFilter())
+    .filters(new ModificationDateFilter())
     .aggregator(new DiffAggregator())
     .uploaders(new DiffUploader());
 };

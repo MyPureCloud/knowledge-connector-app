@@ -24,7 +24,7 @@ export const configurer: Configurer = (pipe: Pipe) => {
       new DocumentLinkProcessor(),
       new NameConflictResolver(),
     )
-    .filter(new ModificationDateFilter())
+    .filters(new ModificationDateFilter())
     .aggregator(new DiffAggregator())
     .uploaders(new DiffUploader());
 };
