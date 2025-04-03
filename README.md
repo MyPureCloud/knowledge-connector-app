@@ -85,6 +85,11 @@ SERVICENOW_PASSWORD=
 
 ###### Optional parameters
 ```
+# Authentication type. Values: 'oauth' or 'basic'. Default is 'basic'.
+# If you wish to use OAuth authentication, set SERVICENOW_AUTHENTICATION_TYPE to 'oauth' and provide SERVICENOW_CLIENT_ID and SERVICENOW_CLIENT_SECRET.
+SERVICENOW_AUTHENTICATION_TYPE=
+SERVICENOW_CLIENT_ID=
+SERVICENOW_CLIENT_SECRET=
 # The maximum number of articles to be synced
 LIMIT=10
 # The knowledge bases to be synced. Comma separated knowledge base ids
