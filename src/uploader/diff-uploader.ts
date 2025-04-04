@@ -65,7 +65,7 @@ export class DiffUploader implements Uploader {
     this.removeItemsNotFromSameSource(importableContents.documents);
 
     try {
-      await this.verifyDeletedDocuments(importableContents.documents.deleted);
+      await this.logDeletedDocuments(importableContents.documents.deleted);
     } catch (error) {
       getLogger().error('Error verifying document deletion', error as Error);
     }
@@ -229,16 +229,16 @@ export class DiffUploader implements Uploader {
     );
   }
 
-  private async verifyDeletedDocuments(
+  private async logDeletedDocuments(
     documents: Document[] = [],
   ): Promise<void> {
     getLogger().info(`Verify ${documents.length} documents before deleting`);
     for (const document of documents) {
-      await this.verifyDeletedDocumentState(document);
+      await this.logDeletedDocumentsState(document);
     }
   }
 
-  private async verifyDeletedDocumentState(document: Document): Promise<void> {
+  private async logDeletedDocumentsState(document: Document): Promise<void> {
     await this.sourceAdapter!.constructDocumentLink(
       removeExternalIdPrefix(document.externalId!, this.externalIdPrefix),
     );
