@@ -1,5 +1,11 @@
 # Change log
 
+## 0.9.10 (2025-04-04)
+
+### Changes:
+
+1. Added logs to double-check documents that are going to be deleted
+
 ## 0.9.9 (2025-04-03)
 
 ### Changes:

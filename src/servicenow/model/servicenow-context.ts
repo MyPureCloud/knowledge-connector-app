@@ -17,5 +17,6 @@ export interface ServiceNowApiContext {
     done: boolean;
     nextOffset: number | null;
     unprocessed: ServiceNowArticle[];
+    processedCount: number;
   };
 }

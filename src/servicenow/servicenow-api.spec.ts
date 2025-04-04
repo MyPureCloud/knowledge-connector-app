@@ -35,6 +35,7 @@ describe('ServiceNowApi', () => {
   const fetchCategoryUrl: string =
     'https://test-url.com/api/now/table/kb_category?sysparm_fields=sys_id,full_category&active=true&sysparm_query=parent_id!%3Dundefined';
   const filters = '&filter=workflow_state%3Dpublished';
+  const order = '%5EORDERBYnumber';
   const basicAuthenticationHeaders = {
     headers: {
       Authorization: 'Basic dXNlcjpwYXNzd29yZA==',
@@ -137,7 +138,7 @@ describe('ServiceNowApi', () => {
       });
 
       it('should fetch articles with limit 50 by default', async () => {
-        const expectedUrl = `${fetchArticleUrl}${filters}&limit=50&offset=0`;
+        const expectedUrl = `${fetchArticleUrl}${filters}${order}&limit=50&offset=0`;
 
         await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
@@ -152,7 +153,7 @@ describe('ServiceNowApi', () => {
           ...config,
           limit: '2',
         };
-        const expectedUrl = `${fetchArticleUrl}${filters}&limit=2&offset=0`;
+        const expectedUrl = `${fetchArticleUrl}${filters}${order}&limit=2&offset=0`;
 
         await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
@@ -167,7 +168,7 @@ describe('ServiceNowApi', () => {
           ...config,
           servicenowCategories: CATEGORY_ID_1,
         };
-        const expectedUrl = `${fetchArticleUrl}${filters}%5Ekb_category%3D${CATEGORY_ID_1}&limit=50&offset=0`;
+        const expectedUrl = `${fetchArticleUrl}${filters}%5Ekb_category%3D${CATEGORY_ID_1}${order}&limit=50&offset=0`;
 
         await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
@@ -182,7 +183,7 @@ describe('ServiceNowApi', () => {
           ...config,
           servicenowCategories: `${CATEGORY_ID_1}   ,   ${CATEGORY_ID_2}  `,
         };
-        const expectedUrl = `${fetchArticleUrl}${filters}%5Ekb_category%3D${CATEGORY_ID_1}%5EORkb_category%3D${CATEGORY_ID_2}&limit=50&offset=0`;
+        const expectedUrl = `${fetchArticleUrl}${filters}%5Ekb_category%3D${CATEGORY_ID_1}%5EORkb_category%3D${CATEGORY_ID_2}${order}&limit=50&offset=0`;
 
         await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
@@ -197,7 +198,7 @@ describe('ServiceNowApi', () => {
           ...config,
           servicenowLanguage: 'de',
         };
-        const expectedUrl = `${fetchArticleUrl}${filters}&language=de&limit=50&offset=0`;
+        const expectedUrl = `${fetchArticleUrl}${filters}${order}&language=de&limit=50&offset=0`;
 
         await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
@@ -212,7 +213,7 @@ describe('ServiceNowApi', () => {
           ...config,
           servicenowLanguage: 'en-US',
         };
-        const expectedUrl = `${fetchArticleUrl}${filters}&language=en&limit=50&offset=0`;
+        const expectedUrl = `${fetchArticleUrl}${filters}${order}&language=en&limit=50&offset=0`;
 
         await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
@@ -227,7 +228,7 @@ describe('ServiceNowApi', () => {
           ...config,
           servicenowKnowledgeBases: 'kb-id',
         };
-        const expectedUrl = `${fetchArticleUrl}&kb=${config.servicenowKnowledgeBases}${filters}&limit=50&offset=0`;
+        const expectedUrl = `${fetchArticleUrl}&kb=${config.servicenowKnowledgeBases}${filters}${order}&limit=50&offset=0`;
 
         await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
@@ -242,7 +243,7 @@ describe('ServiceNowApi', () => {
           ...config,
           servicenowKnowledgeBases: 'kb-id1,kb-id2',
         };
-        const expectedUrl = `${fetchArticleUrl}&kb=kb-id1%2Ckb-id2${filters}&limit=50&offset=0`;
+        const expectedUrl = `${fetchArticleUrl}&kb=kb-id1%2Ckb-id2${filters}${order}&limit=50&offset=0`;
 
         await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
@@ -260,7 +261,7 @@ describe('ServiceNowApi', () => {
           servicenowLanguage: 'de',
           servicenowCategories: `${CATEGORY_ID_2},${CATEGORY_ID_1}`,
         };
-        const expectedUrl = `${fetchArticleUrl}&kb=kb-id1%2Ckb-id2${filters}%5Ekb_category%3D${CATEGORY_ID_2}%5EORkb_category%3D${CATEGORY_ID_1}&language=de&limit=2&offset=0`;
+        const expectedUrl = `${fetchArticleUrl}&kb=kb-id1%2Ckb-id2${filters}%5Ekb_category%3D${CATEGORY_ID_2}%5EORkb_category%3D${CATEGORY_ID_1}${order}&language=de&limit=2&offset=0`;
 
         await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
@@ -302,8 +303,8 @@ describe('ServiceNowApi', () => {
           ...config,
           limit: '2',
         };
-        const firstExpectedUrl = `${fetchArticleUrl}${filters}&limit=2&offset=0`;
-        const secondExpectedUrl = `${fetchArticleUrl}${filters}&limit=2&offset=2`;
+        const firstExpectedUrl = `${fetchArticleUrl}${filters}${order}&limit=2&offset=0`;
+        const secondExpectedUrl = `${fetchArticleUrl}${filters}${order}&limit=2&offset=2`;
 
         await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
@@ -334,7 +335,7 @@ describe('ServiceNowApi', () => {
           arraysFromAsync(api.articleIterator()),
         ).rejects.toThrowError(
           new ApiError(
-            `Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category,sys_updated_on${filters}&limit=50&offset=0] failed with status [500] and message [${ERROR_BODY}]`,
+            `Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category,sys_updated_on${filters}${order}&limit=50&offset=0] failed with status [500] and message [${ERROR_BODY}]`,
             {
               url: 'https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category&limit=50',
               status: 500,
@@ -359,7 +360,7 @@ describe('ServiceNowApi', () => {
       });
 
       it('should fetch article', async () => {
-        const expectedUrl1 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_SYS_ID}`;
+        const expectedUrl1 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_SYS_ID}?fields=kb_category,kb_knowledge_base,workflow_state,active,sys_updated_on,valid_to`;
 
         const actual = await api.getArticle(ARTICLE_SYS_ID);
 
@@ -384,7 +385,7 @@ describe('ServiceNowApi', () => {
       it('should return ApiError', async () => {
         await expect(() => api.getArticle(ARTICLE_NUMBER)).rejects.toThrowError(
           new ApiError(
-            `Api request [https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_NUMBER}] failed with status [500] and message [${ERROR_BODY}]`,
+            `Api request [https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_NUMBER}?fields=kb_category,kb_knowledge_base,workflow_state,active,sys_updated_on,valid_to] failed with status [500] and message [${ERROR_BODY}]`,
             {
               url: `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_NUMBER}`,
               status: 500,
@@ -424,7 +425,7 @@ describe('ServiceNowApi', () => {
         const actual = await api.getArticle(ARTICLE_SYS_ID);
 
         const expectedUrl1 = 'https://test-url.com/oauth_token.do';
-        const expectedUrl2 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_SYS_ID}`;
+        const expectedUrl2 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_SYS_ID}?fields=kb_category,kb_knowledge_base,workflow_state,active,sys_updated_on,valid_to`;
 
         expect(fetch).toHaveBeenCalledTimes(2);
 
@@ -464,7 +465,7 @@ describe('ServiceNowApi', () => {
         const actual = await api.getArticle(ARTICLE_SYS_ID);
 
         const expectedUrl1 = 'https://test-url.com/oauth_token.do';
-        const expectedUrl2 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_SYS_ID}`;
+        const expectedUrl2 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_SYS_ID}?fields=kb_category,kb_knowledge_base,workflow_state,active,sys_updated_on,valid_to`;
         const oAuthAuthenticationHeadersWithNewToken = {
           Authorization: `Bearer ${NEW_ACCESS_TOKEN}`,
         };
