@@ -137,7 +137,7 @@ export class ServiceNowApi {
   }
 
   public async getArticle(id: string): Promise<ServiceNowSingleArticle | null> {
-    const url = `${this.baseUrl}/api/sn_km_api/knowledge/articles/${id}?fields=topic,category,kb_category,kb_knowledge_base,workflow_state,active,sys_updated_on,valid_to`;
+    const url = `${this.baseUrl}/api/sn_km_api/knowledge/articles/${id}?fields=kb_category,kb_knowledge_base,workflow_state,active,sys_updated_on,valid_to`;
     const requestInit = await this.buildRequestInit();
     const json = await fetchResource<ServiceNowSingleArticleResponse>(
       url,
@@ -154,8 +154,6 @@ export class ServiceNowApi {
       sys_id,
       number,
       fields: {
-        topic: { value: topic } = {},
-        category: { value: category } = {},
         kb_category: { value: kb_category } = {},
         kb_knowledge_base: { value: kb_knowledge_base } = {},
         workflow_state: { value: workflow_state } = {},
@@ -168,8 +166,6 @@ export class ServiceNowApi {
       `Single article successfully fetched with ID ${id}: ${JSON.stringify({
         sys_id,
         number,
-        topic,
-        category,
         kb_category,
         kb_knowledge_base,
         workflow_state,

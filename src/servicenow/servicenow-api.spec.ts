@@ -360,7 +360,7 @@ describe('ServiceNowApi', () => {
       });
 
       it('should fetch article', async () => {
-        const expectedUrl1 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_SYS_ID}?fields=topic,category,kb_category,kb_knowledge_base,workflow_state,active,sys_updated_on,valid_to`;
+        const expectedUrl1 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_SYS_ID}?fields=kb_category,kb_knowledge_base,workflow_state,active,sys_updated_on,valid_to`;
 
         const actual = await api.getArticle(ARTICLE_SYS_ID);
 
@@ -385,7 +385,7 @@ describe('ServiceNowApi', () => {
       it('should return ApiError', async () => {
         await expect(() => api.getArticle(ARTICLE_NUMBER)).rejects.toThrowError(
           new ApiError(
-            `Api request [https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_NUMBER}?fields=topic,category,kb_category,kb_knowledge_base,workflow_state,active,sys_updated_on,valid_to] failed with status [500] and message [${ERROR_BODY}]`,
+            `Api request [https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_NUMBER}?fields=kb_category,kb_knowledge_base,workflow_state,active,sys_updated_on,valid_to] failed with status [500] and message [${ERROR_BODY}]`,
             {
               url: `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_NUMBER}`,
               status: 500,
@@ -425,7 +425,7 @@ describe('ServiceNowApi', () => {
         const actual = await api.getArticle(ARTICLE_SYS_ID);
 
         const expectedUrl1 = 'https://test-url.com/oauth_token.do';
-        const expectedUrl2 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_SYS_ID}`;
+        const expectedUrl2 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_SYS_ID}?fields=kb_category,kb_knowledge_base,workflow_state,active,sys_updated_on,valid_to`;
 
         expect(fetch).toHaveBeenCalledTimes(2);
 
@@ -465,7 +465,7 @@ describe('ServiceNowApi', () => {
         const actual = await api.getArticle(ARTICLE_SYS_ID);
 
         const expectedUrl1 = 'https://test-url.com/oauth_token.do';
-        const expectedUrl2 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_SYS_ID}`;
+        const expectedUrl2 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_SYS_ID}?fields=kb_category,kb_knowledge_base,workflow_state,active,sys_updated_on,valid_to`;
         const oAuthAuthenticationHeadersWithNewToken = {
           Authorization: `Bearer ${NEW_ACCESS_TOKEN}`,
         };
