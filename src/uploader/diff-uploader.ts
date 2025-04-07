@@ -1,6 +1,5 @@
 import { Uploader } from './uploader.js';
 import { AdapterPair } from '../adapter/adapter-pair.js';
-import { Adapter } from '../adapter/adapter.js';
 import {
   ImportableContent,
   SyncableContents,
@@ -11,11 +10,15 @@ import { validateNonNull } from '../utils/validate-non-null.js';
 import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
 import { generatedValueResolver } from './generated-value-resolver.js';
 import { getLogger } from '../utils/logger.js';
-import { ExternalIdentifiable } from '../model';
+import { Document, ExternalIdentifiable } from '../model';
 import { ConfigurerError } from '../aggregator/errors/configurer-error.js';
-import { isFromSameSource } from '../utils/source-matcher.js';
+import {
+  isFromSameSource,
+  removeExternalIdPrefix,
+} from '../utils/source-matcher.js';
 import { PipeContext } from '../pipe/pipe-context.js';
 import { FailedItems } from '../model/failed-items.js';
+import { SourceAdapter } from '../adapter/source-adapter.js';
 
 /**
  * DiffUploader collects all the new and changed entities into a JSON format and uploads it to Genesys Knowledge's import API
@@ -23,6 +26,7 @@ import { FailedItems } from '../model/failed-items.js';
 export class DiffUploader implements Uploader {
   private config?: GenesysDestinationConfig;
   private adapter?: GenesysDestinationAdapter;
+  private sourceAdapter?: SourceAdapter<unknown, unknown, unknown>;
   private context?: PipeContext;
   private externalIdPrefix: string | null = null;
   private sourceId: string | null = null;
@@ -30,11 +34,15 @@ export class DiffUploader implements Uploader {
 
   public async initialize(
     config: GenesysDestinationConfig,
-    adapters: AdapterPair<Adapter, GenesysDestinationAdapter>,
+    adapters: AdapterPair<
+      SourceAdapter<unknown, unknown, unknown>,
+      GenesysDestinationAdapter
+    >,
     context: PipeContext,
   ): Promise<void> {
     this.config = config;
     this.adapter = adapters.destinationAdapter;
+    this.sourceAdapter = adapters.sourceAdapter;
     this.context = context;
 
     this.externalIdPrefix = this.config.externalIdPrefix ?? null;
@@ -55,6 +63,12 @@ export class DiffUploader implements Uploader {
     this.removeItemsNotFromSameSource(importableContents.categories);
     this.removeItemsNotFromSameSource(importableContents.labels);
     this.removeItemsNotFromSameSource(importableContents.documents);
+
+    try {
+      await this.logDeletedDocuments(importableContents.documents.deleted);
+    } catch (error) {
+      getLogger().error('Error verifying document deletion', error as Error);
+    }
 
     this.verifyNotToDeleteEverything(
       importableContents.categories,
@@ -212,6 +226,21 @@ export class DiffUploader implements Uploader {
   ): void {
     content.deleted = content.deleted.filter((item: T) =>
       isFromSameSource(item, this.sourceId, this.externalIdPrefix),
+    );
+  }
+
+  private async logDeletedDocuments(
+    documents: Document[] = [],
+  ): Promise<void> {
+    getLogger().info(`Verify ${documents.length} documents before deleting`);
+    for (const document of documents) {
+      await this.logDeletedDocumentsState(document);
+    }
+  }
+
+  private async logDeletedDocumentsState(document: Document): Promise<void> {
+    await this.sourceAdapter!.constructDocumentLink(
+      removeExternalIdPrefix(document.externalId!, this.externalIdPrefix),
     );
   }
 }

@@ -16,6 +16,17 @@ export function isFromSameSource(
   return hasExternalId(item);
 }
 
+export function removeExternalIdPrefix(
+  externalIdWithPrefix: string,
+  externalIdPrefix: string | null,
+): string {
+  if (externalIdPrefix) {
+    return externalIdWithPrefix.replace(new RegExp('^' + externalIdPrefix), '');
+  }
+
+  return externalIdWithPrefix;
+}
+
 function isSourceIdMatch(
   item: ExternalIdentifiable,
   sourceId: string,
