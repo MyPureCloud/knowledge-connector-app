@@ -179,16 +179,20 @@ export class ZendeskApi {
   }
 
   private buildRequestInit(): RequestInit {
-    return {
-      headers: {
-        Authorization:
-          'Basic ' +
-          Buffer.from(
-            this.config.zendeskUsername + ':' + this.config.zendeskPassword,
-            'utf-8',
-          ).toString('base64'),
-      },
+    const headers: Record<string, string> = {
+      Authorization:
+        'Basic ' +
+        Buffer.from(
+          this.config.zendeskUsername + ':' + this.config.zendeskPassword,
+          'utf-8',
+        ).toString('base64'),
     };
+
+    if (this.config.sourceUserAgent) {
+      headers['User-Agent'] = this.config.sourceUserAgent;
+    }
+
+    return { headers };
   }
 
   private toEntityType(type: ZendeskEntityTypes): EntityType {

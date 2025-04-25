@@ -54,4 +54,8 @@ export class GenesysSourceApi extends GenesysApi {
     );
     return this.config.genesysSourceKnowledgeBaseId!;
   }
+
+  protected getUserAgent(): string | undefined {
+    return this.config.sourceUserAgent;
+  }
 }

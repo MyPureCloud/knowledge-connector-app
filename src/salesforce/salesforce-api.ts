@@ -24,6 +24,7 @@ import { Pager } from '../utils/pager.js';
 import { catcher } from '../utils/catch-error-helper.js';
 import { Interrupted } from '../utils/errors/interrupted.js';
 import { EntityType } from '../model/entity-type.js';
+import { RequestInit } from 'undici';
 
 export class SalesforceApi {
   private config: SalesforceConfig = {};
@@ -147,9 +148,7 @@ export class SalesforceApi {
     const url = `${this.instanceUrl}/services/data/${this.config.salesforceApiVersion}/support/dataCategoryGroups/${categoryGroup}/dataCategories/${categoryName}?sObjectName=KnowledgeArticleVersion`;
     return fetchResource(
       url,
-      {
-        headers: this.buildHeaders(),
-      },
+      this.buildRequestInit(),
       EntityType.CATEGORY,
     );
   }
@@ -195,14 +194,21 @@ export class SalesforceApi {
     bodyParams.append('username', this.config.salesforceUsername!);
     bodyParams.append('password', this.config.salesforcePassword!);
 
-    const url = `${processedLoginUrl}/services/oauth2/token`;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
+
+    if (this.config.sourceUserAgent) {
+      headers['User-Agent'] = this.config.sourceUserAgent;
+    }
+
     const request = {
       method: 'POST',
       body: bodyParams,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+      headers,
     };
+
+    const url = `${processedLoginUrl}/services/oauth2/token`;
 
     try {
       const data = await fetchResource<SalesforceAccessTokenResponse>(
@@ -249,9 +255,7 @@ export class SalesforceApi {
 
     return fetchResource(
       url,
-      {
-        headers: this.buildHeaders(),
-      },
+      this.buildRequestInit(),
       EntityType.DOCUMENT,
     );
   }
@@ -286,12 +290,9 @@ export class SalesforceApi {
     }
     const url = context.nextUrl;
 
-    const headers = this.buildHeaders();
     const json = await fetchResource<SalesforceResponse>(
       url,
-      {
-        headers,
-      },
+      this.buildRequestInit(),
       this.toEntityType(property),
     );
 
@@ -302,7 +303,7 @@ export class SalesforceApi {
     return json[property] as T[];
   }
 
-  private buildHeaders() {
+  private buildRequestInit(): RequestInit {
     const languageCode = validateNonNull(
       this.config.salesforceLanguageCode,
       'Missing SALESFORCE_LANGUAGE_CODE from config',
@@ -310,10 +311,16 @@ export class SalesforceApi {
 
     const language = LANGUAGE_MAPPING[languageCode] || languageCode;
 
-    return {
+    const headers: Record<string, string> = {
       Authorization: 'Bearer ' + this.bearerToken,
       'Accept-Language': language,
     };
+
+    if (this.config.sourceUserAgent) {
+      headers['User-Agent'] = this.config.sourceUserAgent;
+    }
+
+    return { headers };
   }
 
   private constructFilters(): string {

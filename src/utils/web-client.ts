@@ -73,10 +73,12 @@ export async function fetch(
   runtime.check();
 
   const headers = new Headers(init?.headers);
-  headers.set(
-    'User-Agent',
-    `knowledge-connector-app/${packageVersion} (node.js ${nodeVersion})`,
-  );
+  if (!headers.has('User-Agent')) {
+    headers.set(
+      'User-Agent',
+      `knowledge-connector-app/${packageVersion} (node.js ${nodeVersion})`,
+    );
+  }
 
   const updatedInit = {
     ...init,

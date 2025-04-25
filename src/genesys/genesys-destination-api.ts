@@ -67,6 +67,10 @@ export class GenesysDestinationApi extends GenesysApi {
     return this.config.genesysKnowledgeBaseId!;
   }
 
+  protected getUserAgent(): string | undefined {
+    return this.config.destinationUserAgent;
+  }
+
   public lookupImage(params: SearchAssetRequest): Promise<SearchAssetResponse> {
     return this.fetch<SearchAssetResponse>(
       '/api/v2/responsemanagement/responseassets/search',

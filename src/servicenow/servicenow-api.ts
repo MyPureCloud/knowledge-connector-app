@@ -238,30 +238,28 @@ export class ServiceNowApi {
   }
 
   private async buildRequestInit(): Promise<RequestInit> {
+    const headers: Record<string, string> = {};
+
+    if (this.config.sourceUserAgent) {
+      headers['User-Agent'] = this.config.sourceUserAgent;
+    }
+
     if (this.isOAuth && this.oAuthToken.bearerToken) {
       if (this.isTokenExpired()) {
         await this.refreshAccessToken();
       }
 
-      return {
-        headers: {
-          Authorization: `Bearer ${this.oAuthToken.bearerToken}`,
-        },
-      };
+      headers['Authorization'] = `Bearer ${this.oAuthToken.bearerToken}`;
+    } else {
+      headers['Authorization'] =
+        'Basic ' +
+        Buffer.from(
+          this.config.servicenowUsername + ':' + this.config.servicenowPassword,
+          'utf-8',
+        ).toString('base64');
     }
 
-    return {
-      headers: {
-        Authorization:
-          'Basic ' +
-          Buffer.from(
-            this.config.servicenowUsername +
-              ':' +
-              this.config.servicenowPassword,
-            'utf-8',
-          ).toString('base64'),
-      },
-    };
+    return { headers };
   }
 
   private queryParams(): string {
@@ -380,12 +378,19 @@ export class ServiceNowApi {
 
   private async getAccessToken(bodyParams: URLSearchParams): Promise<void> {
     const url = `${this.baseUrl}/oauth_token.do`;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    }
+
+    if (this.config.sourceUserAgent) {
+      headers['User-Agent'] = this.config.sourceUserAgent;
+    }
+
     const request = {
       method: 'POST',
       body: bodyParams,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+      headers,
     };
 
     try {

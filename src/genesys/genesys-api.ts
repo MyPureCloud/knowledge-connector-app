@@ -25,7 +25,9 @@ export abstract class GenesysApi {
 
   protected abstract getKnowledgeBaseId(): string;
 
-  public createExportJob(exclude?: ExcludeOptions[]): Promise<ExportArticlesResponse> {
+  protected abstract getUserAgent(): string | undefined;
+
+  public createExportJob(exclude?: ExcludeOptions[],): Promise<ExportArticlesResponse> {
     const kbId = this.getKnowledgeBaseId();
     const body: ExportArticlesRequest = {
       exportFilter: {
@@ -36,11 +38,12 @@ export abstract class GenesysApi {
       jsonFileVersion: 3,
     };
 
+    const requestInit: RequestInit = this.buildRequestInit();
+    requestInit['method'] = 'POST';
+
     return this.fetch<ExportArticlesResponse>(
       `/api/v2/knowledge/knowledgeBases/${kbId}/export/jobs`,
-      {
-        method: 'POST',
-      },
+      requestInit,
       body,
     );
   }
@@ -48,7 +51,7 @@ export abstract class GenesysApi {
   public getExportStatus(exportId: string): Promise<ExportArticlesResponse> {
     const kbId = this.getKnowledgeBaseId();
     return this.fetch<ExportArticlesResponse>(
-      `/api/v2/knowledge/knowledgeBases/${kbId}/export/jobs/${exportId}`,
+      `/api/v2/knowledge/knowledgeBases/${kbId}/export/jobs/${exportId}`, this.buildRequestInit()
     );
   }
 
@@ -121,5 +124,16 @@ export abstract class GenesysApi {
     entityName?: EntityType,
   ): Promise<T> {
     return fetchResource(url, init, entityName);
+  }
+
+  private buildRequestInit(): RequestInit {
+    const headers: Record<string, string> = {};
+
+    const userAgent = this.getUserAgent();
+    if (userAgent) {
+      headers['User-Agent'] = userAgent;
+    }
+
+    return { headers };
   }
 }
