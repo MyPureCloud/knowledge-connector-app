@@ -3,7 +3,7 @@ import { GenesysApi } from './genesys-api.js';
 import { GenesysSourceConfig } from './model/genesys-source-config.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 import { fetchSourceResource, RequestInit } from '../utils/web-client.js';
-import { EntityType } from '../model';
+import { EntityType } from '../model/entity-type.js';
 
 export class GenesysSourceApi extends GenesysApi {
   private config: GenesysSourceConfig = {};
