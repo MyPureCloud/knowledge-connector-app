@@ -122,7 +122,7 @@ describe('WebClient', () => {
   describe('User Agent header', () => {
     describe('when it is set in env var', () => {
       it('should be set by fetchSourceResource', async () => {
-        process.env.sourceUserAgent = "source-user-agent"
+        process.env.sourceUserAgent = "SOURCE_USER_AGENT"
         let capturedHeaders: Headers | Record<string, string> | undefined = {};
 
         mockAgent
@@ -151,7 +151,7 @@ describe('WebClient', () => {
       });
 
       it('should be set by fetchDestinationResource', async () => {
-        process.env.destinationUserAgent = "destination-user-agent"
+        process.env.destinationUserAgent = "DESTINATION_USER_AGENT"
         let capturedHeaders: Headers | Record<string, string> | undefined = {};
 
         mockAgent
