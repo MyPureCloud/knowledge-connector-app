@@ -6,9 +6,9 @@ import { Config } from '../config.js';
 import { JobStatusResponse } from './model/job-status-response.js';
 import { getLogger } from '../utils/logger.js';
 import { JobStatus } from './model/job-status.js';
+import { RequestInit } from '../utils/web-client.js';
 import { EntityType } from '../model/entity-type.js';
 import { ExcludeOptions } from '../model/exclude-options.js';
-import { RequestInit } from 'undici';
 
 export abstract class GenesysApi {
   protected token?: TokenResponse;

@@ -2,7 +2,11 @@ import { SalesforceConfig } from './model/salesforce-config.js';
 import { SalesforceEntityTypes } from './model/salesforce-entity-types.js';
 import { SalesforceResponse } from './model/salesforce-response.js';
 import { SalesforceArticle } from './model/salesforce-article.js';
-import { fetchImage, fetchSourceResource } from '../utils/web-client.js';
+import {
+  fetchImage,
+  fetchSourceResource,
+  RequestInit,
+} from '../utils/web-client.js';
 import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
 import { SalesforceCategory } from './model/salesforce-category.js';
@@ -24,7 +28,6 @@ import { Pager } from '../utils/pager.js';
 import { catcher } from '../utils/catch-error-helper.js';
 import { Interrupted } from '../utils/errors/interrupted.js';
 import { EntityType } from '../model/entity-type.js';
-import { RequestInit } from 'undici';
 
 export class SalesforceApi {
   private config: SalesforceConfig = {};
