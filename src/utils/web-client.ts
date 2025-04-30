@@ -38,8 +38,8 @@ export async function fetchImage(
 
   headers = new Headers(headers);
   if (!headers.has('User-Agent')) {
-    const userAgent = process.env.sourceUserAgent
-      ? process.env.sourceUserAgent
+    const userAgent = process.env.SOURCE_USER_AGENT
+      ? process.env.SOURCE_USER_AGENT
       : `knowledge-connector-app/${packageVersion} (node.js ${nodeVersion})`;
     headers.set('User-Agent', userAgent);
   }
@@ -215,7 +215,7 @@ export async function fetchSourceResource<T>(
   entityName?: EntityType,
   acceptContentType: ContentType = ContentType.JSON,
 ): Promise<T> {
-  init = setUserAgent(init, process.env.sourceUserAgent);
+  init = setUserAgent(init, process.env.SOURCE_USER_AGENT);
   return await fetchResource<T>(url, init, entityName, acceptContentType);
 }
 
@@ -234,7 +234,7 @@ export async function fetchDestinationResource<T>(
   entityName?: EntityType,
   acceptContentType: ContentType = ContentType.JSON,
 ): Promise<T> {
-  init = setUserAgent(init, process.env.destinationUserAgent);
+  init = setUserAgent(init, process.env.DESTINATION_USER_AGENT);
   return await fetchResource<T>(url, init, entityName, acceptContentType);
 }
 

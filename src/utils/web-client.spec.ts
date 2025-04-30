@@ -122,7 +122,7 @@ describe('WebClient', () => {
   describe('User Agent header', () => {
     describe('when it is set in env var', () => {
       it('should be set by fetchSourceResource', async () => {
-        process.env.sourceUserAgent = "SOURCE_USER_AGENT"
+        process.env.SOURCE_USER_AGENT = "SOURCE_USER_AGENT"
         let capturedHeaders: Headers | Record<string, string> | undefined = {};
 
         mockAgent
@@ -146,12 +146,12 @@ describe('WebClient', () => {
           ContentType.JSON,
         );
 
-        expect(capturedHeaders['User-Agent']).toBe(process.env.sourceUserAgent);
+        expect(capturedHeaders['User-Agent']).toBe(process.env.SOURCE_USER_AGENT);
         mockAgent.assertNoPendingInterceptors();
       });
 
       it('should be set by fetchDestinationResource', async () => {
-        process.env.destinationUserAgent = "DESTINATION_USER_AGENT"
+        process.env.DESTINATION_USER_AGENT = "DESTINATION_USER_AGENT"
         let capturedHeaders: Headers | Record<string, string> | undefined = {};
 
         mockAgent
@@ -176,7 +176,7 @@ describe('WebClient', () => {
         );
 
         expect(capturedHeaders['User-Agent']).toBe(
-          process.env.destinationUserAgent,
+          process.env.DESTINATION_USER_AGENT,
         );
         mockAgent.assertNoPendingInterceptors();
       });
@@ -187,7 +187,7 @@ describe('WebClient', () => {
       const nodeVersion = process.version;
 
       it('should be set to default by fetchSourceResource', async () => {
-        delete process.env.sourceUserAgent
+        delete process.env.SOURCE_USER_AGENT
         let capturedHeaders: Headers | Record<string, string> | undefined = {};
 
         mockAgent
@@ -218,7 +218,7 @@ describe('WebClient', () => {
       });
 
       it('should be set to default by fetchDestinationResource', async () => {
-        delete process.env.destinationUserAgent
+        delete process.env.DESTINATION_USER_AGENT
         let capturedHeaders: Headers | Record<string, string> | undefined = {};
 
         mockAgent
