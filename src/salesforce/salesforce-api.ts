@@ -2,7 +2,11 @@ import { SalesforceConfig } from './model/salesforce-config.js';
 import { SalesforceEntityTypes } from './model/salesforce-entity-types.js';
 import { SalesforceResponse } from './model/salesforce-response.js';
 import { SalesforceArticle } from './model/salesforce-article.js';
-import { fetchImage, fetchResource } from '../utils/web-client.js';
+import {
+  fetchImage,
+  fetchSourceResource,
+  RequestInit,
+} from '../utils/web-client.js';
 import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
 import { SalesforceCategory } from './model/salesforce-category.js';
@@ -145,11 +149,9 @@ export class SalesforceApi {
     categoryName: string,
   ): Promise<SalesforceCategory> {
     const url = `${this.instanceUrl}/services/data/${this.config.salesforceApiVersion}/support/dataCategoryGroups/${categoryGroup}/dataCategories/${categoryName}?sObjectName=KnowledgeArticleVersion`;
-    return fetchResource(
+    return fetchSourceResource(
       url,
-      {
-        headers: this.buildHeaders(),
-      },
+      this.buildRequestInit(),
       EntityType.CATEGORY,
     );
   }
@@ -205,7 +207,7 @@ export class SalesforceApi {
     };
 
     try {
-      const data = await fetchResource<SalesforceAccessTokenResponse>(
+      const data = await fetchSourceResource<SalesforceAccessTokenResponse>(
         url,
         request,
         undefined,
@@ -247,11 +249,9 @@ export class SalesforceApi {
   ): Promise<SalesforceArticleDetails> {
     const url = `${this.instanceUrl}/services/data/${this.config.salesforceApiVersion}/support/knowledgeArticles/${articleId}`;
 
-    return fetchResource(
+    return fetchSourceResource(
       url,
-      {
-        headers: this.buildHeaders(),
-      },
+      this.buildRequestInit(),
       EntityType.DOCUMENT,
     );
   }
@@ -286,12 +286,9 @@ export class SalesforceApi {
     }
     const url = context.nextUrl;
 
-    const headers = this.buildHeaders();
-    const json = await fetchResource<SalesforceResponse>(
+    const json = await fetchSourceResource<SalesforceResponse>(
       url,
-      {
-        headers,
-      },
+      this.buildRequestInit(),
       this.toEntityType(property),
     );
 
@@ -302,7 +299,7 @@ export class SalesforceApi {
     return json[property] as T[];
   }
 
-  private buildHeaders() {
+  private buildRequestInit(): RequestInit {
     const languageCode = validateNonNull(
       this.config.salesforceLanguageCode,
       'Missing SALESFORCE_LANGUAGE_CODE from config',
@@ -311,8 +308,10 @@ export class SalesforceApi {
     const language = LANGUAGE_MAPPING[languageCode] || languageCode;
 
     return {
-      Authorization: 'Bearer ' + this.bearerToken,
-      'Accept-Language': language,
+      headers: {
+        Authorization: 'Bearer ' + this.bearerToken,
+        'Accept-Language': language,
+      },
     };
   }
 

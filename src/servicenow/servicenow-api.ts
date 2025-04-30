@@ -1,6 +1,6 @@
 import { AuthenticationType, ServiceNowConfig } from './model/servicenow-config.js';
 import { ServiceNowArticle } from './model/servicenow-article.js';
-import { fetchResource } from '../utils/web-client.js';
+import { fetchSourceResource } from '../utils/web-client.js';
 import { ServiceNowArticleResponse } from './model/servicenow-article-response.js';
 import { ServiceNowArticleAttachment } from './model/servicenow-article-attachment.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
@@ -119,12 +119,12 @@ export class ServiceNowApi {
   ): Promise<ServiceNowArticleAttachment> {
     const url = `${this.baseUrl}/api/now/attachment/${attachmentId}`;
     const requestInit = await this.buildRequestInit();
-    return fetchResource(url, requestInit, EntityType.DOCUMENT);
+    return fetchSourceResource(url, requestInit, EntityType.DOCUMENT);
   }
 
   public async downloadAttachment(url: string): Promise<Blob> {
     const requestInit = await this.buildRequestInit();
-    return fetchResource<Blob>(
+    return fetchSourceResource<Blob>(
       url,
       requestInit,
       EntityType.DOCUMENT,
@@ -139,7 +139,7 @@ export class ServiceNowApi {
   public async getArticle(id: string): Promise<ServiceNowSingleArticle | null> {
     const url = `${this.baseUrl}/api/sn_km_api/knowledge/articles/${id}?fields=kb_category,kb_knowledge_base,workflow_state,active,sys_updated_on,valid_to`;
     const requestInit = await this.buildRequestInit();
-    const json = await fetchResource<ServiceNowSingleArticleResponse>(
+    const json = await fetchSourceResource<ServiceNowSingleArticleResponse>(
       url,
       requestInit,
       EntityType.DOCUMENT,
@@ -188,7 +188,7 @@ export class ServiceNowApi {
 
     const requestInit = await this.buildRequestInit();
 
-    const json = await fetchResource<ServiceNowArticleResponse>(
+    const json = await fetchSourceResource<ServiceNowArticleResponse>(
       url,
       requestInit,
       EntityType.DOCUMENT,
@@ -218,7 +218,7 @@ export class ServiceNowApi {
 
     const requestInit = await this.buildRequestInit();
 
-    const json = await fetchResource<ServiceNowCategoryResponse>(
+    const json = await fetchSourceResource<ServiceNowCategoryResponse>(
       url,
       requestInit,
       EntityType.CATEGORY,
@@ -389,7 +389,7 @@ export class ServiceNowApi {
     };
 
     try {
-      const data = await fetchResource<ServiceNowAccessTokenResponse>(
+      const data = await fetchSourceResource<ServiceNowAccessTokenResponse>(
         url,
         request,
         undefined,
@@ -403,8 +403,8 @@ export class ServiceNowApi {
       this.oAuthToken = {
         bearerToken: data.access_token,
         refreshToken: data.refresh_token,
-        expiresAt: Date.now() + data.expires_in * 1000
-      }
+        expiresAt: Date.now() + data.expires_in * 1000,
+      };
     } catch (error) {
       await catcher<void>()
         .on(ApiError, (apiError) => {

@@ -7,7 +7,8 @@ export { parseConfig } from './config-parser.js';
 export { setLogger } from './logger.js';
 export { runtime } from './runtime.js';
 export {
-  fetchResource,
+  fetchSourceResource,
+  fetchDestinationResource,
   fetch,
   fetchImage,
   readBody,

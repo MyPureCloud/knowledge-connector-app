@@ -6,7 +6,7 @@ import { Config } from '../config.js';
 import { JobStatusResponse } from './model/job-status-response.js';
 import { getLogger } from '../utils/logger.js';
 import { JobStatus } from './model/job-status.js';
-import { fetchResource, RequestInit } from '../utils/web-client.js';
+import { RequestInit } from '../utils/web-client.js';
 import { EntityType } from '../model/entity-type.js';
 import { ExcludeOptions } from '../model/exclude-options.js';
 
@@ -24,6 +24,12 @@ export abstract class GenesysApi {
   protected abstract getClientSecret(): string;
 
   protected abstract getKnowledgeBaseId(): string;
+
+  protected abstract innerFetch<T>(
+    url: string,
+    init?: RequestInit,
+    entityName?: EntityType,
+  ): Promise<T>;
 
   public createExportJob(exclude?: ExcludeOptions[]): Promise<ExportArticlesResponse> {
     const kbId = this.getKnowledgeBaseId();
@@ -113,13 +119,5 @@ export abstract class GenesysApi {
         body: 'grant_type=client_credentials',
       },
     );
-  }
-
-  protected async innerFetch<T>(
-    url: string,
-    init?: RequestInit,
-    entityName?: EntityType,
-  ): Promise<T> {
-    return fetchResource(url, init, entityName);
   }
 }
