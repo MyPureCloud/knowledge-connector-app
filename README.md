@@ -229,6 +229,16 @@ COMPARE_MODE=
 LOG_LEVEL=
 ```
 
+#### User agents
+
+```
+# Set custom user agent headers. Source and destination user agents configurable separately.
+# If not configured the following pattern will be used as default in both cases:
+#`knowledge-connector-app/{packageVersion} (node.js {nodeVersion})`
+SOURCE_USER_AGENT=
+DESTINATION_USER_AGENT=
+```
+
 ### Installation
 
 1. Install dependencies `npm install`
