@@ -6,7 +6,7 @@ import { Config } from '../config.js';
 import { JobStatusResponse } from './model/job-status-response.js';
 import { getLogger } from '../utils/logger.js';
 import { JobStatus } from './model/job-status.js';
-import { fetchResource, RequestInit } from '../utils/web-client.js';
+import { RequestInit } from '../utils/web-client.js';
 import { EntityType } from '../model/entity-type.js';
 import { ExcludeOptions } from '../model/exclude-options.js';
 
@@ -25,9 +25,13 @@ export abstract class GenesysApi {
 
   protected abstract getKnowledgeBaseId(): string;
 
-  protected abstract getUserAgent(): string | undefined;
+  protected abstract innerFetch<T>(
+    url: string,
+    init?: RequestInit,
+    entityName?: EntityType,
+  ): Promise<T>;
 
-  public createExportJob(exclude?: ExcludeOptions[],): Promise<ExportArticlesResponse> {
+  public createExportJob(exclude?: ExcludeOptions[]): Promise<ExportArticlesResponse> {
     const kbId = this.getKnowledgeBaseId();
     const body: ExportArticlesRequest = {
       exportFilter: {
@@ -38,12 +42,11 @@ export abstract class GenesysApi {
       jsonFileVersion: 3,
     };
 
-    const requestInit: RequestInit = this.buildRequestInit();
-    requestInit['method'] = 'POST';
-
     return this.fetch<ExportArticlesResponse>(
       `/api/v2/knowledge/knowledgeBases/${kbId}/export/jobs`,
-      requestInit,
+      {
+        method: 'POST',
+      },
       body,
     );
   }
@@ -51,7 +54,7 @@ export abstract class GenesysApi {
   public getExportStatus(exportId: string): Promise<ExportArticlesResponse> {
     const kbId = this.getKnowledgeBaseId();
     return this.fetch<ExportArticlesResponse>(
-      `/api/v2/knowledge/knowledgeBases/${kbId}/export/jobs/${exportId}`, this.buildRequestInit()
+      `/api/v2/knowledge/knowledgeBases/${kbId}/export/jobs/${exportId}`,
     );
   }
 
@@ -116,24 +119,5 @@ export abstract class GenesysApi {
         body: 'grant_type=client_credentials',
       },
     );
-  }
-
-  protected async innerFetch<T>(
-    url: string,
-    init?: RequestInit,
-    entityName?: EntityType,
-  ): Promise<T> {
-    return fetchResource(url, init, entityName);
-  }
-
-  private buildRequestInit(): RequestInit {
-    const headers: Record<string, string> = {};
-
-    const userAgent = this.getUserAgent();
-    if (userAgent) {
-      headers['User-Agent'] = userAgent;
-    }
-
-    return { headers };
   }
 }

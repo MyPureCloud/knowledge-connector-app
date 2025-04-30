@@ -2,7 +2,6 @@ import { PrefixExternalIdConfig } from '../../processor/prefix-external-id/prefi
 import { CompareMode } from '../../utils/compare-mode.js';
 
 export interface GenesysDestinationConfig extends PrefixExternalIdConfig {
-  destinationUserAgent?: string;
   genesysLoginUrl?: string;
   genesysBaseUrl?: string;
   genesysClientId?: string;

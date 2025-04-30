@@ -2,7 +2,8 @@ import { Image } from '../../model/image.js';
 import {
   fetch as originalFetch,
   fetchImage as originalFetchImage,
-  fetchResource as originalFetchResource,
+  fetchSourceResource as originalFetchSourceResource,
+  fetchDestinationResource as originalFetchDestinationResource,
   readResponse as originalReadResponse,
 } from '../web-client.js';
 import { jest } from '@jest/globals';
@@ -26,7 +27,16 @@ export const fetchImage = jest
     contentType: 'image/png',
   } as Image);
 
-export const fetchResource = jest.fn<typeof originalFetchResource>(
+export const fetchSourceResource = jest.fn<typeof originalFetchSourceResource>(
+  async (
+    url: string,
+    init?: RequestInit,
+    entityName?: EntityType,
+    acceptContentType: ContentType = ContentType.JSON,
+  ) => fakeFetchResource(url, init, entityName, acceptContentType),
+);
+
+export const fetchDestinationResource = jest.fn<typeof originalFetchDestinationResource>(
   async (
     url: string,
     init?: RequestInit,

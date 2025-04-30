@@ -13,11 +13,12 @@ import { validateNonNull } from '../utils/validate-non-null.js';
 import { BulkDeleteResponse } from '../model/bulk-delete-response.js';
 import { GenesysApi } from './genesys-api.js';
 import { GenesysDestinationConfig } from './model/genesys-destination-config.js';
-import { fetchResource } from '../utils/web-client.js';
+import { fetchDestinationResource } from '../utils/web-client.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 import { getLogger } from '../utils/logger.js';
 import { EntityType } from '../model/entity-type.js';
 import { ContentType } from '../utils/content-type.js';
+import { RequestInit } from '../utils/web-client';
 
 export class GenesysDestinationApi extends GenesysApi {
   protected config: GenesysDestinationConfig = {};
@@ -67,8 +68,12 @@ export class GenesysDestinationApi extends GenesysApi {
     return this.config.genesysKnowledgeBaseId!;
   }
 
-  protected getUserAgent(): string | undefined {
-    return this.config.destinationUserAgent;
+  protected innerFetch<T>(
+    url: string,
+    init?: RequestInit,
+    entityName?: EntityType,
+  ): Promise<T> {
+    return fetchDestinationResource(url, init, entityName);
   }
 
   public lookupImage(params: SearchAssetRequest): Promise<SearchAssetResponse> {
@@ -107,7 +112,7 @@ export class GenesysDestinationApi extends GenesysApi {
       body: blob,
     };
 
-    await fetchResource(
+    await fetchDestinationResource(
       uploadUrl.url,
       request,
       EntityType.DOCUMENT,
@@ -151,7 +156,7 @@ export class GenesysDestinationApi extends GenesysApi {
       headers,
       body: data,
     };
-    await fetchResource(uploadUrl, request, undefined, ContentType.TEXT);
+    await fetchDestinationResource(uploadUrl, request, undefined, ContentType.TEXT);
 
     return { uploadKey };
   }

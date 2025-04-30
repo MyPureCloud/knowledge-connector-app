@@ -1,7 +1,6 @@
 import { Config } from '../../config.js';
 
 export interface ServiceNowConfig extends Config {
-  sourceUserAgent?: string;
   servicenowBaseUrl?: string;
   servicenowUsername?: string;
   servicenowPassword?: string;

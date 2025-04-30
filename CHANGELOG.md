@@ -1,5 +1,12 @@
 # Change log
 
+## 0.9.11 (2025-04-30)
+
+### Changes:
+
+1. Adding customizable user agent option, separated for source and destination requests
+2. Adding user agent to image fetching
+
 ## 0.9.10 (2025-04-04)
 
 ### Changes:

@@ -9,16 +9,18 @@ import {
 import {
   fetch,
   fetchImage,
-  fetchResource,
+  fetchSourceResource,
+  fetchDestinationResource,
   readResponse,
   Response,
 } from './web-client.js';
 import { ApiError } from '../adapter/errors/api-error.js';
 import { Interrupted } from './errors/interrupted.js';
 import { runtime } from './runtime.js';
-import { MockAgent, setGlobalDispatcher } from 'undici';
+import { Headers, MockAgent, setGlobalDispatcher } from 'undici';
 import { configure } from './retry.js';
 import { ContentType } from './content-type.js';
+import { getPackageVersion } from './package-version';
 
 jest.mock('./package-version.js');
 
@@ -117,7 +119,138 @@ describe('WebClient', () => {
     });
   });
 
-  describe('fetchResource', () => {
+  describe('User Agent header', () => {
+    describe('when it is set in env var', () => {
+      it('should be set by fetchSourceResource', async () => {
+        process.env.sourceUserAgent = "source-user-agent"
+        let capturedHeaders: Headers | Record<string, string> | undefined = {};
+
+        mockAgent
+          .get(URL)
+          .intercept({ method: 'GET', path: '/' })
+          .reply(200, (opts) => {
+            capturedHeaders = opts.headers;
+            return JSON.stringify({});
+          })
+          .times(1);
+
+        await fetchSourceResource(
+          URL,
+          {
+            headers: {
+              'content-type': 'application/json',
+              authorization: 'Bearer token123',
+            },
+          },
+          undefined,
+          ContentType.JSON,
+        );
+
+        expect(capturedHeaders['User-Agent']).toBe(process.env.sourceUserAgent);
+        mockAgent.assertNoPendingInterceptors();
+      });
+
+      it('should be set by fetchDestinationResource', async () => {
+        process.env.destinationUserAgent = "destination-user-agent"
+        let capturedHeaders: Headers | Record<string, string> | undefined = {};
+
+        mockAgent
+          .get(URL)
+          .intercept({ method: 'GET', path: '/' })
+          .reply(200, (opts) => {
+            capturedHeaders = opts.headers;
+            return JSON.stringify({});
+          })
+          .times(1);
+
+        await fetchDestinationResource(
+          URL,
+          {
+            headers: {
+              'content-type': 'application/json',
+              authorization: 'Bearer token123',
+            },
+          },
+          undefined,
+          ContentType.JSON,
+        );
+
+        expect(capturedHeaders['User-Agent']).toBe(
+          process.env.destinationUserAgent,
+        );
+        mockAgent.assertNoPendingInterceptors();
+      });
+    });
+
+    describe('when it is not set in env var', () => {
+      const packageVersion = getPackageVersion();
+      const nodeVersion = process.version;
+
+      it('should be set to default by fetchSourceResource', async () => {
+        delete process.env.sourceUserAgent
+        let capturedHeaders: Headers | Record<string, string> | undefined = {};
+
+        mockAgent
+          .get(URL)
+          .intercept({ method: 'GET', path: '/' })
+          .reply(200, (opts) => {
+            capturedHeaders = opts.headers;
+            return JSON.stringify({});
+          })
+          .times(1);
+
+        await fetchSourceResource(
+          URL,
+          {
+            headers: {
+              'content-type': 'application/json',
+              authorization: 'Bearer token123',
+            },
+          },
+          undefined,
+          ContentType.JSON,
+        );
+
+        expect(capturedHeaders['User-Agent']).toBe(
+          `knowledge-connector-app/${packageVersion} (node.js ${nodeVersion})`,
+        );
+        mockAgent.assertNoPendingInterceptors();
+      });
+
+      it('should be set to default by fetchDestinationResource', async () => {
+        delete process.env.destinationUserAgent
+        let capturedHeaders: Headers | Record<string, string> | undefined = {};
+
+        mockAgent
+          .get(URL)
+          .intercept({ method: 'GET', path: '/' })
+          .reply(200, (opts) => {
+            capturedHeaders = opts.headers;
+            return JSON.stringify({});
+          })
+          .times(1);
+
+        await fetchDestinationResource(
+          URL,
+          {
+            headers: {
+              'content-type': 'application/json',
+              authorization: 'Bearer token123',
+            },
+          },
+          undefined,
+          ContentType.JSON,
+        );
+
+        expect(capturedHeaders['User-Agent']).toBe(
+          `knowledge-connector-app/${packageVersion} (node.js ${nodeVersion})`,
+        );
+        mockAgent.assertNoPendingInterceptors();
+      });
+    });
+  });
+
+  describe('fetchDestinationResource', () => {
     describe('when content type is JSON', () => {
       it('should resolve with response', async () => {
         mockAgent
@@ -126,7 +259,7 @@ describe('WebClient', () => {
           .reply(200, JSON.stringify({}))
           .times(1);
 
-        const actual = await fetchResource(
+        const actual = await fetchDestinationResource(
           URL,
           {},
           undefined,
@@ -145,7 +278,7 @@ describe('WebClient', () => {
             .reply(200, 'some none JSON response')
             .times(6);
 
-          await expect(() => fetchResource(URL)).rejects.toThrow(
+          await expect(() => fetchDestinationResource(URL)).rejects.toThrow(
             new ApiError(
               'Api request [https://some-random-url.genesys.com] failed to parse body [some none JSON response] - SyntaxError: Unexpected token s in JSON at position 0',
               {},
@@ -167,7 +300,7 @@ describe('WebClient', () => {
           .reply(200, 'text response')
           .times(1);
 
-        const actual = await fetchResource(
+        const actual = await fetchDestinationResource(
           URL,
           {},
           undefined,
@@ -187,7 +320,7 @@ describe('WebClient', () => {
           .reply(200, 'text response')
           .times(1);
 
-        const actual = await fetchResource(
+        const actual = await fetchDestinationResource(
           URL,
           {},
           undefined,
@@ -207,7 +340,7 @@ describe('WebClient', () => {
           .reply(200, JSON.stringify({}))
           .times(1);
 
-        await fetchResource(URL);
+        await fetchDestinationResource(URL);
 
         mockAgent.assertNoPendingInterceptors();
       });
@@ -221,7 +354,7 @@ describe('WebClient', () => {
           .reply(404, JSON.stringify({}))
           .times(1);
 
-        await expect(() => fetchResource(URL)).rejects.toThrow(
+        await expect(() => fetchDestinationResource(URL)).rejects.toThrow(
           new ApiError(
             `Api request [https://some-random-url.genesys.com] failed with status [404] and message [{}]`,
             {
@@ -243,7 +376,7 @@ describe('WebClient', () => {
           .reply(503, JSON.stringify({}))
           .times(6);
 
-        await expect(() => fetchResource(URL)).rejects.toThrow(ApiError);
+        await expect(() => fetchDestinationResource(URL)).rejects.toThrow(ApiError);
 
         mockAgent.assertNoPendingInterceptors();
       }, 10000);
@@ -257,7 +390,7 @@ describe('WebClient', () => {
           .reply(200, '<html></html>')
           .times(6);
 
-        await expect(() => fetchResource(URL)).rejects.toThrow(
+        await expect(() => fetchDestinationResource(URL)).rejects.toThrow(
           new ApiError(
             'Api request [https://some-random-url.genesys.com] failed to parse body [<html></html>] - SyntaxError: Unexpected token < in JSON at position 0',
             {},
@@ -280,7 +413,7 @@ describe('WebClient', () => {
       });
 
       it('should not retry', async () => {
-        await expect(() => fetchResource(URL)).rejects.toThrow(Interrupted);
+        await expect(() => fetchDestinationResource(URL)).rejects.toThrow(Interrupted);
 
         mockAgent.assertNoPendingInterceptors();
       });

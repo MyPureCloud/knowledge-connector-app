@@ -5,7 +5,7 @@ import { ZendeskArticleAttachment } from './model/zendest-article-attachment.js'
 import { ZendeskSection } from './model/zendesk-section.js';
 import { ZendeskArticle } from './model/zendesk-article.js';
 import { ZendeskLabel } from './model/zendesk-label.js';
-import { fetchResource } from '../utils/web-client.js';
+import { fetchSourceResource } from '../utils/web-client.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 import { setIfMissing } from '../utils/objects.js';
 import {
@@ -125,7 +125,7 @@ export class ZendeskApi {
   }
 
   public async downloadAttachment(url: string): Promise<Blob> {
-    return fetchResource<Blob>(
+    return fetchSourceResource<Blob>(
       url,
       this.buildRequestInit(),
       EntityType.DOCUMENT,
@@ -167,7 +167,7 @@ export class ZendeskApi {
     }
     const url = context.nextUrl;
 
-    const json = await fetchResource<ZendeskResponse>(
+    const json = await fetchSourceResource<ZendeskResponse>(
       url,
       this.buildRequestInit(),
       this.toEntityType(property),
@@ -179,20 +179,16 @@ export class ZendeskApi {
   }
 
   private buildRequestInit(): RequestInit {
-    const headers: Record<string, string> = {
-      Authorization:
-        'Basic ' +
-        Buffer.from(
-          this.config.zendeskUsername + ':' + this.config.zendeskPassword,
-          'utf-8',
-        ).toString('base64'),
-    };
-
-    if (this.config.sourceUserAgent) {
-      headers['User-Agent'] = this.config.sourceUserAgent;
+    return {
+      headers: {
+        Authorization:
+          'Basic ' +
+          Buffer.from(
+            this.config.zendeskUsername + ':' + this.config.zendeskPassword,
+            'utf-8',
+          ).toString('base64'),
+      },
     }
-
-    return { headers };
   }
 
   private toEntityType(type: ZendeskEntityTypes): EntityType {

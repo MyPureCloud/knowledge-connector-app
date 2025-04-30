@@ -36,8 +36,15 @@ export async function fetchImage(
     url = 'https:' + url;
   }
 
-  const requestHeaders = headers ? { headers } : {};
-  const response = await innerFetch(url, requestHeaders);
+  headers = new Headers(headers);
+  if (!headers.has('User-Agent')) {
+    const userAgent = process.env.sourceUserAgent
+      ? process.env.sourceUserAgent
+      : `knowledge-connector-app/${packageVersion} (node.js ${nodeVersion})`;
+    headers.set('User-Agent', userAgent);
+  }
+
+  const response = await innerFetch(url, { headers });
   if (!response.ok) {
     throw new DownloadError(
       `Image ${url} cannot be downloaded`,
@@ -194,7 +201,7 @@ export async function readBody(
 }
 
 /**
- * Fetch resource from URL with content type
+ * Fetch source resource from URL with content type
  * @param url
  * @param init
  * @param entityName
@@ -202,23 +209,33 @@ export async function readBody(
  * @throws ApiError
  * @throws Interrupted
  */
-export async function fetchResource<T>(
+export async function fetchSourceResource<T>(
   url: string,
   init?: RequestInit,
   entityName?: EntityType,
   acceptContentType: ContentType = ContentType.JSON,
 ): Promise<T> {
-  return retry(async () => {
-    const response = await fetch(url, init, entityName);
+  init = setUserAgent(init, process.env.sourceUserAgent);
+  return await fetchResource<T>(url, init, entityName, acceptContentType);
+}
 
-    if (acceptContentType === ContentType.JSON) {
-      return readJson(url, response, entityName);
-    } else if (acceptContentType === ContentType.TEXT) {
-      return readText(url, response, entityName);
-    } else {
-      return readBlob(url, response, entityName);
-    }
-  });
+/**
+ * Fetch destination resource from URL with content type
+ * @param url
+ * @param init
+ * @param entityName
+ * @param acceptContentType
+ * @throws ApiError
+ * @throws Interrupted
+ */
+export async function fetchDestinationResource<T>(
+  url: string,
+  init?: RequestInit,
+  entityName?: EntityType,
+  acceptContentType: ContentType = ContentType.JSON,
+): Promise<T> {
+  init = setUserAgent(init, process.env.destinationUserAgent);
+  return await fetchResource<T>(url, init, entityName, acceptContentType);
 }
 
 export async function readJson<T>(
@@ -260,4 +277,36 @@ export async function readBlob<T>(
       error,
     );
   }
+}
+
+async function fetchResource<T>(
+  url: string,
+  init?: RequestInit,
+  entityName?: EntityType,
+  acceptContentType: ContentType = ContentType.JSON,
+): Promise<T> {
+  return retry(async () => {
+    const response = await fetch(url, init, entityName);
+
+    if (acceptContentType === ContentType.JSON) {
+      return readJson(url, response, entityName);
+    } else if (acceptContentType === ContentType.TEXT) {
+      return readText(url, response, entityName);
+    } else {
+      return readBlob(url, response, entityName);
+    }
+  });
+}
+
+function setUserAgent(init: RequestInit = {}, userAgent?: string): RequestInit {
+  const headers = new Headers(init?.headers);
+
+  if (userAgent) {
+    headers.set('User-Agent', userAgent)
+  }
+
+  return {
+    ...init,
+    headers,
+  };
 }
