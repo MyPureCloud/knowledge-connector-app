@@ -16,7 +16,6 @@ import { ContentType } from './content-type.js';
 
 export { Response, RequestInit, HeadersInit } from 'undici';
 
-const packageVersion = getPackageVersion();
 const nodeVersion = process.version;
 
 /**
@@ -40,7 +39,7 @@ export async function fetchImage(
   if (!headers.has('User-Agent')) {
     const userAgent = process.env.SOURCE_USER_AGENT
       ? process.env.SOURCE_USER_AGENT
-      : `knowledge-connector-app/${packageVersion} (node.js ${nodeVersion})`;
+      : `knowledge-connector-app/${getPackageVersion()} (node.js ${nodeVersion})`;
     headers.set('User-Agent', userAgent);
   }
 
@@ -83,7 +82,7 @@ export async function fetch(
   if (!headers.has('User-Agent')) {
     headers.set(
       'User-Agent',
-      `knowledge-connector-app/${packageVersion} (node.js ${nodeVersion})`,
+      `knowledge-connector-app/${getPackageVersion()} (node.js ${nodeVersion})`,
     );
   }
 
