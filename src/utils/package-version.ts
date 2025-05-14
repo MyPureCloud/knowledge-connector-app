@@ -2,10 +2,13 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getLogger } from './logger.js';
 
+let packageVersion: string;
+
 export function getPackageVersion(): string {
-  return (
-    process.env.npm_package_version ?? readPackageJson().version ?? 'unknown'
-  );
+  if (!packageVersion) {
+    packageVersion = process.env.npm_package_version ?? readPackageJson().version ?? 'unknown'
+  }
+  return packageVersion;
 }
 
 function readPackageJson(): Record<string, string> {

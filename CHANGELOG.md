@@ -1,5 +1,11 @@
 # Change log
 
+## 0.9.12 (2025-05-14)
+
+### Fixes:
+
+1. Remove redundant version reading logic: only read version from package when environment variable is not set
+
 ## 0.9.11 (2025-04-30)
 
 ### Changes:
