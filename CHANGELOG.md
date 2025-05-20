@@ -1,5 +1,11 @@
 # Change log
 
+## 0.9.13 (2025-05-23)
+
+### Changes:
+
+1. Added the total number of processed items to the logs
+
 ## 0.9.12 (2025-05-14)
 
 ### Fixes:

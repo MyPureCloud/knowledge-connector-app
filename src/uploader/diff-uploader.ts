@@ -10,7 +10,7 @@ import { validateNonNull } from '../utils/validate-non-null.js';
 import { GenesysDestinationAdapter } from '../genesys/genesys-destination-adapter.js';
 import { generatedValueResolver } from './generated-value-resolver.js';
 import { getLogger } from '../utils/logger.js';
-import { Document, ExternalIdentifiable } from '../model';
+import { Document, ExternalContent, ExternalIdentifiable } from '../model';
 import { ConfigurerError } from '../aggregator/errors/configurer-error.js';
 import {
   isFromSameSource,
@@ -87,7 +87,14 @@ export class DiffUploader implements Uploader {
       failedItems,
     );
 
-    this.logStatistics(importableContents);
+    const processedItems = this.context?.pipe?.processedItems ||
+      {
+        categories: [],
+        labels: [],
+        documents: [],
+      };
+
+    this.logStatistics(importableContents, processedItems);
 
     if (this.shouldUpload(data)) {
       await this.upload(data);
@@ -139,33 +146,36 @@ export class DiffUploader implements Uploader {
     };
   }
 
-  protected logStatistics(importableContents: SyncableContents): void {
+  protected logStatistics(importableContents: SyncableContents, processedItems: ExternalContent): void {
+    const processedCategories = processedItems.categories.length;
+    const processedLabels = processedItems.labels.length;
+    const processedDocuments = processedItems.documents.length;
     getLogger().info(
-      'Categories to create: ' + importableContents.categories.created.length,
+      'Categories to create: ' + importableContents.categories.created.length + ' out of: ' + processedCategories,
     );
     getLogger().info(
-      'Categories to update: ' + importableContents.categories.updated.length,
+      'Categories to update: ' + importableContents.categories.updated.length + ' out of: ' + processedCategories,
     );
     getLogger().info(
-      'Categories to delete: ' + importableContents.categories.deleted.length,
+      'Categories to delete: ' + importableContents.categories.deleted.length + ' out of: ' + processedCategories,
     );
     getLogger().info(
-      'Labels to create: ' + importableContents.labels.created.length,
+      'Labels to create: ' + importableContents.labels.created.length + ' out of: ' + processedLabels,
     );
     getLogger().info(
-      'Labels to update: ' + importableContents.labels.updated.length,
+      'Labels to update: ' + importableContents.labels.updated.length + ' out of: ' + processedLabels,
     );
     getLogger().info(
-      'Labels to delete: ' + importableContents.labels.deleted.length,
+      'Labels to delete: ' + importableContents.labels.deleted.length + ' out of: ' + processedLabels,
     );
     getLogger().info(
-      'Documents to create: ' + importableContents.documents.created.length,
+      'Documents to create: ' + importableContents.documents.created.length + ' out of: ' + processedDocuments,
     );
     getLogger().info(
-      'Documents to update: ' + importableContents.documents.updated.length,
+      'Documents to update: ' + importableContents.documents.updated.length + ' out of: ' + processedDocuments,
     );
     getLogger().info(
-      'Documents to delete: ' + importableContents.documents.deleted.length,
+      'Documents to delete: ' + importableContents.documents.deleted.length + ' out of: ' + processedDocuments,
     );
   }
 
