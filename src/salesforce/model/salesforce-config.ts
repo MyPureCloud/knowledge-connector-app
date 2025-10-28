@@ -4,6 +4,7 @@ export interface SalesforceConfig extends Config {
   salesforceLoginUrl?: string;
   salesforceBaseUrl?: string;
   salesforceApiVersion?: string;
+  salesforceOauthGrantType?: string;
   salesforceUsername?: string;
   salesforcePassword?: string;
   salesforceClientId?: string;
@@ -12,5 +13,4 @@ export interface SalesforceConfig extends Config {
   salesforceChannel?: string;
   salesforceCategories?: string;
   salesforceArticleContentFields?: string;
-  salesforceLightningBaseUrl?: string;
 }

@@ -1,5 +1,11 @@
 # Change log
 
+## 0.10.1 (2025-10-28)
+
+### Changes:
+
+1. Added OAuth Client Credentials Flow support for Salesforce
+
 ## 0.9.13 (2025-05-23)
 
 ### Changes:

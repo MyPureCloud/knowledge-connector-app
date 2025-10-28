@@ -41,6 +41,8 @@ ZENDESK_LOCALE=
 
 ### Configure Salesforce as source
 
+#### OAuth with username and password
+
 ```
 CONFIGURER=salesforce
 # The login url for Salesforce API (eg. https://login.salesforce.com)
@@ -50,8 +52,31 @@ SALESFORCE_BASE_URL=
 # Used Salesforce API version (eg. v56.0)
 SALESFORCE_API_VERSION=
 # Username, password, clientId, cliendSecret for API authentication
+SALESFORCE_OAUTH_GRANT_TYPE=password
 SALESFORCE_USERNAME=
 SALESFORCE_PASSWORD=
+SALESFORCE_CLIENT_ID=
+SALESFORCE_CLIENT_SECRET=
+# Used language code (eg. en-us)
+SALESFORCE_LANGUAGE_CODE=
+# Names of article fields that contain parts of the content as comma separated values (eg. Question__c,Answer__c)
+SALESFORCE_ARTICLE_CONTENT_FIELDS=
+# Base url for Salesforce lightning. Used for optional external article self url generation
+SALESFORCE_LIGHTNING_BASE_URL=
+```
+
+#### OAuth Client Credentials Flow
+
+```
+CONFIGURER=salesforce
+# The login url for Salesforce API (eg. https://login.salesforce.com)
+SALESFORCE_LOGIN_URL=
+# The base url for Salesforce API (eg. https://<company>.my.salesforce.com)
+SALESFORCE_BASE_URL=
+# Used Salesforce API version (eg. v56.0)
+SALESFORCE_API_VERSION=
+# clientId, cliendSecret for API authentication
+SALESFORCE_OAUTH_GRANT_TYPE=client_credentials
 SALESFORCE_CLIENT_ID=
 SALESFORCE_CLIENT_SECRET=
 # Used language code (eg. en-us)

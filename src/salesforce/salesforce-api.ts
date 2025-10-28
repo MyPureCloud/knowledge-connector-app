@@ -29,8 +29,11 @@ import { catcher } from '../utils/catch-error-helper.js';
 import { Interrupted } from '../utils/errors/interrupted.js';
 import { EntityType } from '../model/entity-type.js';
 
+const OAUTH_GRANT_TYPE_PASSWORD = 'password';
+
 export class SalesforceApi {
   private config: SalesforceConfig = {};
+  private oauthGrantType = OAUTH_GRANT_TYPE_PASSWORD;
   private bearerToken: string = '';
   private instanceUrl: string = '';
   private apiContext: SalesforceApiContext = {
@@ -53,6 +56,8 @@ export class SalesforceApi {
     context: SalesforceContext,
   ): Promise<void> {
     this.config = config;
+    this.oauthGrantType =
+      config.salesforceOauthGrantType ?? OAUTH_GRANT_TYPE_PASSWORD;
     this.instanceUrl = removeTrailingSlash(config.salesforceBaseUrl || '');
     this.bearerToken = await this.authenticate();
 
@@ -177,25 +182,29 @@ export class SalesforceApi {
       this.config.salesforceClientSecret,
       'Missing SALESFORCE_CLIENT_SECRET from config',
     );
-    validateNonNull(
-      this.config.salesforceUsername,
-      'Missing SALESFORCE_USERNAME from config',
-    );
-    validateNonNull(
-      this.config.salesforcePassword,
-      'Missing SALESFORCE_PASSWORD from config',
-    );
+    if (this.isPasswordGrantType()) {
+      validateNonNull(
+        this.config.salesforceUsername,
+        'Missing SALESFORCE_USERNAME from config',
+      );
+      validateNonNull(
+        this.config.salesforcePassword,
+        'Missing SALESFORCE_PASSWORD from config',
+      );
+    }
 
     const loginUrl =
       this.config.salesforceLoginUrl || this.config.salesforceBaseUrl;
     const processedLoginUrl = removeTrailingSlash(loginUrl || '');
 
     const bodyParams = new URLSearchParams();
-    bodyParams.append('grant_type', 'password');
+    bodyParams.append('grant_type', this.oauthGrantType);
     bodyParams.append('client_id', this.config.salesforceClientId!);
     bodyParams.append('client_secret', this.config.salesforceClientSecret!);
-    bodyParams.append('username', this.config.salesforceUsername!);
-    bodyParams.append('password', this.config.salesforcePassword!);
+    if (this.isPasswordGrantType()) {
+      bodyParams.append('username', this.config.salesforceUsername!);
+      bodyParams.append('password', this.config.salesforcePassword!);
+    }
 
     const url = `${processedLoginUrl}/services/oauth2/token`;
     const request = {
@@ -332,5 +341,9 @@ export class SalesforceApi {
     return type === SalesforceEntityTypes.ARTICLES
       ? EntityType.DOCUMENT
       : EntityType.CATEGORY;
+  }
+
+  private isPasswordGrantType(): boolean {
+    return this.oauthGrantType === OAUTH_GRANT_TYPE_PASSWORD;
   }
 }
