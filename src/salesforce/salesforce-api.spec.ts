@@ -9,6 +9,7 @@ import { arraysFromAsync } from '../utils/arrays.js';
 import { SalesforceArticle } from './model/salesforce-article.js';
 import { Interrupted } from '../utils/errors/interrupted.js';
 import { EntityType } from '../model/entity-type.js';
+import { URLSearchParams } from 'url';
 
 jest.mock('../utils/package-version.js');
 jest.mock('../utils/web-client.js');
@@ -188,6 +189,58 @@ describe('SalesforceApi', () => {
       expect(
         context.api![SalesforceEntityTypes.ARTICLES].unprocessed,
       ).toHaveLength(1);
+    });
+  });
+
+  describe('initialize', () => {
+    it('should authenticate with password grant type', async () => {
+      const expectedParams = new URLSearchParams();
+      expectedParams.append('grant_type', 'password');
+      expectedParams.append('client_id', 'client-id');
+      expectedParams.append('client_secret', 'client-secret');
+      expectedParams.append('username', 'username');
+      expectedParams.append('password', 'password');
+
+      await api.initialize(CONFIG, context);
+
+      expect(fetch).toHaveBeenCalledWith(
+        'https://login-url/services/oauth2/token',
+        {
+          method: 'POST',
+          body: expectedParams,
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        },
+        undefined,
+      );
+    });
+
+    it('should authenticate with Client Credentials grant type', async () => {
+      const expectedParams = new URLSearchParams();
+      expectedParams.append('grant_type', 'client_credentials');
+      expectedParams.append('client_id', 'client-id');
+      expectedParams.append('client_secret', 'client-secret');
+
+      await api.initialize(
+        {
+          ...CONFIG,
+          salesforceOauthGrantType: 'client_credentials',
+        },
+        context,
+      );
+
+      expect(fetch).toHaveBeenCalledWith(
+        'https://login-url/services/oauth2/token',
+        {
+          method: 'POST',
+          body: expectedParams,
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        },
+        undefined,
+      );
     });
   });
 
