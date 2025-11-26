@@ -15,7 +15,7 @@ export interface SalesforceContext
 
 export interface SalesforceApiContext {
   [SalesforceEntityTypes.CATEGORY_GROUPS]: SalesforceSectionContext<SalesforceCategoryGroup>;
-  [SalesforceEntityTypes.ARTICLES]: SalesforceSectionContext<SalesforceArticle>;
+  [SalesforceEntityTypes.ARTICLES]: SalesforceArticlesContext;
 }
 
 export interface SalesforceSectionContext<T> {
@@ -23,4 +23,9 @@ export interface SalesforceSectionContext<T> {
   started: boolean;
   nextUrl: string | null;
   unprocessed: T[];
+}
+
+export interface SalesforceArticlesContext
+  extends SalesforceSectionContext<SalesforceArticle> {
+  channels: string[] | null;
 }

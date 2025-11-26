@@ -89,7 +89,7 @@ SALESFORCE_LIGHTNING_BASE_URL=
 
 ###### Optional parameters
 ```
-# The visibility of the articles (App, Pkb, Csp, Prm)
+# The visibility of the articles (comma separated list of App | Pkb | Csp | Prm)
 SALESFORCE_CHANNEL=
 # The category filter to be used for fetching articles. 
 # Format: 
