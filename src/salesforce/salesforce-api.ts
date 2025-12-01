@@ -20,6 +20,7 @@ import { ApiError } from '../adapter/errors/api-error.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 import {
   SalesforceApiContext,
+  SalesforceArticlesContext,
   SalesforceContext,
   SalesforceSectionContext,
 } from './model/salesforce-context.js';
@@ -30,6 +31,7 @@ import { Interrupted } from '../utils/errors/interrupted.js';
 import { EntityType } from '../model/entity-type.js';
 
 const OAUTH_GRANT_TYPE_PASSWORD = 'password';
+const ALL_CHANNELS = 'App,Pkb,Csp,Prm';
 
 export class SalesforceApi {
   private config: SalesforceConfig = {};
@@ -47,6 +49,7 @@ export class SalesforceApi {
       done: false,
       started: false,
       nextUrl: '',
+      channels: null,
       unprocessed: [],
     },
   };
@@ -62,6 +65,7 @@ export class SalesforceApi {
     this.bearerToken = await this.authenticate();
 
     this.apiContext = setIfMissing(context, 'api', this.apiContext);
+    this.populateContextWithChannelFilter();
   }
 
   public async *articleIterator(): AsyncGenerator<
@@ -69,15 +73,85 @@ export class SalesforceApi {
     void,
     void
   > {
-    if (this.apiContext[SalesforceEntityTypes.ARTICLES].done) {
+    const articlesContext = this.apiContext[SalesforceEntityTypes.ARTICLES];
+    if (articlesContext.done) {
       return;
     }
 
-    const filters = this.constructFilters();
-    const articlesContext = this.apiContext[SalesforceEntityTypes.ARTICLES];
+    const channels = articlesContext.channels!;
+    while (channels.length > 0) {
+      if (!articlesContext.started) {
+        const filters = this.constructFilters(
+          channels[0],
+          this.config.salesforceCategories,
+        );
+        articlesContext.nextUrl = `${this.instanceUrl}/services/data/${this.config.salesforceApiVersion}/support/knowledgeArticles?${filters}`;
+        articlesContext.started = true;
+      }
+      for await (const article of this.articleChannelIterator(
+        articlesContext,
+      )) {
+        yield article;
+      }
+      channels.shift();
+      articlesContext.started = false;
+    }
+    articlesContext.done = true;
+  }
 
+  public async *categoryIterator(): AsyncGenerator<
+    SalesforceCategoryGroup,
+    void,
+    void
+  > {
+    const context = this.apiContext[SalesforceEntityTypes.CATEGORY_GROUPS];
+    if (context.done) {
+      return;
+    }
+    if (!context.started) {
+      context.nextUrl = `${this.instanceUrl}/services/data/${this.config.salesforceApiVersion}/support/dataCategoryGroups?sObjectName=KnowledgeArticleVersion`;
+      context.started = true;
+    }
+
+    for await (const categoryGroup of this.fetchCategoryGroups()) {
+      try {
+        for (const topCategory of categoryGroup.topCategories) {
+          await this.fillCategoryAncestry(categoryGroup.name, topCategory);
+        }
+        yield categoryGroup;
+      } catch (error) {
+        await catcher()
+          .on(Interrupted, (error) => {
+            context.unprocessed.unshift(categoryGroup);
+            throw error;
+          })
+          .with(error);
+      }
+    }
+
+    context.done = true;
+  }
+
+  public getAttachment(
+    articleId: string | null,
+    url: string,
+  ): Promise<Image | null> {
+    return fetchImage(
+      `${this.instanceUrl}/services/data/${this.config.salesforceApiVersion}/sobjects/knowledge__kav${url}`,
+      {
+        Authorization: 'Bearer ' + this.bearerToken,
+      },
+    );
+  }
+
+  public getInstanceUrl(): string {
+    return removeTrailingSlash(this.instanceUrl);
+  }
+
+  private async *articleChannelIterator(
+    articlesContext: SalesforceArticlesContext,
+  ): AsyncGenerator<SalesforceArticleDetails, void, void> {
     const articleInfos = this.getAllPages<SalesforceArticle>(
-      `/services/data/${this.config.salesforceApiVersion}/support/knowledgeArticles?${filters}`,
       SalesforceEntityTypes.ARTICLES,
       articlesContext,
     );
@@ -95,39 +169,6 @@ export class SalesforceApi {
           .with(error);
       }
     }
-  }
-
-  public async *categoryIterator(): AsyncGenerator<
-    SalesforceCategoryGroup,
-    void,
-    void
-  > {
-    if (this.apiContext[SalesforceEntityTypes.CATEGORY_GROUPS].done) {
-      return;
-    }
-
-    for await (const categoryGroup of this.fetchCategoryGroups()) {
-      for (const topCategory of categoryGroup.topCategories) {
-        await this.fillCategoryAncestry(categoryGroup.name, topCategory);
-      }
-      yield categoryGroup;
-    }
-  }
-
-  public getAttachment(
-    articleId: string | null,
-    url: string,
-  ): Promise<Image | null> {
-    return fetchImage(
-      `${this.instanceUrl}/services/data/${this.config.salesforceApiVersion}/sobjects/knowledge__kav${url}`,
-      {
-        Authorization: 'Bearer ' + this.bearerToken,
-      },
-    );
-  }
-
-  public getInstanceUrl(): string {
-    return removeTrailingSlash(this.instanceUrl);
   }
 
   private async fillCategoryAncestry(
@@ -167,7 +208,6 @@ export class SalesforceApi {
     void
   > {
     yield* this.getAllPages<SalesforceCategoryGroup>(
-      `/services/data/${this.config.salesforceApiVersion}/support/dataCategoryGroups?sObjectName=KnowledgeArticleVersion`,
       SalesforceEntityTypes.CATEGORY_GROUPS,
       this.apiContext[SalesforceEntityTypes.CATEGORY_GROUPS],
     );
@@ -266,15 +306,9 @@ export class SalesforceApi {
   }
 
   private async *getAllPages<T>(
-    endpoint: string,
     property: SalesforceEntityTypes,
     context: SalesforceSectionContext<T>,
   ): AsyncGenerator<T, void, void> {
-    if (!context.started) {
-      context.nextUrl = `${this.instanceUrl}${endpoint}`;
-      context.started = true;
-    }
-
     const pager = new Pager<T>(context.unprocessed, () =>
       this.fetchNextPage(property, context),
     );
@@ -282,8 +316,6 @@ export class SalesforceApi {
     for await (const item of pager.fetch()) {
       yield item;
     }
-
-    context.done = true;
   }
 
   private async fetchNextPage<T>(
@@ -324,13 +356,16 @@ export class SalesforceApi {
     };
   }
 
-  private constructFilters(): string {
+  private constructFilters(
+    channel: string,
+    categories: string | undefined,
+  ): string {
     const filters: string[] = [];
-    if (this.config.salesforceChannel) {
-      filters.push(`channel=${this.config.salesforceChannel}`);
+    if (channel) {
+      filters.push(`channel=${channel}`);
     }
-    if (this.config.salesforceCategories) {
-      filters.push(`categories=${this.config.salesforceCategories}`);
+    if (categories) {
+      filters.push(`categories=${categories}`);
       filters.push('queryMethod=BELOW');
     }
 
@@ -345,5 +380,16 @@ export class SalesforceApi {
 
   private isPasswordGrantType(): boolean {
     return this.oauthGrantType === OAUTH_GRANT_TYPE_PASSWORD;
+  }
+
+  private populateContextWithChannelFilter(): void {
+    if (this.apiContext[SalesforceEntityTypes.ARTICLES].channels === null) {
+      this.apiContext[SalesforceEntityTypes.ARTICLES].channels = (
+        this.config.salesforceChannel || ALL_CHANNELS
+      )
+        .split(',')
+        .map((channel) => channel.trim())
+        .filter((channel) => channel.length > 0);
+    }
   }
 }

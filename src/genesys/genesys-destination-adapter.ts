@@ -82,7 +82,9 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
   }
 
   public async exportAllEntities(): Promise<ExportModel> {
-    const jobStatus = await this.getApi().createExportJob(this.buildExcludesList());
+    const jobStatus = await this.getApi().createExportJob(
+      this.buildExcludesList(),
+    );
 
     const job = await this.getApi().waitForJobToFinish<ExportArticlesResponse>(
       () => this.getApi().getExportStatus(jobStatus.id),
@@ -166,18 +168,25 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
   private buildExcludesList(): ExcludeOptions[] {
     const excludes = [] as ExcludeOptions[];
 
-    if (this.config.fetchCategories === 'false' ) {
-      getLogger().debug('Adding Categories to Genesys destination export exclude list');
-      excludes.push(ExcludeOptions.CATEGORIES)
+    if (this.config.fetchCategories === 'false') {
+      getLogger().debug(
+        'Adding Categories to Genesys destination export exclude list',
+      );
+      excludes.push(ExcludeOptions.CATEGORIES);
     }
-    if (this.config.fetchLabels === 'false' ) {
-      getLogger().debug('Adding Labels to Genesys destination export exclude list');
-      excludes.push(ExcludeOptions.LABELS)
+    if (this.config.fetchLabels === 'false') {
+      getLogger().debug(
+        'Adding Labels to Genesys destination export exclude list',
+      );
+      excludes.push(ExcludeOptions.LABELS);
     }
-    const compareMode = this.config.compareMode ?? CompareMode.MODIFICATION_DATE;
+    const compareMode =
+      this.config.compareMode ?? CompareMode.MODIFICATION_DATE;
     if (compareMode === CompareMode.MODIFICATION_DATE) {
-      getLogger().debug('Adding Variations to Genesys destination export exclude list');
-      excludes.push(ExcludeOptions.VARIATIONS)
+      getLogger().debug(
+        'Adding Variations to Genesys destination export exclude list',
+      );
+      excludes.push(ExcludeOptions.VARIATIONS);
     }
 
     return excludes;

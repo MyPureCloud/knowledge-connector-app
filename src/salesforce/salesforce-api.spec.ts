@@ -10,6 +10,7 @@ import { SalesforceArticle } from './model/salesforce-article.js';
 import { Interrupted } from '../utils/errors/interrupted.js';
 import { EntityType } from '../model/entity-type.js';
 import { URLSearchParams } from 'url';
+import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
 
 jest.mock('../utils/package-version.js');
 jest.mock('../utils/web-client.js');
@@ -25,6 +26,7 @@ describe('SalesforceApi', () => {
     salesforceUsername: 'username',
     salesforcePassword: 'password',
     salesforceLanguageCode: 'en-US',
+    salesforceChannel: 'Pkb',
   };
   const HEADERS = {
     Authorization: `Bearer ${ACCESS_TOKEN}`,
@@ -132,34 +134,15 @@ describe('SalesforceApi', () => {
     });
 
     it('should load all articles', async () => {
-      const firstExpectedUrl = `${BASE_URL}/services/data/${CONFIG.salesforceApiVersion}/support/knowledgeArticles?`;
-      const secondExpectedUrl = `${BASE_URL}/the-next-page`;
-
       await api.initialize(CONFIG, context);
-
-      mockApiResponse(200, {
-        articles: [constructArticle('1'), constructArticle('2')],
-        nextPageUrl: '/the-next-page',
-      });
-      mockApiResponse(200, constructArticle('1'));
-      mockApiResponse(200, constructArticle('2'));
-      mockApiResponse(200, {
-        articles: [constructArticle('3')],
-        nextPageUrl: null,
-      });
-      mockApiResponse(200, constructArticle('3'));
+      const verifyPkbChannelFetch = mockPkbChannelArticleResponse();
 
       const response = await arraysFromAsync(api.articleIterator());
 
-      expect(fetch).toHaveBeenCalledTimes(6); // 1 login + 2 page + 3 article detail
-      checkFetchUrl(firstExpectedUrl);
-      checkFetchUrl(secondExpectedUrl);
-      expect(response.length).toEqual(3);
-      expect(response).toEqual([
-        constructArticle('1'),
-        constructArticle('2'),
-        constructArticle('3'),
-      ]);
+      expect(fetch).toHaveBeenCalledTimes(3); // 1 login + 1 page + 1 article detail
+      verifyPkbChannelFetch();
+      expect(response.length).toEqual(1);
+      expect(response).toEqual([constructArticle('4')]);
     });
 
     it('should not lost any article when interrupted', async () => {
@@ -189,6 +172,143 @@ describe('SalesforceApi', () => {
       expect(
         context.api![SalesforceEntityTypes.ARTICLES].unprocessed,
       ).toHaveLength(1);
+    });
+
+    describe('filter multiple channels', () => {
+      it('should load all articles from given channels', async () => {
+        await api.initialize(
+          { ...CONFIG, salesforceChannel: 'App,Pkb,  ,  Prm' },
+          context,
+        );
+
+        const verifyAppChannelFetch = mockAppChannelArticleResponse();
+        const verifyPkbChannelFetch = mockPkbChannelArticleResponse();
+        const verifyPrmChannelFetch = mockPrmChannelArticleResponse();
+
+        const response = await arraysFromAsync(api.articleIterator());
+
+        expect(fetch).toHaveBeenCalledTimes(13); // 1 login + 5 page + 7 article detail
+        verifyAppChannelFetch();
+        verifyPkbChannelFetch();
+        verifyPrmChannelFetch();
+
+        expect(response.length).toEqual(7);
+        expect(response).toEqual([
+          constructArticle('1'),
+          constructArticle('2'),
+          constructArticle('3'),
+          constructArticle('4'),
+          constructArticle('6'),
+          constructArticle('7'),
+          constructArticle('8'),
+        ]);
+      });
+    });
+
+    describe('when no channel filter defined', () => {
+      it('should load all articles from all channels', async () => {
+        await api.initialize(
+          { ...CONFIG, salesforceChannel: undefined },
+          context,
+        );
+
+        const verifyAppChannelFetch = mockAppChannelArticleResponse();
+        const verifyPkbChannelFetch = mockPkbChannelArticleResponse();
+        const verifyCspChannelFetch = mockCspChannelArticleResponse();
+        const verifyPrmChannelFetch = mockPrmChannelArticleResponse();
+
+        const response = await arraysFromAsync(api.articleIterator());
+
+        expect(fetch).toHaveBeenCalledTimes(15); // 1 login + 6 page + 8 article detail
+        verifyAppChannelFetch();
+        verifyPkbChannelFetch();
+        verifyCspChannelFetch();
+        verifyPrmChannelFetch();
+
+        expect(response.length).toEqual(8);
+        expect(response).toEqual([
+          constructArticle('1'),
+          constructArticle('2'),
+          constructArticle('3'),
+          constructArticle('4'),
+          constructArticle('5'),
+          constructArticle('6'),
+          constructArticle('7'),
+          constructArticle('8'),
+        ]);
+      });
+    });
+
+    describe('when interrupted', () => {
+      describe('between channels', () => {
+        it('should continue from the state', async () => {
+          await api.initialize(
+            { ...CONFIG, salesforceChannel: 'App,Pkb' },
+            context,
+          );
+
+          const verifyAppChannelFetch = mockAppChannelArticleResponse();
+          // Interrupt after App channel
+          mockFetch.mockRejectedValueOnce(new Interrupted());
+          const verifyPkbChannelFetch = mockPkbChannelArticleResponse();
+
+          const beforeInterrupted: SalesforceArticleDetails[] = [];
+          await expect(async () => {
+            for await (const item of api.articleIterator()) {
+              beforeInterrupted.push(item);
+            }
+          }).rejects.toThrow(Interrupted);
+
+          // start again
+          const afterInterrupted = await arraysFromAsync(api.articleIterator());
+
+          expect(fetch).toHaveBeenCalledTimes(9); // 1 login + 3 page + 4 article detail + 1 interrupted
+          verifyAppChannelFetch();
+          verifyPkbChannelFetch();
+          expect(beforeInterrupted.length).toEqual(3);
+          expect(beforeInterrupted).toEqual([
+            constructArticle('1'),
+            constructArticle('2'),
+            constructArticle('3'),
+          ]);
+          expect(afterInterrupted.length).toEqual(1);
+          expect(afterInterrupted).toEqual([constructArticle('4')]);
+        });
+      });
+
+      describe('middle of a channel', () => {
+        it('should continue from the state', async () => {
+          await api.initialize(
+            { ...CONFIG, salesforceChannel: 'App,Pkb' },
+            context,
+          );
+
+          const verifyAppChannelFetch = mockAppChannelArticleResponse(true);
+          const verifyPkbChannelFetch = mockPkbChannelArticleResponse();
+
+          const beforeInterrupted: SalesforceArticleDetails[] = [];
+          await expect(async () => {
+            for await (const item of api.articleIterator()) {
+              beforeInterrupted.push(item);
+            }
+          }).rejects.toThrow(Interrupted);
+
+          // start again
+          const afterInterrupted = await arraysFromAsync(api.articleIterator());
+
+          expect(fetch).toHaveBeenCalledTimes(9); // 1 login + 3 page + 4 article detail + 1 interrupted
+          verifyAppChannelFetch();
+          verifyPkbChannelFetch();
+          expect(beforeInterrupted.length).toEqual(1);
+          expect(beforeInterrupted).toEqual([constructArticle('1')]);
+          expect(afterInterrupted.length).toEqual(3);
+          expect(afterInterrupted).toEqual([
+            constructArticle('2'),
+            constructArticle('3'),
+            constructArticle('4'),
+          ]);
+        });
+      });
     });
   });
 
@@ -251,6 +371,83 @@ describe('SalesforceApi', () => {
     });
   }
 
+  function mockAppChannelArticleResponse(
+    withInterruption: boolean = false,
+  ): () => void {
+    const firstExpectedUrl = `${BASE_URL}/services/data/${CONFIG.salesforceApiVersion}/support/knowledgeArticles?channel=App`;
+    const secondExpectedUrl = `${BASE_URL}/app-the-next-page`;
+
+    mockApiResponse(200, {
+      articles: [constructArticle('1'), constructArticle('2')],
+      nextPageUrl: '/app-the-next-page',
+    });
+    mockApiResponse(200, constructArticle('1'));
+    if (withInterruption) {
+      mockFetch.mockRejectedValueOnce(new Interrupted());
+    }
+    mockApiResponse(200, constructArticle('2'));
+    mockApiResponse(200, {
+      articles: [constructArticle('3')],
+      nextPageUrl: null,
+    });
+    mockApiResponse(200, constructArticle('3'));
+
+    return () => {
+      checkFetchUrl(firstExpectedUrl);
+      checkFetchUrl(secondExpectedUrl);
+    };
+  }
+
+  function mockPkbChannelArticleResponse() {
+    const firstExpectedUrl = `${BASE_URL}/services/data/${CONFIG.salesforceApiVersion}/support/knowledgeArticles?channel=Pkb`;
+
+    mockApiResponse(200, {
+      articles: [constructArticle('4')],
+      nextPageUrl: null,
+    });
+    mockApiResponse(200, constructArticle('4'));
+
+    return () => {
+      checkFetchUrl(firstExpectedUrl);
+    };
+  }
+
+  function mockPrmChannelArticleResponse() {
+    const firstExpectedUrl = `${BASE_URL}/services/data/${CONFIG.salesforceApiVersion}/support/knowledgeArticles?channel=Prm`;
+    const secondExpectedUrl = `${BASE_URL}/prm-the-next-page`;
+
+    mockApiResponse(200, {
+      articles: [constructArticle('6'), constructArticle('7')],
+      nextPageUrl: '/prm-the-next-page',
+    });
+    mockApiResponse(200, constructArticle('6'));
+    mockApiResponse(200, constructArticle('7'));
+    mockApiResponse(200, {
+      articles: [constructArticle('8')],
+      nextPageUrl: null,
+    });
+    mockApiResponse(200, constructArticle('8'));
+
+    return () => {
+      checkFetchUrl(firstExpectedUrl);
+      checkFetchUrl(secondExpectedUrl);
+    };
+  }
+
+  function mockCspChannelArticleResponse() {
+    const firstExpectedUrl = `${BASE_URL}/services/data/${CONFIG.salesforceApiVersion}/support/knowledgeArticles?channel=Csp`;
+
+    mockApiResponse(200, {
+      articles: [constructArticle('5')],
+      nextPageUrl: null,
+    });
+    mockApiResponse(200, constructArticle('5'));
+
+    return () => {
+      checkFetchUrl(firstExpectedUrl);
+    };
+  }
+
   function mockApiResponse(status: number, body: unknown): void {
     const str = isString(body) ? body : JSON.stringify(body);
 
@@ -276,6 +473,7 @@ describe('SalesforceApi', () => {
           done: false,
           started: false,
           nextUrl: null,
+          channels: null,
           unprocessed: [],
         },
         [SalesforceEntityTypes.CATEGORY_GROUPS]: {

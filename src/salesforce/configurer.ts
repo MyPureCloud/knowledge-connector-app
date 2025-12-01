@@ -11,6 +11,7 @@ import { DocumentLinkProcessor } from '../processor/document-link/document-link-
 import { UrlTransformer } from '../processor/url-transformer/url-transformer.js';
 import { NameConflictResolver } from '../processor/name-conflict-resolver/name-conflict-resolver.js';
 import { ModificationDateFilter } from '../filter/modification-date-filter.js';
+import { DuplicateFilter } from '../filter/duplicate-filter.js';
 
 export const configurer: Configurer = (pipe: Pipe) => {
   pipe
@@ -24,7 +25,7 @@ export const configurer: Configurer = (pipe: Pipe) => {
       new DocumentLinkProcessor(),
       new NameConflictResolver(),
     )
-    .filters(new ModificationDateFilter())
+    .filters(new DuplicateFilter(), new ModificationDateFilter())
     .aggregator(new DiffAggregator())
     .uploaders(new DiffUploader());
 };

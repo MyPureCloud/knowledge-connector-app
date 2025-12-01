@@ -1,5 +1,11 @@
 # Change log
 
+## 0.10.2 (2025-11-26)
+
+### Changes:
+
+1. Support multi value for Salesforce Channel filter
+
 ## 0.10.1 (2025-10-28)
 
 ### Changes:
