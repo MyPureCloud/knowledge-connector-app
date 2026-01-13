@@ -1,5 +1,11 @@
 # Change log
 
+## 0.10.3 (2026-01-13)
+
+### Changes:
+
+1. Option to decode HTML Entities in links
+
 ## 0.10.2 (2025-11-26)
 
 ### Changes:

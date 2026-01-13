@@ -70,8 +70,8 @@ describe('UrlTransformer', () => {
       it('should fix image urls', async () => {
         const result = await transformer.runOnDocument(document);
 
-        verifyUrl(result, IMAGE_URLS, true);
-        verifyUrl(result, HYPERLINKS, false);
+        verifyUrlProtocol(result, IMAGE_URLS, true);
+        verifyUrlProtocol(result, HYPERLINKS, false);
       });
     });
 
@@ -92,8 +92,8 @@ describe('UrlTransformer', () => {
       it('should fix hyperlink urls', async () => {
         const result = await transformer.runOnDocument(document);
 
-        verifyUrl(result, HYPERLINKS, true);
-        verifyUrl(result, IMAGE_URLS, false);
+        verifyUrlProtocol(result, HYPERLINKS, true);
+        verifyUrlProtocol(result, IMAGE_URLS, false);
       });
     });
 
@@ -115,7 +115,7 @@ describe('UrlTransformer', () => {
       it('should resolve hyperlink urls', async () => {
         const result = await transformer.runOnDocument(document);
 
-        verifyUrl(result, RELATIVE_URLS, true);
+        verifyUrlProtocol(result, RELATIVE_URLS, true);
       });
     });
 
@@ -137,13 +137,34 @@ describe('UrlTransformer', () => {
       it('should fix hyperlink & image urls', async () => {
         const result = await transformer.runOnDocument(document);
 
-        verifyUrl(result, HYPERLINKS, true);
-        verifyUrl(result, IMAGE_URLS, true);
+        verifyUrlProtocol(result, HYPERLINKS, true);
+        verifyUrlProtocol(result, IMAGE_URLS, true);
       });
     });
   });
 
-  function verifyUrl(
+  describe('when decodeHtmlEntitiesLinks enabled', () => {
+    beforeEach(async () => {
+      await transformer.initialize(
+        {
+          decodeHtmlEntitiesInLinks: 'true',
+        },
+        adapters as AdapterPair<
+          SourceAdapter<unknown, unknown, unknown>,
+          DestinationAdapter
+        >,
+        {} as PipeContext,
+      );
+    });
+
+    it('should decode hyperlink urls', async () => {
+      const result = await transformer.runOnDocument(document);
+
+      verifyUrlDecodedHtmlEntities(result, HYPERLINKS);
+    });
+  });
+
+  function verifyUrlProtocol(
     document: Document,
     paths: string[],
     isSecure: boolean,
@@ -151,6 +172,16 @@ describe('UrlTransformer', () => {
     paths.forEach((path) => {
       const url = _.get(document, path);
       expect(url).toMatch(isSecure ? /^https:\/\// : /^http:\/\//);
+    });
+  }
+
+  function verifyUrlDecodedHtmlEntities(
+    document: Document,
+    paths: string[],
+  ): void {
+    paths.forEach((path) => {
+      const url = _.get(document, path);
+      expect(url).toMatch(/key1=value1&key2=value2/);
     });
   }
 
@@ -175,14 +206,16 @@ describe('UrlTransformer', () => {
                         type: 'Text',
                         text: {
                           text: 'Link 1',
-                          hyperlink: 'http://genesys.com/article=1',
+                          hyperlink:
+                            'http://genesys.com/article=1&amp;key1&#61;value1&amp;key2&#61;value2',
                         },
                       },
                       {
                         type: 'Text',
                         text: {
                           text: 'RelativeLink 1',
-                          hyperlink: '/article=1',
+                          hyperlink:
+                            '/article=1&amp;key1&#61;value1&amp;key2&#61;value2',
                         },
                       },
                     ],
@@ -199,7 +232,8 @@ describe('UrlTransformer', () => {
                             type: 'Text',
                             text: {
                               text: 'Link 2',
-                              hyperlink: 'http://genesys.com/article=2',
+                              hyperlink:
+                                'http://genesys.com/article=2&amp;key1&#61;value1&amp;key2&#61;value2',
                             },
                           },
                         ],
@@ -211,14 +245,16 @@ describe('UrlTransformer', () => {
                             type: 'Image',
                             image: {
                               url: 'http://genesys.com/3.png',
-                              hyperlink: 'http://genesys.com/article=3',
+                              hyperlink:
+                                'http://genesys.com/article=3&amp;key1&#61;value1&amp;key2&#61;value2',
                             },
                           },
                           {
                             type: 'Image',
                             image: {
                               url: 'http://genesys.com/3.png',
-                              hyperlink: '/article=3',
+                              hyperlink:
+                                '/article=3&amp;key1&#61;value1&amp;key2&#61;value2',
                             },
                           },
                         ],
@@ -234,7 +270,8 @@ describe('UrlTransformer', () => {
                         type: 'Image',
                         image: {
                           url: 'http://genesys.com/4.jpg',
-                          hyperlink: 'http://genesys.com/article=4',
+                          hyperlink:
+                            'http://genesys.com/article=4&amp;key1&#61;value1&amp;key2&#61;value2',
                         },
                       },
                     ],
@@ -260,7 +297,7 @@ describe('UrlTransformer', () => {
                                           text: {
                                             text: 'Link 5',
                                             hyperlink:
-                                              'http://genesys.com/article=5',
+                                              'http://genesys.com/article=5&amp;key1&#61;value1&amp;key2&#61;value2',
                                           },
                                         },
                                       ],
@@ -276,7 +313,8 @@ describe('UrlTransformer', () => {
                                 type: 'Image',
                                 image: {
                                   url: 'http://genesys.com/6.png',
-                                  hyperlink: 'http://genesys.com/6',
+                                  hyperlink:
+                                    'http://genesys.com/6?&amp;key1&#61;value1&amp;key2&#61;value2',
                                 },
                               },
                             ],

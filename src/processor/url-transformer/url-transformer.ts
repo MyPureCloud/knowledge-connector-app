@@ -12,12 +12,14 @@ import { convertToAbsolute, isRelativeUrl } from '../../utils/links.js';
 import { Category, Label } from '../../model';
 import { Processor } from '../processor.js';
 import { PipeContext } from '../../pipe/pipe-context.js';
+import { decode } from 'html-entities';
 
 export class UrlTransformer implements Processor {
   private config: UrlTransformerConfig = {};
   private fixNonHttpsImages: boolean = false;
   private fixNonHttpsLinks: boolean = false;
   private relativeLinkBaseUrl: string | null = null;
+  private decodeHtmlEntitiesInLinks: boolean = false;
 
   public async initialize(
     config: UrlTransformerConfig,
@@ -31,7 +33,10 @@ export class UrlTransformer implements Processor {
 
     this.fixNonHttpsImages = this.config.fixNonHttpsImages === 'true';
     this.fixNonHttpsLinks = this.config.fixNonHttpsLinks === 'true';
-    this.relativeLinkBaseUrl = adapters.sourceAdapter.getResourceBaseUrl() || null;
+    this.relativeLinkBaseUrl =
+      adapters.sourceAdapter.getResourceBaseUrl() || null;
+    this.decodeHtmlEntitiesInLinks =
+      this.config.decodeHtmlEntitiesInLinks === 'true';
   }
 
   public async runOnCategory(item: Category): Promise<Category> {
@@ -46,7 +51,8 @@ export class UrlTransformer implements Processor {
     if (
       !this.fixNonHttpsImages &&
       !this.fixNonHttpsLinks &&
-      !this.relativeLinkBaseUrl
+      !this.relativeLinkBaseUrl &&
+      !this.decodeHtmlEntitiesInLinks
     ) {
       return item;
     }
@@ -82,6 +88,9 @@ export class UrlTransformer implements Processor {
     if (text.text.hyperlink) {
       text.text.hyperlink = this.amendRelative('hyperlink', text.text);
     }
+    if (this.decodeHtmlEntitiesInLinks && text.text.hyperlink) {
+      text.text.hyperlink = this.decodeHtmlEntities('hyperlink', text.text);
+    }
   }
 
   private fixImageUrls(image: DocumentBodyImageBlock) {
@@ -90,6 +99,9 @@ export class UrlTransformer implements Processor {
     }
     if (this.fixNonHttpsLinks && image.image.hyperlink) {
       image.image.hyperlink = this.fixLink('hyperlink', image.image);
+    }
+    if (this.decodeHtmlEntitiesInLinks && image.image.hyperlink) {
+      image.image.hyperlink = this.decodeHtmlEntities('hyperlink', image.image);
     }
     if (image.image.hyperlink) {
       image.image.hyperlink = this.amendRelative('hyperlink', image.image);
@@ -110,5 +122,10 @@ export class UrlTransformer implements Processor {
       return convertToAbsolute(url, this.relativeLinkBaseUrl);
     }
     return url;
+  }
+
+  private decodeHtmlEntities<T>(prop: keyof T, obj: T): string | undefined {
+    const url = obj[prop] as string | undefined;
+    return decode(url);
   }
 }
