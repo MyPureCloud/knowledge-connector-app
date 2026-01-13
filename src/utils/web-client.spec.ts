@@ -60,7 +60,7 @@ describe('WebClient', () => {
       it('should throw with response body', async () => {
         await expect(() =>
           readResponse<object>(URL, mockResponse(404, RESPONSE_BODY_RAW)),
-        ).rejects.toThrowError(
+        ).rejects.toThrow(
           new ApiError(
             `Api request [${URL}] failed with status [404] and message [${RESPONSE_BODY_RAW}]`,
             {
@@ -82,7 +82,7 @@ describe('WebClient', () => {
               text: () =>
                 Promise.reject(new Error('Cannot read response body')),
             } as Response),
-          ).rejects.toThrowError(
+          ).rejects.toThrow(
             new ApiError(
               `Api request [${URL}] failed to read body from response with status [419] - Error: Cannot read response body`,
               {
@@ -102,7 +102,7 @@ describe('WebClient', () => {
       it('should throw with raw response body', async () => {
         await expect(() =>
           readResponse<object>(URL, mockResponse(200, NON_JSON_RESPONSE_BODY)),
-        ).rejects.toThrowError(
+        ).rejects.toThrow(
           new ApiError(
             `Api request [${URL}] failed to parse body [${NON_JSON_RESPONSE_BODY}] - SyntaxError: Unexpected token < in JSON at position 0`,
             {
@@ -122,7 +122,7 @@ describe('WebClient', () => {
   describe('User Agent header', () => {
     describe('when it is set in env var', () => {
       it('should be set by fetchSourceResource', async () => {
-        process.env.SOURCE_USER_AGENT = "SOURCE_USER_AGENT"
+        process.env.SOURCE_USER_AGENT = 'SOURCE_USER_AGENT';
         let capturedHeaders: Headers | Record<string, string> | undefined = {};
 
         mockAgent
@@ -146,12 +146,14 @@ describe('WebClient', () => {
           ContentType.JSON,
         );
 
-        expect(capturedHeaders['User-Agent']).toBe(process.env.SOURCE_USER_AGENT);
+        expect(capturedHeaders['User-Agent']).toBe(
+          process.env.SOURCE_USER_AGENT,
+        );
         mockAgent.assertNoPendingInterceptors();
       });
 
       it('should be set by fetchDestinationResource', async () => {
-        process.env.DESTINATION_USER_AGENT = "DESTINATION_USER_AGENT"
+        process.env.DESTINATION_USER_AGENT = 'DESTINATION_USER_AGENT';
         let capturedHeaders: Headers | Record<string, string> | undefined = {};
 
         mockAgent
@@ -187,7 +189,7 @@ describe('WebClient', () => {
       const nodeVersion = process.version;
 
       it('should be set to default by fetchSourceResource', async () => {
-        delete process.env.SOURCE_USER_AGENT
+        delete process.env.SOURCE_USER_AGENT;
         let capturedHeaders: Headers | Record<string, string> | undefined = {};
 
         mockAgent
@@ -218,7 +220,7 @@ describe('WebClient', () => {
       });
 
       it('should be set to default by fetchDestinationResource', async () => {
-        delete process.env.DESTINATION_USER_AGENT
+        delete process.env.DESTINATION_USER_AGENT;
         let capturedHeaders: Headers | Record<string, string> | undefined = {};
 
         mockAgent
@@ -281,7 +283,13 @@ describe('WebClient', () => {
           await expect(() => fetchDestinationResource(URL)).rejects.toThrow(
             new ApiError(
               'Api request [https://some-random-url.genesys.com] failed to parse body [some none JSON response] - SyntaxError: Unexpected token s in JSON at position 0',
-              {},
+              {
+                url: 'https://some-random-url.genesys.com',
+                status: 200,
+                message:
+                  'SyntaxError: Unexpected token s in JSON at position 0',
+                body: 'some none JSON response',
+              },
               undefined,
               new Error('Unexpected token s in JSON at position 0'),
             ),
@@ -376,7 +384,9 @@ describe('WebClient', () => {
           .reply(503, JSON.stringify({}))
           .times(6);
 
-        await expect(() => fetchDestinationResource(URL)).rejects.toThrow(ApiError);
+        await expect(() => fetchDestinationResource(URL)).rejects.toThrow(
+          ApiError,
+        );
 
         mockAgent.assertNoPendingInterceptors();
       }, 10000);
@@ -393,7 +403,12 @@ describe('WebClient', () => {
         await expect(() => fetchDestinationResource(URL)).rejects.toThrow(
           new ApiError(
             'Api request [https://some-random-url.genesys.com] failed to parse body [<html></html>] - SyntaxError: Unexpected token < in JSON at position 0',
-            {},
+            {
+              url: 'https://some-random-url.genesys.com',
+              status: 200,
+              message: 'SyntaxError: Unexpected token < in JSON at position 0',
+              body: '<html></html>',
+            },
             undefined,
             new Error('Unexpected token < in JSON at position 0'),
           ),
@@ -413,7 +428,9 @@ describe('WebClient', () => {
       });
 
       it('should not retry', async () => {
-        await expect(() => fetchDestinationResource(URL)).rejects.toThrow(Interrupted);
+        await expect(() => fetchDestinationResource(URL)).rejects.toThrow(
+          Interrupted,
+        );
 
         mockAgent.assertNoPendingInterceptors();
       });

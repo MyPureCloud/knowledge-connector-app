@@ -9,7 +9,7 @@ import {
   generateNormalizedLabel,
 } from '../../tests/utils/entity-generators.js';
 import { NamedEntity } from '../../model';
-import { ConfigurerError } from '../../aggregator/errors/configurer-error.js';
+import { ValidationError } from '../../utils';
 
 describe('NameConflictResolver', () => {
   let processor: NameConflictResolver;
@@ -160,8 +160,8 @@ describe('NameConflictResolver', () => {
           await processor.runOnCategory(
             generateNormalizedCategory('-not-2', null, 'category-name-2'),
           );
-        }).rejects.toThrowError(
-          new ConfigurerError(
+        }).rejects.toThrow(
+          new ValidationError(
             'Name conflict found "category-name-2". Try to use "NAME_CONFLICT_SUFFIX" variable',
             { cause: 'name.conflict', item: 'category-name-2' },
           ),
@@ -286,8 +286,8 @@ describe('NameConflictResolver', () => {
           await processor.runOnLabel(
             generateNormalizedLabel('-not-2', null, 'label-name-2'),
           );
-        }).rejects.toThrowError(
-          new ConfigurerError(
+        }).rejects.toThrow(
+          new ValidationError(
             'Name conflict found "label-name-2". Try to use "NAME_CONFLICT_SUFFIX" variable',
             { cause: 'name.conflict', item: 'label-name-2' },
           ),

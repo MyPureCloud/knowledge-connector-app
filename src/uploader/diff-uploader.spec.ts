@@ -46,7 +46,9 @@ describe('DiffUploader', () => {
         documents: [],
       },
     } as unknown as PipeContext;
-    sourceAdapter = {} as SourceAdapter<unknown, unknown, unknown>;
+    sourceAdapter = {
+      constructDocumentLink: (_) => Promise.resolve(null),
+    } as SourceAdapter<unknown, unknown, unknown>;
     destinationAdapter = new GenesysDestinationAdapter();
     syncData = destinationAdapter.syncData as unknown as MockInstance<
       (data: SyncModel) => Promise<SyncDataResponse>
