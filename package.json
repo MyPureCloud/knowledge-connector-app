@@ -1,6 +1,6 @@
 {
   "name": "knowledge-connector-app",
-  "version": "0.10.2",
+  "version": "0.10.3",
   "description": "Knowledge Connector App",
   "module": "./dist/index.js",
   "main": "./dist/index.js",
@@ -52,30 +52,31 @@
     "url": "https://github.com/MyPureCloud/knowledge-connector-app.git"
   },
   "devDependencies": {
-    "@eslint/js": "9.21.0",
+    "@eslint/js": "9.39.2",
     "@jest/globals": "29.7.0",
     "@tsconfig/node18": "18.2.4",
-    "@types/lodash": "4.17.15",
+    "@types/lodash": "4.17.23",
     "@types/node": "18.15.3",
-    "eslint": "9.21.0",
-    "eslint-config-prettier": "10.0.1",
+    "eslint": "9.39.2",
+    "eslint-config-prettier": "10.1.8",
     "jest": "29.7.0",
-    "prettier": "3.5.2",
-    "rimraf": "6.0.1",
+    "prettier": "3.7.4",
+    "rimraf": "6.1.2",
     "ts-jest": "29.2.6",
     "ts-jest-resolver": "2.0.1",
     "ts-node": "10.9.2",
     "tslib": "2.8.1",
     "typescript": "5.7.3",
-    "typescript-eslint": "8.25.0"
+    "typescript-eslint": "8.52.0"
   },
   "dependencies": {
-    "dotenv": "16.4.7",
+    "dotenv": "17.2.3",
     "file-type": "19.3.0",
-    "knowledge-html-converter": "0.7.3",
+    "html-entities": "2.6.0",
+    "knowledge-html-converter": "0.9.0",
     "lodash": "4.17.21",
-    "mollitia": "0.1.1",
-    "undici": "7.3.0",
-    "winston": "3.17.0"
+    "mollitia": "0.2.0",
+    "undici": "7.10.0",
+    "winston": "3.19.0"
   }
 }

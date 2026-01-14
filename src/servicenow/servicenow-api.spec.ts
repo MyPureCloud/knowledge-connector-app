@@ -2,7 +2,10 @@ import { isString } from 'lodash';
 import { ApiError } from '../adapter/errors/api-error.js';
 import { ServiceNowApi } from './servicenow-api.js';
 import { ServiceNowArticle } from './model/servicenow-article.js';
-import { AuthenticationType, ServiceNowConfig } from './model/servicenow-config.js';
+import {
+  AuthenticationType,
+  ServiceNowConfig,
+} from './model/servicenow-config.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fetch, Response } from '../utils/web-client.js';
 import { arraysFromAsync } from '../utils/arrays.js';
@@ -44,7 +47,7 @@ describe('ServiceNowApi', () => {
   const oAuthAuthenticationHeaders = {
     headers: {
       Authorization: `Bearer ${ACCESS_TOKEN}`,
-    }
+    },
   };
 
   let mockFetch: jest.Mock<typeof fetch>;
@@ -333,7 +336,7 @@ describe('ServiceNowApi', () => {
         await api.initialize(config, context);
         await expect(() =>
           arraysFromAsync(api.articleIterator()),
-        ).rejects.toThrowError(
+        ).rejects.toThrow(
           new ApiError(
             `Api request [https://test-url.com/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category,sys_updated_on${filters}${order}&limit=50&offset=0] failed with status [500] and message [${ERROR_BODY}]`,
             {
@@ -383,7 +386,7 @@ describe('ServiceNowApi', () => {
       });
 
       it('should return ApiError', async () => {
-        await expect(() => api.getArticle(ARTICLE_NUMBER)).rejects.toThrowError(
+        await expect(() => api.getArticle(ARTICLE_NUMBER)).rejects.toThrow(
           new ApiError(
             `Api request [https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_NUMBER}?fields=kb_category,kb_knowledge_base,workflow_state,active,sys_updated_on,valid_to] failed with status [500] and message [${ERROR_BODY}]`,
             {
@@ -411,7 +414,7 @@ describe('ServiceNowApi', () => {
         mockApiResponse(200, {
           access_token: ACCESS_TOKEN,
           expires_in: TEN_DAYS_IN_SEC,
-          refresh_token: REFRESH_TOKEN
+          refresh_token: REFRESH_TOKEN,
         } as ServiceNowAccessTokenResponse);
 
         mockApiResponse(200, {
@@ -433,7 +436,11 @@ describe('ServiceNowApi', () => {
         expect(firstCall[0]).toBe(expectedUrl1);
         verifyOAuthRequestBody(firstCall[1]?.body as URLSearchParams);
 
-        expect(fetch).toHaveBeenCalledWith(expectedUrl2, oAuthAuthenticationHeaders, EntityType.DOCUMENT);
+        expect(fetch).toHaveBeenCalledWith(
+          expectedUrl2,
+          oAuthAuthenticationHeaders,
+          EntityType.DOCUMENT,
+        );
 
         expect(actual).toEqual({
           sys_id: ARTICLE_SYS_ID,
@@ -445,13 +452,13 @@ describe('ServiceNowApi', () => {
         mockApiResponse(200, {
           access_token: ACCESS_TOKEN,
           expires_in: -1 * TEN_DAYS_IN_SEC,
-          refresh_token: REFRESH_TOKEN
+          refresh_token: REFRESH_TOKEN,
         } as ServiceNowAccessTokenResponse);
 
         mockApiResponse(200, {
           access_token: NEW_ACCESS_TOKEN,
           expires_in: TEN_DAYS_IN_SEC,
-          refresh_token: REFRESH_TOKEN
+          refresh_token: REFRESH_TOKEN,
         } as ServiceNowAccessTokenResponse);
 
         mockApiResponse(200, {
@@ -485,7 +492,9 @@ describe('ServiceNowApi', () => {
         // Verify article fetch call
         const thirdCall = mockFetch.mock.calls[2];
         expect(thirdCall[0]).toBe(expectedUrl2);
-        expect(thirdCall[1]?.headers).toEqual(oAuthAuthenticationHeadersWithNewToken);
+        expect(thirdCall[1]?.headers).toEqual(
+          oAuthAuthenticationHeadersWithNewToken,
+        );
 
         // Verify response
         expect(actual).toEqual({
@@ -497,12 +506,16 @@ describe('ServiceNowApi', () => {
       describe('On authentication error', () => {
         it('should throw error when SERVICENOW_CLIENT_ID is missing from config', async () => {
           config.servicenowClientId = undefined;
-          await checkValidationError('Missing SERVICENOW_CLIENT_ID from config');
+          await checkValidationError(
+            'Missing SERVICENOW_CLIENT_ID from config',
+          );
         });
 
         it('should throw error when SERVICENOW_CLIENT_SECRET is missing from config', async () => {
           config.servicenowClientSecret = undefined;
-          await checkValidationError('Missing SERVICENOW_CLIENT_SECRET from config');
+          await checkValidationError(
+            'Missing SERVICENOW_CLIENT_SECRET from config',
+          );
         });
 
         it('should throw error when SERVICENOW_USERNAME is missing from config', async () => {
@@ -522,9 +535,15 @@ describe('ServiceNowApi', () => {
             await api.initialize(config, context);
             expect(true).toBe(false);
           } catch (error) {
-            expect((error as InvalidCredentialsError).toFailedEntityErrors()[0].code).toEqual(ErrorCodes.THIRD_PARTY_INVALID_CREDENTIALS);
-            expect((error as InvalidCredentialsError)
-              .toFailedEntityErrors()[0].messageWithParams).toEqual('Failed to get ServiceNow bearer token. Reason: Api request [https://test-url.com/oauth_token.do] failed with status [500] and message [Error message]');
+            expect(
+              (error as InvalidCredentialsError).toFailedEntityErrors()[0].code,
+            ).toEqual(ErrorCodes.THIRD_PARTY_INVALID_CREDENTIALS);
+            expect(
+              (error as InvalidCredentialsError).toFailedEntityErrors()[0]
+                .messageWithParams,
+            ).toEqual(
+              'Failed to get ServiceNow bearer token. Reason: Api request [https://test-url.com/oauth_token.do] failed with status [500] and message [Error message]',
+            );
           }
           checkFetchToken();
         });
@@ -536,8 +555,13 @@ describe('ServiceNowApi', () => {
             await api.initialize(config, context);
             expect(true).toBe(false);
           } catch (error) {
-            expect((error as InvalidCredentialsError).toFailedEntityErrors()[0].code).toEqual(ErrorCodes.THIRD_PARTY_INVALID_CREDENTIALS);
-            expect((error as InvalidCredentialsError).toFailedEntityErrors()[0].messageWithParams).toContain('Access token not found in the response:');
+            expect(
+              (error as InvalidCredentialsError).toFailedEntityErrors()[0].code,
+            ).toEqual(ErrorCodes.THIRD_PARTY_INVALID_CREDENTIALS);
+            expect(
+              (error as InvalidCredentialsError).toFailedEntityErrors()[0]
+                .messageWithParams,
+            ).toContain('Access token not found in the response:');
           }
           checkFetchToken();
         });
@@ -545,8 +569,14 @@ describe('ServiceNowApi', () => {
     });
   });
 
-  function checkFetchUrl(expectedUrl: string, entityType: EntityType, isOAuth = false): void {
-    const headers = isOAuth ? oAuthAuthenticationHeaders : basicAuthenticationHeaders;
+  function checkFetchUrl(
+    expectedUrl: string,
+    entityType: EntityType,
+    isOAuth = false,
+  ): void {
+    const headers = isOAuth
+      ? oAuthAuthenticationHeaders
+      : basicAuthenticationHeaders;
     expect(fetch).toHaveBeenCalledWith(expectedUrl, headers, entityType);
   }
 
@@ -555,8 +585,12 @@ describe('ServiceNowApi', () => {
       await api.initialize(config, context);
       expect(true).toBe(false);
     } catch (error) {
-      expect((error as ValidationError).toFailedEntityErrors()[0].code).toEqual(ErrorCodes.VALIDATION_ERROR);
-      expect((error as ValidationError).toFailedEntityErrors()[0].messageWithParams).toEqual(errorMessage);
+      expect((error as ValidationError).toFailedEntityErrors()[0].code).toEqual(
+        ErrorCodes.VALIDATION_ERROR,
+      );
+      expect(
+        (error as ValidationError).toFailedEntityErrors()[0].messageWithParams,
+      ).toEqual(errorMessage);
     }
   }
 
@@ -570,7 +604,7 @@ describe('ServiceNowApi', () => {
 
   function verifyOAuthRequestBody(
     requestBody: URLSearchParams,
-    isRefreshToken = false
+    isRefreshToken = false,
   ) {
     expect(requestBody.get('client_id')).toBe('test-client-id');
     expect(requestBody.get('client_secret')).toBe('test-client-secret');

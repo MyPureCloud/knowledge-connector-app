@@ -227,6 +227,13 @@ UPDATE_DOCUMENT_LINKS=
 BUILD_EXTERNAL_URLS=
 ```
 
+#### Decode HTML Entities in links
+
+```
+# Update document links with HTML Entities decoded. Values: 'true' or 'false'. Default 'false'.
+DECODE_HTML_ENTITIES_IN_LINKS=
+```
+
 #### Attachment (image) download allow-list
 
 ```
