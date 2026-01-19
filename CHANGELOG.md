@@ -1,5 +1,11 @@
 # Change log
 
+## 0.10.4 (2026-01-19)
+
+### Fixes:
+
+1. Added language mapping to ServiceNow
+
 ## 0.10.3 (2026-01-13)
 
 ### Changes:

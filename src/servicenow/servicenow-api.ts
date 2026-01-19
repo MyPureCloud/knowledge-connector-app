@@ -28,6 +28,7 @@ import { Interrupted } from '../utils/errors/interrupted.js';
 import { ApiError } from '../adapter/errors/api-error.js';
 import { InvalidCredentialsError } from '../adapter/errors/invalid-credentials-error.js';
 import { ServicenowOAuthToken } from './model/servicenow-oauth-token.js';
+import { LANGUAGE_MAPPING } from './servicenow-language-mapping.js';
 
 export class ServiceNowApi {
   private config: ServiceNowConfig = {};
@@ -277,15 +278,18 @@ export class ServiceNowApi {
     );
 
     if (this.config.servicenowLanguage) {
-      const language =
-        this.config.servicenowLanguage.length > 2
-          ? this.config.servicenowLanguage.substring(0, 2)
-          : this.config.servicenowLanguage;
-
+      const language = this.mapLanguageCode();
       params.push(`language=${esc(language)}`);
     }
 
     return params.join('&');
+  }
+
+  private mapLanguageCode(): string {
+    const languageCode = this.config.servicenowLanguage!;
+
+    return LANGUAGE_MAPPING[languageCode]
+      ?? (languageCode.length > 2 ? languageCode.substring(0, 2) : languageCode);
   }
 
   private buildFilters(categories?: string): string {
