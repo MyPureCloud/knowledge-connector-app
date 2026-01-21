@@ -226,6 +226,36 @@ describe('ServiceNowApi', () => {
         checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
+      it('should map pt-BR to pb via LANGUAGE_MAPPING', async () => {
+        config = {
+          ...config,
+          servicenowLanguage: 'pt-BR',
+        };
+        const expectedUrl = `${fetchArticleUrl}${filters}${order}&language=pb&limit=50&offset=0`;
+
+        await api.initialize(config, context);
+        const response = await arraysFromAsync(api.articleIterator());
+
+        expect(response).toEqual([testArticle]);
+        expect(fetch).toHaveBeenCalledTimes(1);
+        checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
+      });
+
+      it('should map fr-CA to fq via LANGUAGE_MAPPING', async () => {
+        config = {
+          ...config,
+          servicenowLanguage: 'fr-CA',
+        };
+        const expectedUrl = `${fetchArticleUrl}${filters}${order}&language=fq&limit=50&offset=0`;
+
+        await api.initialize(config, context);
+        const response = await arraysFromAsync(api.articleIterator());
+
+        expect(response).toEqual([testArticle]);
+        expect(fetch).toHaveBeenCalledTimes(1);
+        checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
+      });
+
       it('should fetch articles with one specific knowledge base', async () => {
         config = {
           ...config,
