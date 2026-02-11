@@ -185,7 +185,7 @@ jest.mock('./genesys-destination-api.js', () => {
   };
 });
 
-jest.mock('file-type', () => {
+jest.mock('file-type/core', () => {
   return {
     fileTypeFromBuffer: (image: Image) => mockFileTypeFromBuffer(image),
   };

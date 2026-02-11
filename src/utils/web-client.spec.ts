@@ -104,15 +104,17 @@ describe('WebClient', () => {
           readResponse<object>(URL, mockResponse(200, NON_JSON_RESPONSE_BODY)),
         ).rejects.toThrow(
           new ApiError(
-            `Api request [${URL}] failed to parse body [${NON_JSON_RESPONSE_BODY}] - SyntaxError: Unexpected token < in JSON at position 0`,
+            `Api request [${URL}] failed to parse body [${NON_JSON_RESPONSE_BODY}] - SyntaxError: Unexpected token '<', "<something"... is not valid JSON`,
             {
               url: URL,
               status: 200,
-              message: 'SyntaxError: Unexpected token < in JSON at position 0',
+              message: `SyntaxError: Unexpected token '<', "<something"... is not valid JSON`,
               body: NON_JSON_RESPONSE_BODY,
             },
             undefined,
-            SyntaxError('Unexpected token < in JSON at position 0'),
+            SyntaxError(
+              `Unexpected token '<', "<something"... is not valid JSON`,
+            ),
           ),
         );
       });
@@ -282,16 +284,17 @@ describe('WebClient', () => {
 
           await expect(() => fetchDestinationResource(URL)).rejects.toThrow(
             new ApiError(
-              'Api request [https://some-random-url.genesys.com] failed to parse body [some none JSON response] - SyntaxError: Unexpected token s in JSON at position 0',
+              `Api request [https://some-random-url.genesys.com] failed to parse body [some none JSON response] - SyntaxError: Unexpected token 's', "some none "... is not valid JSON`,
               {
                 url: 'https://some-random-url.genesys.com',
                 status: 200,
-                message:
-                  'SyntaxError: Unexpected token s in JSON at position 0',
+                message: `SyntaxError: Unexpected token 's', "some none "... is not valid JSON`,
                 body: 'some none JSON response',
               },
               undefined,
-              new Error('Unexpected token s in JSON at position 0'),
+              new Error(
+                `Unexpected token 's', "some none "... is not valid JSON`,
+              ),
             ),
           );
 
@@ -402,15 +405,17 @@ describe('WebClient', () => {
 
         await expect(() => fetchDestinationResource(URL)).rejects.toThrow(
           new ApiError(
-            'Api request [https://some-random-url.genesys.com] failed to parse body [<html></html>] - SyntaxError: Unexpected token < in JSON at position 0',
+            `Api request [https://some-random-url.genesys.com] failed to parse body [<html></html>] - SyntaxError: Unexpected token '<', "<html></html>" is not valid JSON`,
             {
               url: 'https://some-random-url.genesys.com',
               status: 200,
-              message: 'SyntaxError: Unexpected token < in JSON at position 0',
+              message: `SyntaxError: Unexpected token '<', "<html></html>" is not valid JSON`,
               body: '<html></html>',
             },
             undefined,
-            new Error('Unexpected token < in JSON at position 0'),
+            new Error(
+              `Unexpected token '<', "<html></html>" is not valid JSON`,
+            ),
           ),
         );
 
