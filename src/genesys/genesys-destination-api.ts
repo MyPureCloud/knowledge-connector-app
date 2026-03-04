@@ -155,7 +155,12 @@ export class GenesysDestinationApi extends GenesysApi {
       headers,
       body: data,
     };
-    await fetchDestinationResource(uploadUrl, request, undefined, ContentType.TEXT);
+    await fetchDestinationResource(
+      uploadUrl,
+      request,
+      undefined,
+      ContentType.TEXT,
+    );
 
     return { uploadKey };
   }
@@ -170,6 +175,9 @@ export class GenesysDestinationApi extends GenesysApi {
       `/api/v2/knowledge/knowledgeBases/${kbId}/synchronize/jobs`,
       {
         method: 'POST',
+        headers: {
+          interruptible: 'false',
+        },
       },
       body,
     );
@@ -179,6 +187,11 @@ export class GenesysDestinationApi extends GenesysApi {
     const kbId = this.getKnowledgeBaseId();
     return this.fetch<SyncDataResponse>(
       `/api/v2/knowledge/knowledgeBases/${kbId}/synchronize/jobs/${syncId}?expand=urls`,
+      {
+        headers: {
+          interruptible: 'false',
+        },
+      },
     );
   }
 

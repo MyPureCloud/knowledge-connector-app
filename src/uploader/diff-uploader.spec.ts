@@ -4,7 +4,6 @@ import {
   GenesysDestinationAdapter,
   GenesysDestinationConfig,
 } from '../genesys';
-import { PipeContext } from '../pipe/pipe-context.js';
 import { SourceAdapter } from '../adapter/source-adapter.js';
 import {
   ExternalIdentifiable,
@@ -15,6 +14,10 @@ import {
 import { MockInstance } from 'jest-mock';
 import { ConfigurerError } from '../aggregator/errors/configurer-error.js';
 import { FailedItems } from '../model/failed-items.js';
+import { DiffUploaderContext } from './diff-uploader-context';
+import { Interrupted } from '../utils';
+import Mock = jest.Mock;
+import { ExternalLink } from '../model/external-link';
 
 jest.mock('../utils/package-version.js');
 jest.mock('../genesys/genesys-destination-adapter.js');
@@ -29,8 +32,11 @@ describe('DiffUploader', () => {
 
   let uploader: DiffUploader;
   let config: GenesysDestinationConfig;
-  let context: PipeContext;
+  let context: DiffUploaderContext;
   let sourceAdapter: SourceAdapter<unknown, unknown, unknown>;
+  let constructDocumentLinkMock: Mock<
+    (data: SyncModel) => Promise<ExternalLink | null>
+  >;
   let destinationAdapter: GenesysDestinationAdapter;
   let syncData: MockInstance<(data: SyncModel) => Promise<SyncDataResponse>>;
   let failedItems: FailedItems;
@@ -45,10 +51,12 @@ describe('DiffUploader', () => {
         labels: [],
         documents: [],
       },
-    } as unknown as PipeContext;
+    } as unknown as DiffUploaderContext;
+    constructDocumentLinkMock =
+      jest.fn<(data: SyncModel) => Promise<ExternalLink | null>>();
     sourceAdapter = {
-      constructDocumentLink: (_) => Promise.resolve(null),
-    } as SourceAdapter<unknown, unknown, unknown>;
+      constructDocumentLink: constructDocumentLinkMock,
+    } as unknown as SourceAdapter<unknown, unknown, unknown>;
     destinationAdapter = new GenesysDestinationAdapter();
     syncData = destinationAdapter.syncData as unknown as MockInstance<
       (data: SyncModel) => Promise<SyncDataResponse>
@@ -159,7 +167,41 @@ describe('DiffUploader', () => {
     });
   });
 
-  describe('when there are failed items', () => {});
+  describe('when interrupted', () => {
+    beforeEach(async () => {
+      await initializeUploader({});
+    });
+
+    it('should persist progress', async () => {
+      const content = generateContent(EXTERNAL_ID_PREFIX, null);
+      constructDocumentLinkMock.mockResolvedValueOnce(null);
+      constructDocumentLinkMock.mockResolvedValueOnce(null);
+      constructDocumentLinkMock.mockResolvedValueOnce(null);
+      constructDocumentLinkMock.mockRejectedValueOnce(new Interrupted());
+
+      await expect(() => uploader.run(content, failedItems)).rejects.toThrow(
+        Interrupted,
+      );
+
+      expect(context.diffUploader.articles.processedCount).toBe(3);
+      expect(constructDocumentLinkMock).toHaveBeenCalledTimes(4);
+    });
+
+    it('should continue from last item', async () => {
+      const content = generateContent(EXTERNAL_ID_PREFIX, null);
+      context.diffUploader.articles.processedCount = 3;
+      constructDocumentLinkMock.mockResolvedValueOnce(null);
+      constructDocumentLinkMock.mockResolvedValueOnce(null);
+      constructDocumentLinkMock.mockRejectedValueOnce(new Interrupted());
+
+      await expect(() => uploader.run(content, failedItems)).rejects.toThrow(
+        Interrupted,
+      );
+
+      expect(context.diffUploader.articles.processedCount).toBe(5);
+      expect(constructDocumentLinkMock).toHaveBeenCalledTimes(3);
+    });
+  });
 
   function generateContent(
     externalIdPrefix: string | null,
