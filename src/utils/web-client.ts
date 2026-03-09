@@ -76,9 +76,12 @@ export async function fetch(
   init?: RequestInit,
   entityName?: EntityType,
 ): Promise<Response> {
-  runtime.check();
-
   const headers = new Headers(init?.headers);
+  if (headers.get('interruptible') !== 'false') {
+    runtime.check();
+  }
+  headers.delete('interruptible');
+
   if (!headers.has('User-Agent')) {
     headers.set(
       'User-Agent',
@@ -301,7 +304,7 @@ function setUserAgent(init: RequestInit = {}, userAgent?: string): RequestInit {
   const headers = new Headers(init?.headers);
 
   if (userAgent) {
-    headers.set('User-Agent', userAgent)
+    headers.set('User-Agent', userAgent);
   }
 
   return {

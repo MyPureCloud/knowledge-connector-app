@@ -191,8 +191,8 @@ export class Pipe {
       await this.processLabels(this.context);
       await this.processDocuments(this.context);
 
-      runtime.stopProcessKillTimer(); // Do not stop process in middle of upload
       await this.uploadResult(config, this.context);
+      runtime.stopProcessKillTimer();
 
       await this.saveContext();
     } catch (error) {

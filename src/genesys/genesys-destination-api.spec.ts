@@ -100,6 +100,7 @@ describe('GenesysDestinationApi', () => {
           headers: {
             Authorization: 'Bearer access-token',
             'Content-Type': 'application/json',
+            interruptible: 'false',
           },
           method: 'POST',
         },

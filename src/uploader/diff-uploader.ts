@@ -16,9 +16,12 @@ import {
   isFromSameSource,
   removeExternalIdPrefix,
 } from '../utils/source-matcher.js';
-import { PipeContext } from '../pipe/pipe-context.js';
 import { FailedItems } from '../model/failed-items.js';
 import { SourceAdapter } from '../adapter/source-adapter.js';
+import { DiffUploaderContext } from './diff-uploader-context';
+import { PipeContext } from '../pipe';
+import { catcher } from '../utils/catch-error-helper.js';
+import { Interrupted } from '../utils/errors/interrupted.js';
 
 /**
  * DiffUploader collects all the new and changed entities into a JSON format and uploads it to Genesys Knowledge's import API
@@ -27,7 +30,7 @@ export class DiffUploader implements Uploader {
   private config?: GenesysDestinationConfig;
   private adapter?: GenesysDestinationAdapter;
   private sourceAdapter?: SourceAdapter<unknown, unknown, unknown>;
-  private context?: PipeContext;
+  private context?: DiffUploaderContext;
   private externalIdPrefix: string | null = null;
   private sourceId: string | null = null;
   private allowPruneAllEntities: boolean = true;
@@ -43,7 +46,7 @@ export class DiffUploader implements Uploader {
     this.config = config;
     this.adapter = adapters.destinationAdapter;
     this.sourceAdapter = adapters.sourceAdapter;
-    this.context = context;
+    this.context = this.initContext(context);
 
     this.externalIdPrefix = this.config.externalIdPrefix ?? null;
     this.sourceId = this.config.genesysSourceId ?? null;
@@ -59,40 +62,51 @@ export class DiffUploader implements Uploader {
       'Missing Genesys Knowledge Base Id',
     );
     validateNonNull(this.adapter, 'Missing destination adapter');
+    const context = validateNonNull(this.context, 'Missing context');
 
     this.removeItemsNotFromSameSource(importableContents.categories);
     this.removeItemsNotFromSameSource(importableContents.labels);
     this.removeItemsNotFromSameSource(importableContents.documents);
 
     try {
-      await this.logDeletedDocuments(importableContents.documents.deleted);
+      await this.logDeletedDocuments(
+        importableContents.documents.deleted || [],
+        context,
+      );
     } catch (error) {
-      getLogger().error('Error verifying document deletion', error as Error);
+      await catcher()
+        .rethrow(Interrupted)
+        .any(() => {
+          getLogger().error(
+            'Error verifying document deletion',
+            error as Error,
+          );
+        })
+        .with(error);
     }
 
     this.verifyNotToDeleteEverything(
       importableContents.categories,
-      this.context?.storedContent?.categories || [],
+      context.storedContent?.categories || [],
     );
     this.verifyNotToDeleteEverything(
       importableContents.labels,
-      this.context?.storedContent?.labels || [],
+      context.storedContent?.labels || [],
     );
     this.verifyNotToDeleteEverything(
       importableContents.documents,
-      this.context?.storedContent?.documents || [],
+      context.storedContent?.documents || [],
     );
     const data: SyncModel = this.constructSyncModel(
       importableContents,
       failedItems,
     );
 
-    const processedItems = this.context?.pipe?.processedItems ||
-      {
-        categories: [],
-        labels: [],
-        documents: [],
-      };
+    const processedItems = this.context?.pipe?.processedItems || {
+      categories: [],
+      labels: [],
+      documents: [],
+    };
 
     this.logStatistics(importableContents, processedItems);
 
@@ -146,36 +160,57 @@ export class DiffUploader implements Uploader {
     };
   }
 
-  protected logStatistics(importableContents: SyncableContents, processedItems: ExternalContent): void {
+  protected logStatistics(
+    importableContents: SyncableContents,
+    processedItems: ExternalContent,
+  ): void {
     const processedCategories = processedItems.categories.length;
     const processedLabels = processedItems.labels.length;
     const processedDocuments = processedItems.documents.length;
     getLogger().info(
-      'Categories to create: ' + importableContents.categories.created.length + ' out of: ' + processedCategories,
+      'Categories to create: ' +
+        importableContents.categories.created.length +
+        ' out of: ' +
+        processedCategories,
     );
     getLogger().info(
-      'Categories to update: ' + importableContents.categories.updated.length + ' out of: ' + processedCategories,
+      'Categories to update: ' +
+        importableContents.categories.updated.length +
+        ' out of: ' +
+        processedCategories,
     );
     getLogger().info(
-      'Categories to delete: ' + importableContents.categories.deleted.length + ' out of: ' + processedCategories,
+      'Categories to delete: ' + importableContents.categories.deleted.length,
     );
     getLogger().info(
-      'Labels to create: ' + importableContents.labels.created.length + ' out of: ' + processedLabels,
+      'Labels to create: ' +
+        importableContents.labels.created.length +
+        ' out of: ' +
+        processedLabels,
     );
     getLogger().info(
-      'Labels to update: ' + importableContents.labels.updated.length + ' out of: ' + processedLabels,
+      'Labels to update: ' +
+        importableContents.labels.updated.length +
+        ' out of: ' +
+        processedLabels,
     );
     getLogger().info(
-      'Labels to delete: ' + importableContents.labels.deleted.length + ' out of: ' + processedLabels,
+      'Labels to delete: ' + importableContents.labels.deleted.length,
     );
     getLogger().info(
-      'Documents to create: ' + importableContents.documents.created.length + ' out of: ' + processedDocuments,
+      'Documents to create: ' +
+        importableContents.documents.created.length +
+        ' out of: ' +
+        processedDocuments,
     );
     getLogger().info(
-      'Documents to update: ' + importableContents.documents.updated.length + ' out of: ' + processedDocuments,
+      'Documents to update: ' +
+        importableContents.documents.updated.length +
+        ' out of: ' +
+        processedDocuments,
     );
     getLogger().info(
-      'Documents to delete: ' + importableContents.documents.deleted.length + ' out of: ' + processedDocuments,
+      'Documents to delete: ' + importableContents.documents.deleted.length,
     );
   }
 
@@ -240,11 +275,16 @@ export class DiffUploader implements Uploader {
   }
 
   private async logDeletedDocuments(
-    documents: Document[] = [],
+    documents: Document[],
+    context: DiffUploaderContext,
   ): Promise<void> {
-    getLogger().info(`Verify ${documents.length} documents before deleting`);
-    for (const document of documents) {
-      await this.logDeletedDocumentsState(document);
+    let i = context.diffUploader?.articles?.processedCount || 0;
+    getLogger().info(
+      `Verify ${documents.length} documents before deleting starting from ${i}`,
+    );
+    for (; i < documents.length; i++) {
+      await this.logDeletedDocumentsState(documents[i]);
+      context.diffUploader.articles.processedCount = i + 1;
     }
   }
 
@@ -252,5 +292,17 @@ export class DiffUploader implements Uploader {
     await this.sourceAdapter!.constructDocumentLink(
       removeExternalIdPrefix(document.externalId!, this.externalIdPrefix),
     );
+  }
+
+  private initContext(pipeContext: PipeContext): DiffUploaderContext {
+    const context = validateNonNull(pipeContext, 'Missing context');
+
+    context.diffUploader ??= {
+      articles: {
+        processedCount: 0,
+      },
+    };
+
+    return context as DiffUploaderContext;
   }
 }

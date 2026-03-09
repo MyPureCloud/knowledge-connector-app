@@ -452,6 +452,29 @@ describe('WebClient', () => {
           Interrupted,
         );
       });
+
+      describe('interruptible false header set', () => {
+        it('should not throw Interrupted', async () => {
+          let capturedHeaders: Headers | undefined;
+
+          mockAgent
+            .get(URL)
+            .intercept({ method: 'GET', path: '/' })
+            .reply(200, (opts) => {
+              capturedHeaders = new Headers(opts.headers);
+              return JSON.stringify({});
+            })
+            .times(1);
+
+          await fetch(URL, {
+            headers: {
+              interruptible: 'false',
+            },
+          });
+
+          expect(capturedHeaders?.has('interruptible')).toBeFalsy();
+        });
+      });
     });
 
     describe('fetchImage', () => {
