@@ -18,7 +18,7 @@ import {
 } from '../utils/source-matcher.js';
 import { FailedItems } from '../model/failed-items.js';
 import { SourceAdapter } from '../adapter/source-adapter.js';
-import { DiffUploaderContext } from './diff-uploader-context';
+import { DiffUploaderContext } from './diff-uploader-context.js';
 import { PipeContext } from '../pipe';
 import { catcher } from '../utils/catch-error-helper.js';
 import { Interrupted } from '../utils/errors/interrupted.js';
