@@ -14,10 +14,10 @@ import {
 import { MockInstance } from 'jest-mock';
 import { ConfigurerError } from '../aggregator/errors/configurer-error.js';
 import { FailedItems } from '../model/failed-items.js';
-import { DiffUploaderContext } from './diff-uploader-context';
+import { DiffUploaderContext } from './diff-uploader-context.js';
 import { Interrupted } from '../utils';
 import Mock = jest.Mock;
-import { ExternalLink } from '../model/external-link';
+import { ExternalLink } from '../model/external-link.js';
 
 jest.mock('../utils/package-version.js');
 jest.mock('../genesys/genesys-destination-adapter.js');
