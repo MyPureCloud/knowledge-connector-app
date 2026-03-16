@@ -572,7 +572,7 @@ describe('ServiceNowApi', () => {
               (error as InvalidCredentialsError).toFailedEntityErrors()[0]
                 .messageWithParams,
             ).toEqual(
-              'Failed to get ServiceNow bearer token. Reason: Api request [https://test-url.com/oauth_token.do] failed with status [500] and message [Error message]',
+              'Failed to get access token. Reason: Api request [https://test-url.com/oauth_token.do] failed with status [500] and message [Error message]',
             );
           }
           checkFetchToken();
