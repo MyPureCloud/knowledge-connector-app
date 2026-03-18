@@ -1,11 +1,4 @@
 import { Image } from '../model/image.js';
-import {
-  fetch as innerFetch,
-  Headers,
-  HeadersInit,
-  RequestInit,
-  Response,
-} from 'undici';
 import { DownloadError } from './errors/download-error.js';
 import { ApiError } from '../adapter/errors/api-error.js';
 import { runtime } from './runtime.js';
@@ -14,20 +7,18 @@ import { EntityType } from '../model/entity-type.js';
 import { retry } from './retry.js';
 import { ContentType } from './content-type.js';
 
-export { Response, RequestInit, HeadersInit } from 'undici';
-
 const nodeVersion = process.version;
 
 /**
  * Fetch an image from the URL
  * @param url
- * @param headers
+ * @param requestInit
  * @throws DownloadError
  * @throws Interrupted
  */
 export async function fetchImage(
   url: string,
-  headers?: HeadersInit,
+  requestInit?: RequestInit,
 ): Promise<Image> {
   runtime.check();
 
@@ -35,7 +26,7 @@ export async function fetchImage(
     url = 'https:' + url;
   }
 
-  headers = new Headers(headers);
+  const headers = new Headers(requestInit?.headers);
   if (!headers.has('User-Agent')) {
     const userAgent = process.env.SOURCE_USER_AGENT
       ? process.env.SOURCE_USER_AGENT
@@ -43,7 +34,10 @@ export async function fetchImage(
     headers.set('User-Agent', userAgent);
   }
 
-  const response = await innerFetch(url, { headers });
+  const response = await request(url, {
+    ...requestInit,
+    headers,
+  });
   if (!response.ok) {
     throw new DownloadError(
       `Image ${url} cannot be downloaded`,
@@ -71,7 +65,7 @@ export async function fetchImage(
  * @throws Interrupted
  * @throws ApiError
  */
-export async function fetch(
+export async function request(
   url: string,
   init?: RequestInit,
   entityName?: EntityType,
@@ -95,7 +89,7 @@ export async function fetch(
   };
 
   try {
-    return await innerFetch(url, updatedInit);
+    return await fetch(url, updatedInit);
   } catch (error) {
     throw new ApiError(
       `Api request [${url}] failed with error - ${error}`,
@@ -288,7 +282,7 @@ async function fetchResource<T>(
   acceptContentType: ContentType = ContentType.JSON,
 ): Promise<T> {
   return retry(async () => {
-    const response = await fetch(url, init, entityName);
+    const response = await request(url, init, entityName);
 
     if (acceptContentType === ContentType.JSON) {
       return readJson(url, response, entityName);

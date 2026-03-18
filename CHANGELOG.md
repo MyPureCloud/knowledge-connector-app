@@ -1,5 +1,21 @@
 # Change log
 
+## 0.12.0
+
+### Breaking Changes:
+
+1. **BREAKING**: Replaced undici HTTP client with Node.js v22+ native Fetch API
+2. The __*fetch*__ method in WebClient was renamed to __*request*__ for better compatibility 
+3. Updated Node.js requirement to version 22+ (added .nvmrc)
+
+### Changes:
+
+1. Simplified HTTP client implementation in web-client.ts
+
+### Removed:
+
+1. Removed undici dependency from package.json
+
 ## 0.11.0
 
 ### Changes:
@@ -163,4 +179,3 @@
 
 1. The entity processing now happens one by one instead of the previous all at once.
 2. ServiceNow adapter fetches the categories from Table API.
-

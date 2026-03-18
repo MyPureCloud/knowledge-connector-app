@@ -7,7 +7,7 @@ import {
   ServiceNowConfig,
 } from './model/servicenow-config.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { fetch, Response } from '../utils/web-client.js';
+import { request } from '../utils/web-client.js';
 import { arraysFromAsync } from '../utils/arrays.js';
 import { ServiceNowContext } from './model/servicenow-context.js';
 import { ServiceNowCategory } from './model/servicenow-category.js';
@@ -50,13 +50,13 @@ describe('ServiceNowApi', () => {
     },
   };
 
-  let mockFetch: jest.Mock<typeof fetch>;
+  let mockRequest: jest.Mock<typeof request>;
   let api: ServiceNowApi;
   let config: ServiceNowConfig;
   let context: ServiceNowContext;
 
   beforeEach(async () => {
-    mockFetch = fetch as jest.Mock<typeof fetch>;
+    mockRequest = request as jest.Mock<typeof request>;
     api = new ServiceNowApi();
     config = {
       servicenowUsername: 'user',
@@ -85,7 +85,7 @@ describe('ServiceNowApi', () => {
         const response = await arraysFromAsync(api.categoryIterator());
 
         expect(response).toEqual([category]);
-        expect(fetch).toHaveBeenCalledTimes(2);
+        expect(request).toHaveBeenCalledTimes(2);
         checkFetchUrl(expectedUrl + '&sysparm_offset=0', EntityType.CATEGORY);
         checkFetchUrl(expectedUrl + '&sysparm_offset=1', EntityType.CATEGORY);
       });
@@ -147,7 +147,7 @@ describe('ServiceNowApi', () => {
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
-        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(request).toHaveBeenCalledTimes(1);
         checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
@@ -162,7 +162,7 @@ describe('ServiceNowApi', () => {
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
-        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(request).toHaveBeenCalledTimes(1);
         checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
@@ -177,7 +177,7 @@ describe('ServiceNowApi', () => {
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
-        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(request).toHaveBeenCalledTimes(1);
         checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
@@ -192,7 +192,7 @@ describe('ServiceNowApi', () => {
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
-        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(request).toHaveBeenCalledTimes(1);
         checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
@@ -207,7 +207,7 @@ describe('ServiceNowApi', () => {
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
-        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(request).toHaveBeenCalledTimes(1);
         checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
@@ -222,7 +222,7 @@ describe('ServiceNowApi', () => {
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
-        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(request).toHaveBeenCalledTimes(1);
         checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
@@ -237,7 +237,7 @@ describe('ServiceNowApi', () => {
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
-        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(request).toHaveBeenCalledTimes(1);
         checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
@@ -252,7 +252,7 @@ describe('ServiceNowApi', () => {
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
-        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(request).toHaveBeenCalledTimes(1);
         checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
@@ -267,7 +267,7 @@ describe('ServiceNowApi', () => {
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
-        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(request).toHaveBeenCalledTimes(1);
         checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
@@ -282,7 +282,7 @@ describe('ServiceNowApi', () => {
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
-        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(request).toHaveBeenCalledTimes(1);
         checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
 
@@ -300,7 +300,7 @@ describe('ServiceNowApi', () => {
         const response = await arraysFromAsync(api.articleIterator());
 
         expect(response).toEqual([testArticle]);
-        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(request).toHaveBeenCalledTimes(1);
         checkFetchUrl(expectedUrl, EntityType.DOCUMENT);
       });
     });
@@ -342,7 +342,7 @@ describe('ServiceNowApi', () => {
         await api.initialize(config, context);
         const response = await arraysFromAsync(api.articleIterator());
 
-        expect(fetch).toHaveBeenCalledTimes(2);
+        expect(request).toHaveBeenCalledTimes(2);
         checkFetchUrl(firstExpectedUrl, EntityType.DOCUMENT);
         checkFetchUrl(secondExpectedUrl, EntityType.DOCUMENT);
         expect(response.length).toEqual(4);
@@ -397,7 +397,7 @@ describe('ServiceNowApi', () => {
 
         const actual = await api.getArticle(ARTICLE_SYS_ID);
 
-        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(request).toHaveBeenCalledTimes(1);
         checkFetchUrl(expectedUrl1, EntityType.DOCUMENT);
         expect(actual).toEqual({
           sys_id: ARTICLE_SYS_ID,
@@ -460,13 +460,13 @@ describe('ServiceNowApi', () => {
         const expectedUrl1 = 'https://test-url.com/oauth_token.do';
         const expectedUrl2 = `https://test-url.com/api/sn_km_api/knowledge/articles/${ARTICLE_SYS_ID}?fields=kb_category,kb_knowledge_base,workflow_state,active,sys_updated_on,valid_to`;
 
-        expect(fetch).toHaveBeenCalledTimes(2);
+        expect(request).toHaveBeenCalledTimes(2);
 
-        const firstCall = mockFetch.mock.calls[0];
+        const firstCall = mockRequest.mock.calls[0];
         expect(firstCall[0]).toBe(expectedUrl1);
         verifyOAuthRequestBody(firstCall[1]?.body as URLSearchParams);
 
-        expect(fetch).toHaveBeenCalledWith(
+        expect(request).toHaveBeenCalledWith(
           expectedUrl2,
           oAuthAuthenticationHeaders,
           EntityType.DOCUMENT,
@@ -507,20 +507,20 @@ describe('ServiceNowApi', () => {
           Authorization: `Bearer ${NEW_ACCESS_TOKEN}`,
         };
 
-        expect(fetch).toHaveBeenCalledTimes(3);
+        expect(request).toHaveBeenCalledTimes(3);
 
         // Verify initial authentication call
-        const firstCall = mockFetch.mock.calls[0];
+        const firstCall = mockRequest.mock.calls[0];
         expect(firstCall[0]).toBe(expectedUrl1);
         verifyOAuthRequestBody(firstCall[1]?.body as URLSearchParams);
 
         // Verify token refresh call
-        const secondCall = mockFetch.mock.calls[1];
+        const secondCall = mockRequest.mock.calls[1];
         expect(secondCall[0]).toBe(expectedUrl1);
         verifyOAuthRequestBody(secondCall[1]?.body as URLSearchParams, true);
 
         // Verify article fetch call
-        const thirdCall = mockFetch.mock.calls[2];
+        const thirdCall = mockRequest.mock.calls[2];
         expect(thirdCall[0]).toBe(expectedUrl2);
         expect(thirdCall[1]?.headers).toEqual(
           oAuthAuthenticationHeadersWithNewToken,
@@ -607,7 +607,7 @@ describe('ServiceNowApi', () => {
     const headers = isOAuth
       ? oAuthAuthenticationHeaders
       : basicAuthenticationHeaders;
-    expect(fetch).toHaveBeenCalledWith(expectedUrl, headers, entityType);
+    expect(request).toHaveBeenCalledWith(expectedUrl, headers, entityType);
   }
 
   async function checkValidationError(errorMessage: string): Promise<void> {
@@ -626,8 +626,8 @@ describe('ServiceNowApi', () => {
 
   function checkFetchToken(): void {
     const expectedUrl = 'https://test-url.com/oauth_token.do';
-    expect(fetch).toHaveBeenCalledTimes(1);
-    const call = mockFetch.mock.calls[0];
+    expect(request).toHaveBeenCalledTimes(1);
+    const call = mockRequest.mock.calls[0];
     expect(call[0]).toBe(expectedUrl);
     verifyOAuthRequestBody(call[1]?.body as URLSearchParams);
   }
@@ -654,7 +654,7 @@ describe('ServiceNowApi', () => {
   function mockApiResponse(status: number, body: unknown): void {
     const str = isString(body) ? body : JSON.stringify(body);
 
-    mockFetch.mockResolvedValueOnce({
+    mockRequest.mockResolvedValueOnce({
       ok: status === 200,
       status,
       text: () => Promise.resolve(str),

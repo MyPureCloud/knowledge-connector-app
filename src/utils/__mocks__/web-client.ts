@@ -1,20 +1,19 @@
 import { Image } from '../../model/image.js';
 import {
-  fetch as originalFetch,
+  request as originalRequest,
   fetchImage as originalFetchImage,
   fetchSourceResource as originalFetchSourceResource,
   fetchDestinationResource as originalFetchDestinationResource,
   readResponse as originalReadResponse,
 } from '../web-client.js';
 import { jest } from '@jest/globals';
-import { RequestInit, Response } from 'undici';
 import { EntityType } from '../../model/entity-type.js';
 import { ContentType } from '../content-type.js';
 
 const actualModule =
   jest.requireActual<typeof import('../web-client.js')>('../web-client.js');
 
-export const fetch = jest.fn<typeof originalFetch>();
+export const request = jest.fn<typeof originalRequest>();
 
 export const fetchImage = jest
   .fn<typeof originalFetchImage>()
@@ -36,7 +35,9 @@ export const fetchSourceResource = jest.fn<typeof originalFetchSourceResource>(
   ) => fakeFetchResource(url, init, entityName, acceptContentType),
 );
 
-export const fetchDestinationResource = jest.fn<typeof originalFetchDestinationResource>(
+export const fetchDestinationResource = jest.fn<
+  typeof originalFetchDestinationResource
+>(
   async (
     url: string,
     init?: RequestInit,
@@ -55,7 +56,7 @@ async function fakeFetchResource<T>(
   entityName?: EntityType,
   acceptContentType: ContentType = ContentType.JSON,
 ): Promise<T> {
-  const response = await fetch(url, init, entityName);
+  const response = await request(url, init, entityName);
 
   if (acceptContentType === ContentType.JSON) {
     return actualModule.readJson(url, response, entityName);

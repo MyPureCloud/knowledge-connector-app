@@ -9,7 +9,7 @@ export { runtime } from './runtime.js';
 export {
   fetchSourceResource,
   fetchDestinationResource,
-  fetch,
+  request,
   fetchImage,
   readBody,
   readResponse,

@@ -6,7 +6,7 @@ export class FileReaderClient {
     const fileUrl = new URL(url);
     const filePath = decodeURI(fileUrl.pathname);
     const imageData = await fs.readFile(filePath);
-    const content = new Blob([imageData]);
+    const content = new Blob([new Uint8Array(imageData)]);
 
     return {
       url,

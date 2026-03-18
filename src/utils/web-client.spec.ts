@@ -7,20 +7,18 @@ import {
   jest,
 } from '@jest/globals';
 import {
-  fetch,
+  fetchDestinationResource,
   fetchImage,
   fetchSourceResource,
-  fetchDestinationResource,
   readResponse,
-  Response,
+  request,
 } from './web-client.js';
 import { ApiError } from '../adapter/errors/api-error.js';
 import { Interrupted } from './errors/interrupted.js';
 import { runtime } from './runtime.js';
-import { Headers, MockAgent, setGlobalDispatcher } from 'undici';
 import { configure } from './retry.js';
 import { ContentType } from './content-type.js';
-import { getPackageVersion } from './package-version';
+import { getPackageVersion } from './package-version.js';
 
 jest.mock('./package-version.js');
 
@@ -32,19 +30,33 @@ describe('WebClient', () => {
   const RESPONSE_BODY_RAW = JSON.stringify(RESPONSE_BODY);
   const NON_JSON_RESPONSE_BODY = '<something><inside></inside></something>';
 
-  let mockAgent: MockAgent;
+  let fetchSpy: jest.SpiedFunction<typeof globalThis.fetch>;
 
   beforeEach(() => {
-    mockAgent = new MockAgent();
-    mockAgent.disableNetConnect();
-    setGlobalDispatcher(mockAgent);
+    fetchSpy = jest.spyOn(globalThis, 'fetch');
     configure(1);
   });
 
-  afterEach(async () => {
-    await mockAgent.close();
+  afterEach(() => {
+    fetchSpy.mockRestore();
     configure();
   });
+
+  function stubFetch(status: number, body: string): void {
+    fetchSpy.mockResolvedValueOnce(new Response(body, { status }));
+  }
+
+  function stubFetchTimes(status: number, body: string, times: number): void {
+    for (let i = 0; i < times; i++) {
+      stubFetch(status, body);
+    }
+  }
+
+  function getCapturedHeaders(): Headers {
+    const call = fetchSpy.mock.calls[0];
+    const init = call[1] as RequestInit | undefined;
+    return new Headers(init?.headers);
+  }
 
   describe('readResponse', () => {
     it('should parse response body', async () => {
@@ -125,16 +137,7 @@ describe('WebClient', () => {
     describe('when it is set in env var', () => {
       it('should be set by fetchSourceResource', async () => {
         process.env.SOURCE_USER_AGENT = 'SOURCE_USER_AGENT';
-        let capturedHeaders: Headers | Record<string, string> | undefined = {};
-
-        mockAgent
-          .get(URL)
-          .intercept({ method: 'GET', path: '/' })
-          .reply(200, (opts) => {
-            capturedHeaders = opts.headers;
-            return JSON.stringify({});
-          })
-          .times(1);
+        stubFetch(200, JSON.stringify({}));
 
         await fetchSourceResource(
           URL,
@@ -148,24 +151,16 @@ describe('WebClient', () => {
           ContentType.JSON,
         );
 
-        expect(capturedHeaders['User-Agent']).toBe(
+        expect(getCapturedHeaders().get('User-Agent')).toBe(
           process.env.SOURCE_USER_AGENT,
         );
-        mockAgent.assertNoPendingInterceptors();
+
+        expect(fetchSpy.mock.calls.length).toBe(1);
       });
 
       it('should be set by fetchDestinationResource', async () => {
         process.env.DESTINATION_USER_AGENT = 'DESTINATION_USER_AGENT';
-        let capturedHeaders: Headers | Record<string, string> | undefined = {};
-
-        mockAgent
-          .get(URL)
-          .intercept({ method: 'GET', path: '/' })
-          .reply(200, (opts) => {
-            capturedHeaders = opts.headers;
-            return JSON.stringify({});
-          })
-          .times(1);
+        stubFetch(200, JSON.stringify({}));
 
         await fetchDestinationResource(
           URL,
@@ -179,10 +174,11 @@ describe('WebClient', () => {
           ContentType.JSON,
         );
 
-        expect(capturedHeaders['User-Agent']).toBe(
+        expect(getCapturedHeaders().get('User-Agent')).toBe(
           process.env.DESTINATION_USER_AGENT,
         );
-        mockAgent.assertNoPendingInterceptors();
+
+        expect(fetchSpy.mock.calls.length).toBe(1);
       });
     });
 
@@ -192,16 +188,7 @@ describe('WebClient', () => {
 
       it('should be set to default by fetchSourceResource', async () => {
         delete process.env.SOURCE_USER_AGENT;
-        let capturedHeaders: Headers | Record<string, string> | undefined = {};
-
-        mockAgent
-          .get(URL)
-          .intercept({ method: 'GET', path: '/' })
-          .reply(200, (opts) => {
-            capturedHeaders = opts.headers;
-            return JSON.stringify({});
-          })
-          .times(1);
+        stubFetch(200, JSON.stringify({}));
 
         await fetchSourceResource(
           URL,
@@ -215,24 +202,15 @@ describe('WebClient', () => {
           ContentType.JSON,
         );
 
-        expect(capturedHeaders['User-Agent']).toBe(
+        expect(getCapturedHeaders().get('User-Agent')).toBe(
           `knowledge-connector-app/${packageVersion} (node.js ${nodeVersion})`,
         );
-        mockAgent.assertNoPendingInterceptors();
+        expect(fetchSpy.mock.calls.length).toBe(1);
       });
 
       it('should be set to default by fetchDestinationResource', async () => {
         delete process.env.DESTINATION_USER_AGENT;
-        let capturedHeaders: Headers | Record<string, string> | undefined = {};
-
-        mockAgent
-          .get(URL)
-          .intercept({ method: 'GET', path: '/' })
-          .reply(200, (opts) => {
-            capturedHeaders = opts.headers;
-            return JSON.stringify({});
-          })
-          .times(1);
+        stubFetch(200, JSON.stringify({}));
 
         await fetchDestinationResource(
           URL,
@@ -246,10 +224,10 @@ describe('WebClient', () => {
           ContentType.JSON,
         );
 
-        expect(capturedHeaders['User-Agent']).toBe(
+        expect(getCapturedHeaders().get('User-Agent')).toBe(
           `knowledge-connector-app/${packageVersion} (node.js ${nodeVersion})`,
         );
-        mockAgent.assertNoPendingInterceptors();
+        expect(fetchSpy.mock.calls.length).toBe(1);
       });
     });
   });
@@ -257,11 +235,7 @@ describe('WebClient', () => {
   describe('fetchDestinationResource', () => {
     describe('when content type is JSON', () => {
       it('should resolve with response', async () => {
-        mockAgent
-          .get(URL)
-          .intercept({ method: 'GET', path: '/' })
-          .reply(200, JSON.stringify({}))
-          .times(1);
+        stubFetch(200, JSON.stringify({}));
 
         const actual = await fetchDestinationResource(
           URL,
@@ -271,16 +245,12 @@ describe('WebClient', () => {
         );
 
         expect(actual).toStrictEqual({});
-        mockAgent.assertNoPendingInterceptors();
+        expect(fetchSpy.mock.calls.length).toBe(1);
       });
 
       describe('when unparsable', () => {
         it('should reject', async () => {
-          mockAgent
-            .get(URL)
-            .intercept({ method: 'GET', path: '/' })
-            .reply(200, 'some none JSON response')
-            .times(6);
+          stubFetchTimes(200, 'some none JSON response', 6);
 
           await expect(() => fetchDestinationResource(URL)).rejects.toThrow(
             new ApiError(
@@ -297,19 +267,14 @@ describe('WebClient', () => {
               ),
             ),
           );
-
-          mockAgent.assertNoPendingInterceptors();
+          expect(fetchSpy.mock.calls.length).toBe(6);
         });
       });
     });
 
     describe('when content type is text', () => {
       it('should resolve with response', async () => {
-        mockAgent
-          .get(URL)
-          .intercept({ method: 'GET', path: '/' })
-          .reply(200, 'text response')
-          .times(1);
+        stubFetch(200, 'text response');
 
         const actual = await fetchDestinationResource(
           URL,
@@ -319,17 +284,13 @@ describe('WebClient', () => {
         );
 
         expect(actual).toBe('text response');
-        mockAgent.assertNoPendingInterceptors();
+        expect(fetchSpy.mock.calls.length).toBe(1);
       });
     });
 
     describe('when content type is blob', () => {
       it('should resolve with response', async () => {
-        mockAgent
-          .get(URL)
-          .intercept({ method: 'GET', path: '/' })
-          .reply(200, 'text response')
-          .times(1);
+        stubFetch(200, 'text response');
 
         const actual = await fetchDestinationResource(
           URL,
@@ -339,31 +300,22 @@ describe('WebClient', () => {
         );
 
         expect(actual).toBeInstanceOf(Blob);
-        mockAgent.assertNoPendingInterceptors();
+        expect(fetchSpy.mock.calls.length).toBe(1);
       });
     });
 
     describe('when status 2XX', () => {
       it('should resolve with response', async () => {
-        mockAgent
-          .get(URL)
-          .intercept({ method: 'GET', path: '/' })
-          .reply(200, JSON.stringify({}))
-          .times(1);
+        stubFetch(200, JSON.stringify({}));
 
         await fetchDestinationResource(URL);
-
-        mockAgent.assertNoPendingInterceptors();
+        expect(fetchSpy.mock.calls.length).toBe(1);
       });
     });
 
     describe('when status 4XX', () => {
       it('should not retry', async () => {
-        mockAgent
-          .get(URL)
-          .intercept({ method: 'GET', path: '/' })
-          .reply(404, JSON.stringify({}))
-          .times(1);
+        stubFetch(404, JSON.stringify({}));
 
         await expect(() => fetchDestinationResource(URL)).rejects.toThrow(
           new ApiError(
@@ -374,34 +326,25 @@ describe('WebClient', () => {
             },
           ),
         );
-
-        mockAgent.assertNoPendingInterceptors();
+        expect(fetchSpy.mock.calls.length).toBe(1);
       });
     });
 
     describe('when status 5XX', () => {
       it('should retry', async () => {
-        mockAgent
-          .get(URL)
-          .intercept({ method: 'GET', path: '/' })
-          .reply(503, JSON.stringify({}))
-          .times(6);
+        stubFetchTimes(503, JSON.stringify({}), 6);
 
         await expect(() => fetchDestinationResource(URL)).rejects.toThrow(
           ApiError,
         );
 
-        mockAgent.assertNoPendingInterceptors();
+        expect(fetchSpy.mock.calls.length).toBe(6);
       }, 10000);
     });
 
     describe('when response cannot be parsed', () => {
       it('should retry', async () => {
-        mockAgent
-          .get(URL)
-          .intercept({ method: 'GET', path: '/' })
-          .reply(200, '<html></html>')
-          .times(6);
+        stubFetchTimes(200, '<html></html>', 6);
 
         await expect(() => fetchDestinationResource(URL)).rejects.toThrow(
           new ApiError(
@@ -419,7 +362,7 @@ describe('WebClient', () => {
           ),
         );
 
-        mockAgent.assertNoPendingInterceptors();
+        expect(fetchSpy.mock.calls.length).toBe(6);
       }, 10000);
     });
 
@@ -437,7 +380,7 @@ describe('WebClient', () => {
           Interrupted,
         );
 
-        mockAgent.assertNoPendingInterceptors();
+        expect(fetchSpy.mock.calls.length).toBe(0);
       });
     });
   });
@@ -453,31 +396,25 @@ describe('WebClient', () => {
 
     describe('fetch', () => {
       it('should throw Interrupted', async () => {
-        await expect(async () => await fetch('', {})).rejects.toThrow(
+        await expect(async () => await request('', {})).rejects.toThrow(
           Interrupted,
         );
+
+        expect(fetchSpy.mock.calls.length).toBe(0);
       });
 
       describe('interruptible false header set', () => {
         it('should not throw Interrupted', async () => {
-          let capturedHeaders: Headers | undefined;
+          stubFetch(200, JSON.stringify({}));
 
-          mockAgent
-            .get(URL)
-            .intercept({ method: 'GET', path: '/' })
-            .reply(200, (opts) => {
-              capturedHeaders = new Headers(opts.headers);
-              return JSON.stringify({});
-            })
-            .times(1);
-
-          await fetch(URL, {
+          await request(URL, {
             headers: {
               interruptible: 'false',
             },
           });
 
-          expect(capturedHeaders?.has('interruptible')).toBeFalsy();
+          expect(getCapturedHeaders().has('interruptible')).toBeFalsy();
+          expect(fetchSpy.mock.calls.length).toBe(1);
         });
       });
     });
@@ -487,6 +424,8 @@ describe('WebClient', () => {
         await expect(async () => await fetchImage('', {})).rejects.toThrow(
           Interrupted,
         );
+
+        expect(fetchSpy.mock.calls.length).toBe(0);
       });
     });
   });
