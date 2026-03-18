@@ -1,5 +1,12 @@
 # Change log
 
+## 0.11.0
+
+### Changes:
+
+1. Added OAuth Client Credentials Flow support for ServiceNow
+2. Refactored authentication logic into reusable authentication providers
+
 ## 0.10.5 (2026-03-04)
 
 ### Changes:

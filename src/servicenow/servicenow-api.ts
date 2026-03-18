@@ -1,4 +1,7 @@
-import { AuthenticationType, ServiceNowConfig } from './model/servicenow-config.js';
+import {
+  AuthenticationType,
+  ServiceNowConfig,
+} from './model/servicenow-config.js';
 import { ServiceNowArticle } from './model/servicenow-article.js';
 import { fetchSourceResource } from '../utils/web-client.js';
 import { ServiceNowArticleResponse } from './model/servicenow-article-response.js';
@@ -20,15 +23,15 @@ import {
 import { EntityType } from '../model/entity-type.js';
 import { ContentType } from '../utils/content-type.js';
 import { RequestInit } from 'undici';
-import { validateNonNull} from '../utils/validate-non-null.js';
-import { URLSearchParams} from 'url';
-import { ServiceNowAccessTokenResponse} from '../servicenow/model/servicenow-access-token-response.js';
-import { catcher } from '../utils/catch-error-helper.js';
-import { Interrupted } from '../utils/errors/interrupted.js';
-import { ApiError } from '../adapter/errors/api-error.js';
-import { InvalidCredentialsError } from '../adapter/errors/invalid-credentials-error.js';
-import { ServicenowOAuthToken } from './model/servicenow-oauth-token.js';
+import { validateNonNull } from '../utils/validate-non-null.js';
 import { LANGUAGE_MAPPING } from './servicenow-language-mapping.js';
+import { AuthenticationProvider } from '../utils/authentication/authentication-provider.js';
+import { BasicAuthenticationProvider } from '../utils/authentication/basic-authentication-provider.js';
+import { OauthPasswordAuthenticationProvider } from '../utils/authentication/oauth-password-authentication-provider.js';
+import { ServiceNowTokenParser } from './servicenow-token-parser.js';
+import { NopeAuthenticationProvider } from '../utils/authentication/nope-authentication-provider.js';
+import { OauthClientCredentialsAuthenticationProvider } from '../utils/authentication/oauth-client-credentials-authentication-provider.js';
+import { ServiceNowAccessTokenResponse } from './model/servicenow-access-token-response.js';
 
 export class ServiceNowApi {
   private config: ServiceNowConfig = {};
@@ -47,26 +50,19 @@ export class ServiceNowApi {
       processedCount: 0,
     },
   };
-  private oAuthToken: ServicenowOAuthToken = {
-    bearerToken : '',
-    refreshToken: '',
-    expiresAt: 0
-  };
-  private authenticationType?: AuthenticationType;
-  private isOAuth: boolean = false;
+  private authenticationProvider: AuthenticationProvider<ServiceNowAccessTokenResponse> =
+    new NopeAuthenticationProvider();
 
   public async initialize(
     config: ServiceNowConfig,
     context: ServiceNowContext,
   ): Promise<void> {
     this.config = config;
-    this.limit = this.config.limit ? parseInt(this.config.limit, 10) : 50;
+    this.limit = this.config.limit
+      ? Number.parseInt(this.config.limit, 10)
+      : 50;
     this.baseUrl = removeTrailingSlash(this.config.servicenowBaseUrl ?? '');
-    this.authenticationType = config.servicenowAuthenticationType ?? AuthenticationType.BASIC;
-    this.isOAuth = this.authenticationType === AuthenticationType.OAUTH;
-    if (this.isOAuth) {
-      await this.authenticate();
-    }
+    await this.initAuthenticationProvider(config);
 
     this.apiContext = setIfMissing(context, 'api', this.apiContext);
   }
@@ -239,29 +235,8 @@ export class ServiceNowApi {
   }
 
   private async buildRequestInit(): Promise<RequestInit> {
-    if (this.isOAuth && this.oAuthToken.bearerToken) {
-      if (this.isTokenExpired()) {
-        await this.refreshAccessToken();
-      }
-
-      return {
-        headers: {
-          Authorization: `Bearer ${this.oAuthToken.bearerToken}`,
-        },
-      };
-    }
-
     return {
-      headers: {
-        Authorization:
-          'Basic ' +
-          Buffer.from(
-            this.config.servicenowUsername +
-              ':' +
-              this.config.servicenowPassword,
-            'utf-8',
-          ).toString('base64'),
-      },
+      headers: await this.authenticationProvider.constructHeaders(),
     };
   }
 
@@ -288,8 +263,10 @@ export class ServiceNowApi {
   private mapLanguageCode(): string {
     const languageCode = this.config.servicenowLanguage!;
 
-    return LANGUAGE_MAPPING[languageCode]
-      ?? (languageCode.length > 2 ? languageCode.substring(0, 2) : languageCode);
+    return (
+      LANGUAGE_MAPPING[languageCode] ??
+      (languageCode.length > 2 ? languageCode.substring(0, 2) : languageCode)
+    );
   }
 
   private buildFilters(categories?: string): string {
@@ -315,116 +292,98 @@ export class ServiceNowApi {
 
   private constructArticleUrl(offset: number | null): string | null {
     const endpoint = `/api/sn_km_api/knowledge/articles?fields=kb_category,text,workflow_state,topic,category,sys_updated_on&${this.queryParams()}&limit=${this.limit}`;
-    return offset !== null
-      ? `${this.baseUrl}${endpoint}&offset=${offset}`
-      : null;
+    return offset === null
+      ? null
+      : `${this.baseUrl}${endpoint}&offset=${offset}`;
   }
 
   private constructCategoryUrl(offset: number | null): string | null {
     const endpoint = `/api/now/table/kb_category?sysparm_fields=sys_id,full_category&active=true&sysparm_query=parent_id!%3Dundefined&sysparm_limit=${this.limit}`;
-    return offset !== null
-      ? `${this.baseUrl}${endpoint}&sysparm_offset=${offset}`
-      : null;
+    return offset === null
+      ? null
+      : `${this.baseUrl}${endpoint}&sysparm_offset=${offset}`;
   }
 
-  private isTokenExpired(): boolean {
-    return Date.now() >= this.oAuthToken.expiresAt;
+  private async initAuthenticationProvider(
+    config: ServiceNowConfig,
+  ): Promise<void> {
+    const authenticationType =
+      config.servicenowAuthenticationType ?? AuthenticationType.BASIC;
+    const isOAuth = authenticationType === AuthenticationType.OAUTH;
+
+    if (isOAuth) {
+      if (!this.config.servicenowUsername && !this.config.servicenowPassword) {
+        this.initClientCredentialsGrant();
+      } else {
+        this.initPasswordGrant();
+      }
+    } else {
+      this.initBasicAuth();
+    }
+
+    await this.authenticationProvider.authenticate();
   }
 
-  private async refreshAccessToken(): Promise<void> {
-    validateNonNull(
+  private initPasswordGrant(): void {
+    const clientId = validateNonNull(
       this.config.servicenowClientId,
       'Missing SERVICENOW_CLIENT_ID from config',
     );
-    validateNonNull(
+    const clientSecret = validateNonNull(
       this.config.servicenowClientSecret,
       'Missing SERVICENOW_CLIENT_SECRET from config',
     );
-    validateNonNull(
-      this.oAuthToken.refreshToken,
-      'Missing refresh token from the previous access token',
-    );
-
-    const bodyParams = new URLSearchParams();
-    bodyParams.append('grant_type', 'refresh_token');
-    bodyParams.append('client_id', this.config.servicenowClientId!);
-    bodyParams.append('client_secret', this.config.servicenowClientSecret!);
-    bodyParams.append('refresh_token', this.oAuthToken.refreshToken);
-
-    await this.getAccessToken(bodyParams);
-  }
-
-  private async authenticate(): Promise<void> {
-    validateNonNull(
-      this.config.servicenowClientId,
-      'Missing SERVICENOW_CLIENT_ID from config',
-    );
-    validateNonNull(
-      this.config.servicenowClientSecret,
-      'Missing SERVICENOW_CLIENT_SECRET from config',
-    );
-    validateNonNull(
+    const username = validateNonNull(
       this.config.servicenowUsername,
       'Missing SERVICENOW_USERNAME from config',
     );
-    validateNonNull(
+    const password = validateNonNull(
       this.config.servicenowPassword,
       'Missing SERVICENOW_PASSWORD from config',
     );
 
-    const bodyParams = new URLSearchParams();
-    bodyParams.append('grant_type', 'password');
-    bodyParams.append('client_id', this.config.servicenowClientId!);
-    bodyParams.append('client_secret', this.config.servicenowClientSecret!);
-    bodyParams.append('username', this.config.servicenowUsername!);
-    bodyParams.append('password', this.config.servicenowPassword!);
-
-    await this.getAccessToken(bodyParams);
+    this.authenticationProvider = new OauthPasswordAuthenticationProvider(
+      clientId,
+      clientSecret,
+      username,
+      password,
+      `${this.config.servicenowBaseUrl}/oauth_token.do`,
+      new ServiceNowTokenParser(),
+    );
   }
 
-  private async getAccessToken(bodyParams: URLSearchParams): Promise<void> {
-    const url = `${this.baseUrl}/oauth_token.do`;
-    const request = {
-      method: 'POST',
-      body: bodyParams,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    };
+  private initClientCredentialsGrant(): void {
+    const clientId = validateNonNull(
+      this.config.servicenowClientId,
+      'Missing SERVICENOW_CLIENT_ID from config',
+    );
+    const clientSecret = validateNonNull(
+      this.config.servicenowClientSecret,
+      'Missing SERVICENOW_CLIENT_SECRET from config',
+    );
 
-    try {
-      const data = await fetchSourceResource<ServiceNowAccessTokenResponse>(
-        url,
-        request,
-        undefined,
+    this.authenticationProvider =
+      new OauthClientCredentialsAuthenticationProvider(
+        clientId,
+        clientSecret,
+        `${this.config.servicenowBaseUrl}/oauth_token.do`,
+        new ServiceNowTokenParser(),
       );
+  }
 
-      validateNonNull(
-        data.access_token,
-        `Access token not found in the response: ${JSON.stringify(data)}`,
-      );
+  private initBasicAuth(): void {
+    const username = validateNonNull(
+      this.config.servicenowUsername,
+      'Missing SERVICENOW_USERNAME from config',
+    );
+    const password = validateNonNull(
+      this.config.servicenowPassword,
+      'Missing SERVICENOW_PASSWORD from config',
+    );
 
-      this.oAuthToken = {
-        bearerToken: data.access_token,
-        refreshToken: data.refresh_token,
-        expiresAt: Date.now() + data.expires_in * 1000,
-      };
-    } catch (error) {
-      await catcher<void>()
-        .on(ApiError, (apiError) => {
-          throw InvalidCredentialsError.fromApiError(
-            `Failed to get ServiceNow bearer token. Reason: ${apiError.message}`,
-            apiError as ApiError,
-          );
-        })
-        .rethrow(Interrupted)
-        .any(() => {
-          throw new InvalidCredentialsError(
-            `Failed to get ServiceNow bearer token. Reason: ${error}`,
-            { messageParams: { message: error } },
-          );
-        })
-        .with(error);
-    }
+    this.authenticationProvider = new BasicAuthenticationProvider(
+      username,
+      password,
+    );
   }
 }
