@@ -10,7 +10,7 @@ import { BulkDeleteResponse } from '../model/bulk-delete-response.js';
 import { GenesysDestinationApi } from './genesys-destination-api.js';
 import { DestinationAdapter } from '../adapter/destination-adapter.js';
 import { getLogger } from '../utils/logger.js';
-import { fileTypeFromBuffer } from 'file-type';
+import { fileTypeFromBuffer } from 'file-type/core';
 import { FileTypeNotSupportedError } from './errors/file-type-not-supported-error.js';
 import { InvalidExportJobError } from './errors/invalid-export-job-error.js';
 import { CompareMode } from '../utils/compare-mode.js';

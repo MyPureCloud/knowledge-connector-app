@@ -2,11 +2,7 @@ import { SalesforceConfig } from './model/salesforce-config.js';
 import { SalesforceEntityTypes } from './model/salesforce-entity-types.js';
 import { SalesforceResponse } from './model/salesforce-response.js';
 import { SalesforceArticle } from './model/salesforce-article.js';
-import {
-  fetchImage,
-  fetchSourceResource,
-  RequestInit,
-} from '../utils/web-client.js';
+import { fetchImage, fetchSourceResource } from '../utils/web-client.js';
 import { SalesforceCategoryGroup } from './model/salesforce-category-group.js';
 import { SalesforceArticleDetails } from './model/salesforce-article-details.js';
 import { SalesforceCategory } from './model/salesforce-category.js';
@@ -141,7 +137,9 @@ export class SalesforceApi {
   ): Promise<Image | null> {
     return fetchImage(
       `${this.instanceUrl}/services/data/${this.config.salesforceApiVersion}/sobjects/knowledge__kav${url}`,
-      await this.authenticationProvider.constructHeaders(),
+      {
+        headers: await this.authenticationProvider.constructHeaders(),
+      },
     );
   }
 

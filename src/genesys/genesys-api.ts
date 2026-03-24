@@ -6,7 +6,6 @@ import { Config } from '../config.js';
 import { JobStatusResponse } from './model/job-status-response.js';
 import { getLogger } from '../utils/logger.js';
 import { JobStatus } from './model/job-status.js';
-import { RequestInit } from '../utils/web-client.js';
 import { EntityType } from '../model/entity-type.js';
 import { ExcludeOptions } from '../model/exclude-options.js';
 
@@ -31,12 +30,14 @@ export abstract class GenesysApi {
     entityName?: EntityType,
   ): Promise<T>;
 
-  public createExportJob(exclude?: ExcludeOptions[]): Promise<ExportArticlesResponse> {
+  public createExportJob(
+    exclude?: ExcludeOptions[],
+  ): Promise<ExportArticlesResponse> {
     const kbId = this.getKnowledgeBaseId();
     const body: ExportArticlesRequest = {
       exportFilter: {
         versionFilter: 'Latest',
-        ...(exclude && exclude.length > 0 ? { exclude } : {})
+        ...(exclude && exclude.length > 0 ? { exclude } : {}),
       },
       fileType: 'json',
       jsonFileVersion: 3,

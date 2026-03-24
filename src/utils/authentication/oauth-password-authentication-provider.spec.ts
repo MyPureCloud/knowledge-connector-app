@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { OauthPasswordAuthenticationProvider } from './oauth-password-authentication-provider.js';
-import { fetch, Response } from '../web-client.js';
+import { request } from '../web-client.js';
 import { URLSearchParams } from 'url';
 
 jest.mock('../web-client.js');
@@ -15,10 +15,10 @@ describe('OauthPasswordAuthenticationProvider', () => {
   const REFRESH_TOKEN = 'refresh-token';
 
   let provider: OauthPasswordAuthenticationProvider<TokenResponseModel>;
-  let mockFetch: jest.Mock<typeof fetch>;
+  let mockRequest: jest.Mock<typeof request>;
 
   beforeEach(() => {
-    mockFetch = fetch as jest.Mock<typeof fetch>;
+    mockRequest = request as jest.Mock<typeof request>;
 
     provider = new OauthPasswordAuthenticationProvider(
       CLIENT_ID,
@@ -50,8 +50,8 @@ describe('OauthPasswordAuthenticationProvider', () => {
         expires_in: expect.any(Number),
       });
 
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(mockRequest).toHaveBeenCalledTimes(1);
+      expect(mockRequest).toHaveBeenCalledWith(
         REQUEST_TOKEN_URL,
         {
           method: 'POST',
@@ -80,7 +80,7 @@ describe('OauthPasswordAuthenticationProvider', () => {
         Authorization: `Bearer ${ACCESS_TOKEN}`,
       });
 
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockRequest).toHaveBeenCalledTimes(1);
     });
 
     it('should refresh expired access token', async () => {
@@ -92,12 +92,12 @@ describe('OauthPasswordAuthenticationProvider', () => {
         Authorization: `Bearer ${ACCESS_TOKEN}`,
       });
 
-      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(mockRequest).toHaveBeenCalledTimes(2);
     });
   });
 
   function mockSuccessRequest(expiresIn: number = 3600) {
-    mockFetch.mockResolvedValueOnce({
+    mockRequest.mockResolvedValueOnce({
       ok: true,
       status: 200,
       text: () =>

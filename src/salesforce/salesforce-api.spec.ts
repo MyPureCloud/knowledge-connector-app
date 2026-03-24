@@ -1,7 +1,7 @@
 import { isString } from 'lodash';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { SalesforceApi } from './salesforce-api.js';
-import { fetch, Response } from '../utils/web-client.js';
+import { request } from '../utils/web-client.js';
 import { SalesforceConfig } from './model/salesforce-config.js';
 import { SalesforceContext } from './model/salesforce-context.js';
 import { SalesforceEntityTypes } from './model/salesforce-entity-types.js';
@@ -33,14 +33,14 @@ describe('SalesforceApi', () => {
     'Accept-Language': 'en-US',
   };
   let api: SalesforceApi;
-  let mockFetch: jest.Mock<typeof fetch>;
+  let mockRequest: jest.Mock<typeof request>;
   let context: SalesforceContext;
 
   beforeEach(() => {
     api = new SalesforceApi();
     context = buildContext();
 
-    mockFetch = fetch as jest.Mock<typeof fetch>;
+    mockRequest = request as jest.Mock<typeof request>;
     mockLoginResponse();
   });
 
@@ -63,7 +63,7 @@ describe('SalesforceApi', () => {
 
       await api.articleIterator().next();
 
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(mockRequest).toHaveBeenCalledWith(
         'https://base-url/services/data/v56.0/support/knowledgeArticles?channel=Pkb&categories={"something":"someone","otherGroup":"other_category"}&queryMethod=BELOW',
         {
           headers: {
@@ -92,7 +92,7 @@ describe('SalesforceApi', () => {
 
       await api.articleIterator().next();
 
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(mockRequest).toHaveBeenCalledWith(
         'https://base-url/services/data/v56.0/support/knowledgeArticles?channel=Pkb&categories={"something":"someone"}&queryMethod=BELOW',
         {
           headers: {
@@ -121,7 +121,7 @@ describe('SalesforceApi', () => {
 
       await api.articleIterator().next();
 
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(mockRequest).toHaveBeenCalledWith(
         'https://base-url/services/data/v56.0/support/knowledgeArticles?channel=Pkb&categories={"something":"someone"}&queryMethod=BELOW',
         {
           headers: {
@@ -139,7 +139,7 @@ describe('SalesforceApi', () => {
 
       const response = await arraysFromAsync(api.articleIterator());
 
-      expect(fetch).toHaveBeenCalledTimes(3); // 1 login + 1 page + 1 article detail
+      expect(request).toHaveBeenCalledTimes(3); // 1 login + 1 page + 1 article detail
       verifyPkbChannelFetch();
       expect(response.length).toEqual(1);
       expect(response).toEqual([constructArticle('4')]);
@@ -158,7 +158,7 @@ describe('SalesforceApi', () => {
         nextPageUrl: null,
       });
       mockApiResponse(200, article1);
-      mockFetch.mockImplementation(() => {
+      mockRequest.mockImplementation(() => {
         throw new Interrupted();
       });
 
@@ -168,7 +168,7 @@ describe('SalesforceApi', () => {
         }
       }).rejects.toThrow(Interrupted);
 
-      expect(fetch).toHaveBeenCalledTimes(4); // 1 login + 1 page + 2 article detail
+      expect(request).toHaveBeenCalledTimes(4); // 1 login + 1 page + 2 article detail
       expect(
         context.api![SalesforceEntityTypes.ARTICLES].unprocessed,
       ).toHaveLength(1);
@@ -187,7 +187,7 @@ describe('SalesforceApi', () => {
 
         const response = await arraysFromAsync(api.articleIterator());
 
-        expect(fetch).toHaveBeenCalledTimes(13); // 1 login + 5 page + 7 article detail
+        expect(request).toHaveBeenCalledTimes(13); // 1 login + 5 page + 7 article detail
         verifyAppChannelFetch();
         verifyPkbChannelFetch();
         verifyPrmChannelFetch();
@@ -219,7 +219,7 @@ describe('SalesforceApi', () => {
 
         const response = await arraysFromAsync(api.articleIterator());
 
-        expect(fetch).toHaveBeenCalledTimes(15); // 1 login + 6 page + 8 article detail
+        expect(request).toHaveBeenCalledTimes(15); // 1 login + 6 page + 8 article detail
         verifyAppChannelFetch();
         verifyPkbChannelFetch();
         verifyCspChannelFetch();
@@ -249,7 +249,7 @@ describe('SalesforceApi', () => {
 
           const verifyAppChannelFetch = mockAppChannelArticleResponse();
           // Interrupt after App channel
-          mockFetch.mockRejectedValueOnce(new Interrupted());
+          mockRequest.mockRejectedValueOnce(new Interrupted());
           const verifyPkbChannelFetch = mockPkbChannelArticleResponse();
 
           const beforeInterrupted: SalesforceArticleDetails[] = [];
@@ -262,7 +262,7 @@ describe('SalesforceApi', () => {
           // start again
           const afterInterrupted = await arraysFromAsync(api.articleIterator());
 
-          expect(fetch).toHaveBeenCalledTimes(9); // 1 login + 3 page + 4 article detail + 1 interrupted
+          expect(request).toHaveBeenCalledTimes(9); // 1 login + 3 page + 4 article detail + 1 interrupted
           verifyAppChannelFetch();
           verifyPkbChannelFetch();
           expect(beforeInterrupted.length).toEqual(3);
@@ -296,7 +296,7 @@ describe('SalesforceApi', () => {
           // start again
           const afterInterrupted = await arraysFromAsync(api.articleIterator());
 
-          expect(fetch).toHaveBeenCalledTimes(9); // 1 login + 3 page + 4 article detail + 1 interrupted
+          expect(request).toHaveBeenCalledTimes(9); // 1 login + 3 page + 4 article detail + 1 interrupted
           verifyAppChannelFetch();
           verifyPkbChannelFetch();
           expect(beforeInterrupted.length).toEqual(1);
@@ -323,7 +323,7 @@ describe('SalesforceApi', () => {
 
       await api.initialize(CONFIG, context);
 
-      expect(fetch).toHaveBeenCalledWith(
+      expect(request).toHaveBeenCalledWith(
         'https://login-url/services/oauth2/token',
         {
           method: 'POST',
@@ -350,7 +350,7 @@ describe('SalesforceApi', () => {
         context,
       );
 
-      expect(fetch).toHaveBeenCalledWith(
+      expect(request).toHaveBeenCalledWith(
         'https://login-url/services/oauth2/token',
         {
           method: 'POST',
@@ -383,7 +383,7 @@ describe('SalesforceApi', () => {
     });
     mockApiResponse(200, constructArticle('1'));
     if (withInterruption) {
-      mockFetch.mockRejectedValueOnce(new Interrupted());
+      mockRequest.mockRejectedValueOnce(new Interrupted());
     }
     mockApiResponse(200, constructArticle('2'));
     mockApiResponse(200, {
@@ -451,7 +451,7 @@ describe('SalesforceApi', () => {
   function mockApiResponse(status: number, body: unknown): void {
     const str = isString(body) ? body : JSON.stringify(body);
 
-    mockFetch.mockResolvedValueOnce({
+    mockRequest.mockResolvedValueOnce({
       ok: status === 200,
       status,
       text: () => Promise.resolve(str),
@@ -459,7 +459,7 @@ describe('SalesforceApi', () => {
   }
 
   function checkFetchUrl(expectedUrl: string) {
-    expect(fetch).toHaveBeenCalledWith(
+    expect(request).toHaveBeenCalledWith(
       expectedUrl,
       { headers: HEADERS },
       EntityType.DOCUMENT,

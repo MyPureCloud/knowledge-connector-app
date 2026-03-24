@@ -1,5 +1,5 @@
 {
-  "extends": "@tsconfig/node18/tsconfig.json",
+  "extends": "@tsconfig/node22/tsconfig.json",
   "compilerOptions": {
     "preserveConstEnums": true,
     "sourceMap": true,
@@ -11,12 +11,6 @@
     "moduleResolution": "Node",
     "declaration": true
   },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.ts"
-  ]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

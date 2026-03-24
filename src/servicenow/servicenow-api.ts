@@ -22,7 +22,6 @@ import {
 } from './model/servicenow-single-article-response.js';
 import { EntityType } from '../model/entity-type.js';
 import { ContentType } from '../utils/content-type.js';
-import { RequestInit } from 'undici';
 import { validateNonNull } from '../utils/validate-non-null.js';
 import { LANGUAGE_MAPPING } from './servicenow-language-mapping.js';
 import { AuthenticationProvider } from '../utils/authentication/authentication-provider.js';

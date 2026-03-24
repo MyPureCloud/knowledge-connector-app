@@ -1,6 +1,6 @@
 import { GenesysDestinationApi } from './genesys-destination-api.js';
 import { GenesysDestinationConfig } from './model/genesys-destination-config.js';
-import { fetch, Response } from '../utils/web-client.js';
+import { request } from '../utils/web-client.js';
 import { TokenResponse } from './model/token-response.js';
 import { SearchAssetResponse } from './model/search-asset-response.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
@@ -13,12 +13,12 @@ describe('GenesysDestinationApi', () => {
   const KB_ID = 'kb-id';
 
   let genesysDestinationApi: GenesysDestinationApi;
-  let mockFetch: jest.Mock<typeof fetch>;
+  let mockRequest: jest.Mock<typeof request>;
 
   beforeEach(() => {
     genesysDestinationApi = new GenesysDestinationApi();
 
-    mockFetch = fetch as jest.Mock<typeof fetch>;
+    mockRequest = request as jest.Mock<typeof request>;
     mockLoginResponse();
   });
 
@@ -28,7 +28,7 @@ describe('GenesysDestinationApi', () => {
     });
 
     it('should call export API', async () => {
-      mockFetch.mockResolvedValueOnce({
+      mockRequest.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: () =>
@@ -55,7 +55,7 @@ describe('GenesysDestinationApi', () => {
         ],
       });
 
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(mockRequest).toHaveBeenCalledWith(
         'https://base-url/api/v2/responsemanagement/responseassets/search',
         {
           body: '{"sortBy":"name","pageSize":100,"query":[{"value":"hash-to-search-for","fields":["name"],"type":"STARTS_WITH"}]}',
@@ -80,7 +80,7 @@ describe('GenesysDestinationApi', () => {
     });
 
     it('should call sync API', async () => {
-      mockFetch.mockResolvedValueOnce({
+      mockRequest.mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: () =>
@@ -93,7 +93,7 @@ describe('GenesysDestinationApi', () => {
 
       const response = await genesysDestinationApi.createSyncJob('upload-key');
 
-      expect(mockFetch).toHaveBeenCalledWith(
+      expect(mockRequest).toHaveBeenCalledWith(
         `https://base-url/api/v2/knowledge/knowledgeBases/${KB_ID}/synchronize/jobs`,
         {
           body: '{"uploadKey":"upload-key","sourceId":"source-id"}',
@@ -111,7 +111,7 @@ describe('GenesysDestinationApi', () => {
   });
 
   function mockLoginResponse() {
-    mockFetch.mockResolvedValueOnce({
+    mockRequest.mockResolvedValueOnce({
       ok: true,
       status: 200,
       text: () =>

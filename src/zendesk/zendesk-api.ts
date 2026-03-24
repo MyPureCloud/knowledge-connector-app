@@ -16,7 +16,6 @@ import {
 import { Pager } from '../utils/pager.js';
 import { EntityType } from '../model/entity-type.js';
 import { ContentType } from '../utils/content-type.js';
-import { RequestInit } from 'undici';
 
 export class ZendeskApi {
   private config: ZendeskConfig = {};

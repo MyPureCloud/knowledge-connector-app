@@ -13,7 +13,7 @@ import { validateNonNull } from '../utils/validate-non-null.js';
 import { BulkDeleteResponse } from '../model/bulk-delete-response.js';
 import { GenesysApi } from './genesys-api.js';
 import { GenesysDestinationConfig } from './model/genesys-destination-config.js';
-import { fetchDestinationResource, RequestInit } from '../utils/web-client.js';
+import { fetchDestinationResource } from '../utils/web-client.js';
 import { removeTrailingSlash } from '../utils/remove-trailing-slash.js';
 import { getLogger } from '../utils/logger.js';
 import { EntityType } from '../model/entity-type.js';

@@ -1,5 +1,5 @@
 import type { JestConfigWithTsJest } from 'ts-jest';
-import { defaults as tsjPreset } from 'ts-jest/presets';
+import { createDefaultPreset } from 'ts-jest';
 
 const jestConfig: JestConfigWithTsJest = {
   preset: 'ts-jest',
@@ -7,7 +7,7 @@ const jestConfig: JestConfigWithTsJest = {
   resolver: 'ts-jest-resolver',
   testEnvironment: 'node',
   transform: {
-    ...tsjPreset.transform,
+    ...createDefaultPreset().transform,
   },
   moduleFileExtensions: ['ts', 'tsx', 'js'],
   modulePathIgnorePatterns: ['/dist'],
