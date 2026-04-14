@@ -1,5 +1,11 @@
 # Change log
 
+## 0.12.1
+
+### Changes:
+
+1. Dependency update
+
 ## 0.12.0
 
 ### Breaking Changes:
