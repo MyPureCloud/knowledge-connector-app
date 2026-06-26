@@ -12,6 +12,7 @@ import { DestinationAdapter } from '../adapter/destination-adapter.js';
 import { getLogger } from '../utils/logger.js';
 import { fileTypeFromBuffer } from 'file-type/core';
 import { FileTypeNotSupportedError } from './errors/file-type-not-supported-error.js';
+import { ImageUploadLimitError } from './errors/image-upload-limit-error.js';
 import { InvalidExportJobError } from './errors/invalid-export-job-error.js';
 import { CompareMode } from '../utils/compare-mode.js';
 import { ExcludeOptions } from '../model/exclude-options.js';
@@ -61,9 +62,23 @@ export class GenesysDestinationAdapter implements DestinationAdapter {
 
     getLogger().debug(`Uploading image from ${image.url} with name ${name}`);
 
-    const uploadUrl = await this.getApi().getUploadImageUrl({
-      name,
-    });
+    let uploadUrl;
+    try {
+      uploadUrl = await this.getApi().getUploadImageUrl({
+        name,
+      });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message?.includes('IMAGE_LIMIT_EXCEEDED')
+      ) {
+        getLogger().warn('Image storage limit exceeded on destination');
+        throw new ImageUploadLimitError(
+          'Organization has reached the maximum image storage limit',
+        );
+      }
+      throw error;
+    }
 
     if (!uploadUrl?.url) {
       getLogger().warn(`Cannot upload image [${image.url}]`);

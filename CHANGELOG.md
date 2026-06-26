@@ -1,5 +1,11 @@
 # Change log
 
+## 0.12.2
+
+### Changes:
+
+1. Added ImageUploadLimitError to abort sync on image storage limit 
+
 ## 0.12.1
 
 ### Changes:

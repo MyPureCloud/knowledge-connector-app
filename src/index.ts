@@ -5,6 +5,7 @@ export { ApiError } from './adapter/errors/api-error.js';
 export { InvalidCredentialsError } from './adapter/errors/invalid-credentials-error.js';
 export { ConfigurerError } from './aggregator/errors/configurer-error.js';
 export { InvalidExportJobError } from './genesys/errors/invalid-export-job-error.js';
+export { ImageUploadLimitError } from './genesys/errors/image-upload-limit-error.js';
 
 export * from './model/index.js';
 export * from './processor/index.js';
