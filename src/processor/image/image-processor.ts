@@ -31,6 +31,7 @@ import { Context } from '../../context/context.js';
 import { catcher } from '../../utils/catch-error-helper.js';
 import { Interrupted } from '../../utils/errors/interrupted.js';
 import { FileTypeNotSupportedError } from '../../genesys/errors/file-type-not-supported-error.js';
+import { ImageUploadLimitError } from '../../genesys/errors/image-upload-limit-error.js';
 import { ApiError } from '../../adapter/errors/api-error.js';
 
 export class ImageProcessor implements Processor {
@@ -174,6 +175,7 @@ export class ImageProcessor implements Processor {
       } catch (error) {
         await catcher<void>()
           .rethrow(Interrupted)
+          .rethrow(ImageUploadLimitError)
           .on(FileTypeNotSupportedError, (error) => {
             getLogger().warn(`Not supported file type ${image.url}`, error);
             this.processImageBlockWithoutUpload(imageBlock);

@@ -12,6 +12,7 @@ import { ErrorBasePublic } from '../utils/errors/error-base-public.js';
 import { ErrorCodes } from '../utils/errors/error-codes.js';
 import { EntityWithMetadata } from '../model/entity-with-metadata.js';
 import { Filter } from '../filter/filter.js';
+import { ImageUploadLimitError } from '../genesys/errors/image-upload-limit-error.js';
 
 export type Method<T> = (
   runnable: Runnable<unknown, unknown, unknown>,
@@ -158,6 +159,7 @@ export class Worker<T extends ExternalIdentifiable> {
           .on(TransformationError, () => {
             unprocessedItems.push(item);
           })
+          .rethrow(ImageUploadLimitError)
           .any(() => {
             failedItems.push(this.generateFailedEntity(item, error as Error));
           })
@@ -225,6 +227,7 @@ export class Worker<T extends ExternalIdentifiable> {
             unprocessedItems.unshift(item);
             throw error;
           })
+          .rethrow(ImageUploadLimitError)
           .any(() => {
             failedItems.push(
               this.generateFailedEntity(processedItem || item, error as Error),

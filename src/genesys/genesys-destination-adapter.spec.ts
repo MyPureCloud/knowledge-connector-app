@@ -17,6 +17,7 @@ import {
 import { FileTypeResult } from 'file-type';
 import { FileTypeNotSupportedError } from './errors/file-type-not-supported-error.js';
 import { InvalidExportJobError } from './errors/invalid-export-job-error.js';
+import { ImageUploadLimitError } from './errors/image-upload-limit-error.js';
 
 const mockUploadImageUrl =
   jest.fn<(params: UploadAssetRequest) => Promise<UploadAssetResponse>>();
@@ -79,6 +80,25 @@ describe('GenesysDestinationAdapter', () => {
           content: new Blob(['']),
         } as Image),
       ).rejects.toThrow(FileTypeNotSupportedError);
+    });
+
+    it('should throw when image limit exceeded', async () => {
+      mockFileTypeFromBuffer.mockResolvedValueOnce({
+        ext: 'png',
+      } as FileTypeResult);
+
+      const error = new Error('IMAGE_LIMIT_EXCEEDED') as Error & {
+        status?: number;
+      };
+
+      mockUploadImageUrl.mockRejectedValueOnce(error);
+
+      await expect(() =>
+        adapter.uploadImage(HASH, {
+          name: `valid-name`,
+          content: new Blob(['']),
+        } as Image),
+      ).rejects.toThrow(ImageUploadLimitError);
     });
   });
 
