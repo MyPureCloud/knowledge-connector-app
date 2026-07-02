@@ -1,5 +1,11 @@
 # Change log
 
+## 0.12.3
+
+### Fixes
+
+1. ESM directory import in ImageUploadLimitError causing runtime crash
+
 ## 0.12.2
 
 ### Changes:
