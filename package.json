@@ -1,6 +1,6 @@
 {
   "name": "knowledge-connector-app",
-  "version": "0.12.3",
+  "version": "0.12.4",
   "description": "Knowledge Connector App",
   "module": "./dist/index.js",
   "main": "./dist/index.js",
@@ -73,7 +73,7 @@
     "dotenv": "17.4.2",
     "file-type": "21.3.4",
     "html-entities": "2.6.0",
-    "knowledge-html-converter": "0.9.0",
+    "knowledge-html-converter": "0.10.0",
     "lodash": "4.18.1",
     "mollitia": "0.2.0",
     "winston": "3.19.0"
