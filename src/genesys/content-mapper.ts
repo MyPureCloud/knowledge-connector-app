@@ -25,13 +25,13 @@ export function labelMapper(label: Label): Label {
 }
 
 export function documentMapper(article: Document): Document {
-  const { id, externalUrl, published, draft } = article;
+  const { id, externalUrl, published } = article;
 
   return {
     id: null,
     externalId: String(id),
     externalUrl,
     published,
-    draft,
+    draft: null,
   };
 }

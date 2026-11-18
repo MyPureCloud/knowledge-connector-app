@@ -271,6 +271,10 @@ export class DiffAggregator implements Aggregator {
     destination: T,
   ): void {
     this.protectedFields.forEach((path) => {
+      const parentPath = _.toPath(path).slice(0, -1);
+      if (parentPath.length > 0 && _.get(destination, parentPath) == null) {
+        return;
+      }
       if (_.has(source, path)) {
         _.set(destination, path, _.get(source, path));
       }

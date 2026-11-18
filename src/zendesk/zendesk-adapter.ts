@@ -44,7 +44,11 @@ export class ZendeskAdapter
   }
 
   public async *articleIterator(): AsyncGenerator<ZendeskArticle, void, void> {
-    yield* this.api.articleIterator();
+    for await (const article of this.api.articleIterator()) {
+      if (!article.draft) {
+        yield article;
+      }
+    }
   }
 
   public async *categoryIterator(): AsyncGenerator<ZendeskSection, void, void> {

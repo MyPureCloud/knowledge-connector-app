@@ -70,7 +70,9 @@ export class GenesysSourceAdapter
     if (this.exportedKnowledgeData?.importAction?.documents) {
       for (const document of this.exportedKnowledgeData.importAction
         .documents) {
-        yield document;
+        if (document.published) {
+          yield document;
+        }
       }
     }
   }

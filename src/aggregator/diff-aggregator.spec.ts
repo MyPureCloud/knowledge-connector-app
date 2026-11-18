@@ -331,6 +331,28 @@ describe('DiffAggregator', () => {
 
           verifyGroups(context.syncableContents.documents, 0, 0, 0);
         });
+
+        it('should not create a draft from protected draft fields when collected document has no draft', async () => {
+          const stored = generateNormalizedDocument('-1', null, 'title1');
+          stored.draft = { ...stored.published! };
+          prepareStoredContent([], [], [stored]);
+          await aggregator.initialize(
+            {
+              protectedFields:
+                'published.alternatives,draft.category,draft.labels,draft.alternatives',
+            },
+            adapters,
+            context,
+          );
+
+          await aggregator.runOnDocument(
+            generateNormalizedDocument('-1', null, 'title1'),
+          );
+
+          expect(
+            context.syncableContents.documents.updated[0].draft,
+          ).toBeNull();
+        });
       });
 
       describe('when article has alternative externalId', () => {
