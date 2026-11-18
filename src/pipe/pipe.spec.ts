@@ -157,6 +157,34 @@ describe('Pipe', () => {
     expect(uploaderMock.initialize).toHaveBeenCalledTimes(1);
   });
 
+  it('should drop drafts from the destination export', async () => {
+    const stored = generateNormalizedDocument('stored');
+    stored.draft = { ...stored.published! };
+    jest.mocked(destinationAdapter.exportAllEntities).mockResolvedValueOnce({
+      version: 3,
+      importAction: {
+        knowledgeBase: { id: '' },
+        documents: [stored],
+        categories: [],
+        labels: [],
+      },
+    });
+    let uploaded: SyncableContents | undefined;
+    const uploaderMock = createUploaderMock([]);
+    uploaderMock.run = async (input: SyncableContents) => {
+      uploaded = input;
+    };
+
+    await new Pipe()
+      .adapters(adapterPair)
+      .loaders(createLoaderMock())
+      .aggregator(createAggregatorMock([]))
+      .uploaders(uploaderMock)
+      .start({});
+
+    expect(uploaded?.documents.deleted[0].draft).toBeNull();
+  });
+
   describe('when configurer given', () => {
     it('should run configurer', async () => {
       expect.assertions(3);
