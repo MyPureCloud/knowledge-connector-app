@@ -157,14 +157,17 @@ describe('Pipe', () => {
     expect(uploaderMock.initialize).toHaveBeenCalledTimes(1);
   });
 
-  it('should drop drafts from the destination export', async () => {
+  it('should drop drafts of published documents from the destination export', async () => {
     const stored = generateNormalizedDocument('stored');
     stored.draft = { ...stored.published! };
+    const draftOnly = generateNormalizedDocument('draft-only');
+    draftOnly.draft = draftOnly.published;
+    draftOnly.published = null;
     jest.mocked(destinationAdapter.exportAllEntities).mockResolvedValueOnce({
       version: 3,
       importAction: {
         knowledgeBase: { id: '' },
-        documents: [stored],
+        documents: [stored, draftOnly],
         categories: [],
         labels: [],
       },
@@ -183,6 +186,7 @@ describe('Pipe', () => {
       .start({});
 
     expect(uploaded?.documents.deleted[0].draft).toBeNull();
+    expect(uploaded?.documents.deleted[1].draft).not.toBeNull();
   });
 
   describe('when configurer given', () => {

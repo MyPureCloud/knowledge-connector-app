@@ -402,8 +402,13 @@ export class Pipe {
 
   private removeGeneratedContent(content: ExternalContent): ExternalContent {
     content.documents?.forEach((document) => {
-      document.draft = null;
-      (document.published?.variations ?? []).forEach((variation) =>
+      if (document.published) {
+        document.draft = null;
+      }
+      [
+        ...(document.published?.variations ?? []),
+        ...(document.draft?.variations ?? []),
+      ].forEach((variation) =>
         extractLinkBlocksFromVariation(variation).forEach((block) => {
           if (block.externalDocumentId) {
             delete block.hyperlink;
