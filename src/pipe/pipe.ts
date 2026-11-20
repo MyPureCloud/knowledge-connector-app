@@ -402,6 +402,9 @@ export class Pipe {
 
   private removeGeneratedContent(content: ExternalContent): ExternalContent {
     content.documents?.forEach((document) => {
+      if (document.published) {
+        document.draft = null;
+      }
       [
         ...(document.published?.variations ?? []),
         ...(document.draft?.variations ?? []),
