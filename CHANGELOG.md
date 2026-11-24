@@ -1,5 +1,11 @@
 # Change log
 
+## 0.12.6
+
+### Fixes
+
+1. Drafts of published articles are dropped from the Genesys knowledge base export
+
 ## 0.12.5
 
 ### Changes:
